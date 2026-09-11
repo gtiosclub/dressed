@@ -1,0 +1,27 @@
+name: Build
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build iOS App
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v6
+
+      - name: Build app
+        run: 
+          xcodebuild \
+            -project "dressed.xcodeproj" \
+            -scheme "dressed" \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 17' \
+            build
