@@ -10,7 +10,7 @@ import SwiftUI
 // initialization of the app
 
 @main
-struct dressedApp: App {
+struct DressedApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
