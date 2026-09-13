@@ -4,9 +4,16 @@ on:
   pull_request:
     branches:
       - main
+      - ingestion_main
+      - social_main
+      - visualization_main
+
   push:
     branches:
       - main
+      - ingestion_main
+      - social_main
+      - visualization_main
 
 permissions:
   contents: read
@@ -17,7 +24,7 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - name: Checkout PR branch
+      - name: Checkout branch
         uses: actions/checkout@v6
 
       - name: Build app
@@ -34,7 +41,7 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - name: Checkout PR branch
+      - name: Checkout branch
         uses: actions/checkout@v6
 
       - name: Install SwiftLint
