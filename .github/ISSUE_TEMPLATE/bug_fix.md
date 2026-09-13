@@ -5,7 +5,7 @@ about: Report and plan a fix for a bug
 title: "[Bug] "
 labels: bug
 assignees: ""
--------------
+---
 
 ## Problem
 
