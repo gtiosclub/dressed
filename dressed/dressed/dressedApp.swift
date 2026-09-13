@@ -7,6 +7,8 @@
 import FirebaseCore
 import SwiftUI
 
+// initialization of the app
+
 @main
 struct dressedApp: App {
     var body: some Scene {
