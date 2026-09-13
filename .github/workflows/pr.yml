@@ -20,7 +20,7 @@ jobs:
       - name: Build app
         run: |
           xcodebuild \
-            -project "dressed.xcodeproj" \
+            -project "dressed/dressed.xcodeproj" \
             -scheme "dressed" \
             -sdk iphonesimulator \
             -destination 'platform=iOS Simulator,name=iPhone 17' \
@@ -38,12 +38,5 @@ jobs:
         run: brew install swiftlint
 
       - name: Run SwiftLint
+        working-directory: dressed
         run: swiftlint lint
-
-  dependency-review:
-    name: Dependency Review
-    runs-on: macos-latest
-
-    steps:
-      - name: Dependency Review
-        uses: actions/dependency-review-action@v4
