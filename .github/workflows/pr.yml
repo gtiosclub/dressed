@@ -1,0 +1,52 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+      - ingestion_main
+      - social_main
+      - visualization_main
+
+  push:
+    branches:
+      - main
+      - ingestion_main
+      - social_main
+      - visualization_main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build iOS App
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v6
+
+      - name: Build app
+        run: |
+          xcodebuild \
+            -project "dressed/dressed.xcodeproj" \
+            -scheme "dressed" \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 17' \
+            build
+
+  lint:
+    name: SwiftLint
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v6
+
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: Run SwiftLint
+        working-directory: dressed
+        run: swiftlint lint
