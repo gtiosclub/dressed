@@ -2,7 +2,7 @@
 //  ContentView.swift
 //  dressed
 //
-//  Created by Developer on 9/10/26.
+//  Created by Ethan Tu on 9/10/26.
 //
 
 import SwiftUI
