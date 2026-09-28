@@ -1,0 +1,180 @@
+{
+  "ClothingItem": {
+    "id": "item_001",
+    "schemaVersion": 1,
+    "ownerId": "user_a",
+    "name": "Blue shirt",
+    "category": "tops",
+    "destination": "closet",
+    "imagePath": "users/user_a/items/item_001/original.jpg",
+    "cutoutPath": "users/user_a/items/item_001/cutout.png",
+    "source": {
+      "kind": "photoLibrary",
+      "importedAt": "2026-09-28T19:00:00Z"
+    },
+    "tags": [
+      "casual"
+    ],
+    "suggestedTags": [],
+    "createdAt": "2026-09-28T19:00:00Z",
+    "updatedAt": "2026-09-28T19:00:00Z"
+  },
+  "UserProfile": {
+    "id": "user_a",
+    "schemaVersion": 1,
+    "username": "example_user",
+    "displayName": "Example",
+    "createdAt": "2026-09-28T19:00:00Z",
+    "updatedAt": "2026-09-28T19:00:00Z"
+  },
+  "Outfit": {
+    "id": "outfit_001",
+    "schemaVersion": 1,
+    "ownerId": "user_a",
+    "name": "Monday",
+    "placementSchemaVersion": 1,
+    "placements": [
+      {
+        "itemId": "item_001",
+        "centerX": 0.5,
+        "centerY": 0.4,
+        "width": 0.6,
+        "rotationDegrees": 0,
+        "layer": 0
+      }
+    ],
+    "createdAt": "2026-09-28T19:00:00Z",
+    "updatedAt": "2026-09-28T19:00:00Z"
+  },
+  "Post": {
+    "id": "post_001",
+    "schemaVersion": 1,
+    "authorId": "user_a",
+    "caption": "Monday outfit",
+    "outfitSnapshot": {
+      "name": "Monday",
+      "items": [
+        {
+          "sourceItemId": "item_001",
+          "name": "Blue shirt",
+          "category": "tops",
+          "mediaPath": "posts/user_a/post_001/item_001.png"
+        }
+      ]
+    },
+    "mediaPath": "posts/user_a/post_001/composite.jpg",
+    "createdAt": "2026-09-28T19:00:00Z"
+  },
+  "SavedPost": {
+    "id": "post_001",
+    "schemaVersion": 1,
+    "ownerId": "user_a",
+    "postId": "post_001",
+    "createdAt": "2026-09-28T19:00:00Z"
+  },
+  "Follow": {
+    "id": "user_b",
+    "schemaVersion": 1,
+    "ownerId": "user_a",
+    "targetUserId": "user_b",
+    "createdAt": "2026-09-28T19:00:00Z"
+  },
+  "Avatar": {
+    "id": "user_a",
+    "schemaVersion": 1,
+    "ownerId": "user_a",
+    "appearance": {
+      "templateId": "mannequin-2d-v1"
+    },
+    "measurements": {
+      "unit": "centimeters",
+      "height": 170
+    },
+    "updatedAt": "2026-09-28T19:00:00Z"
+  },
+  "ImportDraft": {
+    "id": "import_001",
+    "schemaVersion": 1,
+    "ownerId": "user_a",
+    "source": {
+      "kind": "photoLibrary",
+      "importedAt": "2026-09-28T19:00:00Z"
+    },
+    "temporaryImagePath": "drafts/import_001/input.jpg",
+    "status": "review",
+    "candidates": [
+      {
+        "id": "candidate_001",
+        "name": "Blue shirt",
+        "category": "tops",
+        "destination": "closet",
+        "selected": true,
+        "tags": [],
+        "suggestedTags": []
+      }
+    ],
+    "createdAt": "2026-09-28T19:00:00Z",
+    "expiresAt": "2026-09-29T19:00:00Z"
+  },
+  "PreferenceEvent": {
+    "id": "event_001",
+    "schemaVersion": 1,
+    "ownerId": "user_a",
+    "kind": "save",
+    "targetType": "post",
+    "targetId": "post_001",
+    "occurredAt": "2026-09-28T19:00:00Z"
+  },
+  "UserPreferences": {
+    "id": "user_a",
+    "schemaVersion": 1,
+    "ownerId": "user_a",
+    "tagWeights": [
+      {
+        "tag": "casual",
+        "weight": 0.5
+      }
+    ],
+    "updatedAt": "2026-09-28T19:00:00Z"
+  },
+  "OutfitRecommendation": {
+    "id": "rec_001",
+    "outfitId": "outfit_001",
+    "score": 0.8,
+    "explanation": "Shared casual tags",
+    "corpusVersion": "fixture-v1"
+  },
+  "SimilarItemResult": {
+    "id": "result_001",
+    "name": "Similar blue shirt",
+    "imageURL": "https://example.com/fixture.jpg",
+    "score": 0.7,
+    "corpusVersion": "fixture-v1",
+    "source": "synthetic fixture"
+  },
+  "AppNotification": {
+    "id": "notification_001",
+    "schemaVersion": 1,
+    "ownerId": "user_a",
+    "kind": "follow",
+    "actorId": "user_b",
+    "createdAt": "2026-09-28T19:00:00Z"
+  },
+  "Challenge": {
+    "id": "challenge_001",
+    "schemaVersion": 1,
+    "creatorId": "user_a",
+    "title": "Blue day",
+    "description": "Compose an outfit with blue",
+    "startsAt": "2026-09-28T19:00:00Z",
+    "endsAt": "2026-10-05T19:00:00Z"
+  },
+  "ChallengeSubmission": {
+    "id": "user_a",
+    "schemaVersion": 1,
+    "ownerId": "user_a",
+    "challengeId": "challenge_001",
+    "postId": "post_001",
+    "createdAt": "2026-09-28T19:00:00Z"
+  }
+}
