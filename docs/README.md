@@ -21,7 +21,7 @@ The first-release boundary and technical contracts below are proposals for revie
 
 ## Starter templates
 
-Use the [template kit](../templates/README.md) for copyable schema, repository, view, view-model and ticket starters. Keep placeholders out of compiled targets and fill only the scope of the chosen ticket.
+Use the [template kit](../templates/README.md) for copyable schema, repository, view, view-model and ticket starters. The first Camera, Closet and Firebase ticket files also have source-level outlines at their assigned paths. Those outlines compile but do not implement the tasks; fill only the scope of the chosen ticket.
 
 ## Student task size
 
