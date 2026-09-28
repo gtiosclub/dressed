@@ -7,6 +7,7 @@ Working scope based on the team's feature notes and attached setup/backlog plan,
 - [Delivery plan and ownership](delivery-plan.md): milestones, team handoffs, open decisions.
 - [Feature backlog](backlog.md): small work units, dependencies, acceptance criteria.
 - [Three subteams](teams.md): viz, data, social and their handoffs.
+- [Firebase testing for students](officers/firebase-testing.md): current project, safe emulator checks, and live setup limits.
 - [Backend schema templates](../backend/schemas/README.md): canonical types, examples and storage map.
 - [Agent instructions](../AGENTS.md): repository-specific guidance for coding agents.
 
@@ -24,4 +25,4 @@ Use the [template kit](../templates/README.md) for copyable schema, repository, 
 
 ## Student task size
 
-The current student backlog has 21 small tasks grouped by the agreed roadmap milestones. Earlier phase-sized assignments have been replaced. Read [docs/officers](officers/README.md) for plain-language ticket writing, examples, ownership and decisions to discuss before assigning work. Complex issues use the `lead` label; a lead project is not needed.
+The current student backlog has 21 small tasks grouped by the agreed roadmap milestones. Earlier phase-sized assignments have been replaced. Read [docs/officers](officers/README.md) for plain-language ticket writing, examples, ownership and decisions to discuss before assigning work. Complex issues use the `lead` label and the [lead board](https://github.com/orgs/gtiosclub/projects/82).

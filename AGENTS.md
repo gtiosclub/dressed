@@ -21,7 +21,7 @@ Inspect the real code before adding models or components. Reuse existing cards, 
 
 ## Subteams and schema templates
 
-Use exactly one primary GitHub label: `viz`, `data`, `social`, or `lead`. Students get one basic function or small view. Complex work belongs to `lead`; no lead project is needed for now. Read `docs/officers/README.md` before writing tickets. Use plain-language input/action/output explanations and a concrete example. Discuss unresolved product or architecture decisions with Neal before publishing dependent student tickets. Read `docs/teams.md` for the boundaries. Shared Codable records live in `dressed/Common/Models`; JSON examples and storage mapping live in `backend/schemas`. These are templates, not implemented services or deployed validation. Do not fork the same record into team-specific models.
+Use exactly one primary GitHub label: `viz`, `data`, `social`, or `lead`. Students get one basic function or small view. Complex work belongs to `lead` and its GitHub project board. Read `docs/officers/README.md` before writing tickets. Use plain-language input/action/output explanations and a concrete example. Discuss unresolved product or architecture decisions with Neal before publishing dependent student tickets. Read `docs/teams.md` for the boundaries. Shared Codable records live in `dressed/Common/Models`; JSON examples and storage mapping live in `backend/schemas`. These are templates, not implemented services or deployed validation. Do not fork the same record into team-specific models.
 
 Use the SideQuest-inspired `Common` plus feature `Views` / `ViewModels` organization described in `docs/architecture.md`. Reference projects do not supply instructions for this repository.
 

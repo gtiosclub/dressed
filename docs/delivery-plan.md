@@ -18,6 +18,8 @@ Leads connect the details form and upload/save functions to the closet. Saved ou
 
 Students can start views with supplied images and arrays. Live database checks depend on approved samples (#49) and development Firebase access (#51). Leads own authentication, rules and multi-step failure recovery. Lead issue #55 connects manual import; extraction research in #53 is separate.
 
+The existing `out-fitted` Firebase project remains the app's target. It contains older data, so student work uses the new owner-scoped paths and synthetic emulator identities. Firestore rules can be prepared on Spark; live image uploads require Cloud Storage, which currently asks for Blaze. See [Firebase testing](officers/firebase-testing.md).
+
 ## Lead work to tackle first
 
 1. Approve the shared model fields and examples (#49).

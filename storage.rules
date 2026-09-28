@@ -1,0 +1,19 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // #72 uploads only JPEG bytes to this private, lead-supplied path.
+    match /users/{uid}/items/{itemId}/original.jpg {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.size > 0
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType == 'image/jpeg';
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Published copies stay closed until #59 defines their creation and cleanup.
+    match /{object=**} {
+      allow read, write: if false;
+    }
+  }
+}
