@@ -8,7 +8,7 @@ Students work on one small function or view at a time. Leads provide the shared 
 | `viz` | Small closet/outfit views and simple array logic | Clothing card, category buttons, grid, category filter, selected-item row |
 | `social` | Small social views and basic post functions | Post card, profile header, search field, save one post, fetch recent posts |
 
-`lead` is a separate issue label for complex work, including shared schemas, Firebase rules, authentication/navigation, connecting the import and publication flows, AI choices, share extensions and avatar planning. The lead project is not needed for now.
+`lead` is a separate issue label for complex work, including shared schemas, Firebase rules, authentication/navigation, connecting the import and publication flows, AI choices, share extensions and avatar planning. Track these issues on the [lead board](https://github.com/orgs/gtiosclub/projects/82).
 
 A task receives exactly one primary ownership label from `viz`, `data`, `social`, or `lead`, plus `frontend`, `backend`, or both for the kind of work. Views and client-side filtering are frontend; Firebase functions and shared data contracts are backend; integration across both gets both. Leads can help any student team without adding a student label to a complex task. Do not infer individual assignments from first names or old team notes.
 

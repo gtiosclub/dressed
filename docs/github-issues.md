@@ -1,6 +1,6 @@
 # GitHub issue index
 
-Student tasks are grouped by milestone in [the backlog](backlog.md). Complex decisions and integration remain labeled `lead`; a lead project is not required.
+Student tasks are grouped by milestone in [the backlog](backlog.md). Complex decisions and integration use the `lead` label and the [lead board](https://github.com/orgs/gtiosclub/projects/82).
 
 | Issue | Owner group |
 | --- | --- |
@@ -38,3 +38,4 @@ Student tasks are grouped by milestone in [the backlog](backlog.md). Complex dec
 | [#82: DATA-07 - Build the clothing-details form](https://github.com/gtiosclub/dressed/issues/82) | `data` |
 | [#83: DATA-08 - Write the fetchOutfits function](https://github.com/gtiosclub/dressed/issues/83) | `data` |
 | [#84: VIZ-07 - Build a saved-outfit preview card](https://github.com/gtiosclub/dressed/issues/84) | `viz` |
+| [#87: Lead: Check Firebase Storage costs and club credits](https://github.com/gtiosclub/dressed/issues/87) | `lead` |

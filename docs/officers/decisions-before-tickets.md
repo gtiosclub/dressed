@@ -29,7 +29,7 @@ Questions that need a discussion include:
 | First milestone | Photo selection and manual name/category entry; extraction later | No AI dependency for the first closet flow |
 | Ticket format | Concise function/UI sections; screenshots preferred for UI PRs | Follow the agreed templates |
 | Starter code | Shared schema templates and optional copyable starters | Students fill in the small assigned behavior |
-| Complex work | `lead` label; no lead project required for now | Student projects stay focused |
+| Complex work | `lead` label and [lead board](https://github.com/orgs/gtiosclub/projects/82) | Student projects stay focused |
 | Product navigation | My Closet, Discovery, Camera remains the planning direction | Students build isolated components; leads wire navigation |
 | First clothing item | Agreed: id, ownerId, name, category, imagePath, createdAt; private owner record | Save/fetch tickets use this six-field example |
 | Other backend records | Draft templates; leads still approve those examples and access rules | Real database checks wait for lead setup |

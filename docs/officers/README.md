@@ -15,7 +15,7 @@ Use one primary ownership label: `viz`, `data`, `social`, or `lead`. Also add a 
 
 Student tickets use one of the three team labels. Complex work uses `lead`, without a student-team label, so it stays out of student project views. A view or client-side filter is `frontend`; a Firebase function or data contract is `backend`; work connecting UI and data uses both. Work-type labels describe the task, not the team. Individual students are not assigned until their participation is confirmed.
 
-The `lead` project is not needed for now. Keep lead work in GitHub Issues using the label. Do not create, edit or try to configure a lead board as part of writing student tickets. The empty projects created earlier are not task dependencies.
+Keep complex work in GitHub Issues with the `lead` label and on the [lead board](https://github.com/orgs/gtiosclub/projects/82). Do not put it on a student board.
 
 ## Keep the records consistent
 
