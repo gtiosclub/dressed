@@ -1,50 +1,28 @@
-# Delivery plan and ownership
+# Roadmap
 
-## Team boundaries
+Build one working path first: select a photo, enter a clothing name/category, save it, and see it after reopening the closet. Extraction is later work and must not block this milestone.
 
-The confirmed subteams are `viz`, `data`, and `social`. [Team ownership](teams.md) defines their boundaries. Data owns schema stewardship, ingestion and persistence; viz owns shell/closet/composition; social owns community and discovery behavior. Individuals are not assigned from names alone. Nicole is the proposed visual-similarity contributor.
+| Milestone | Student pieces | Lead integration | Working result |
+| --- | --- | --- | --- |
+| 1. Add and browse clothing | Choose-photo button, details form, save/fetch/upload functions, clothing card/grid, category controls/filter | Photo picker, session, IDs, record construction, failure recovery and closet loading | A manually described garment is saved and visible after relaunch |
+| 2. Build an outfit | Item tray, selected-item row, save/fetch outfit functions, preview card | Selection/layout state and opening saved outfits | An outfit can be saved and reopened |
+| 3. Share an outfit | Post card, profile header, fetch posts, save-post function, clothing breakdown | Publication, separate public media and feed wiring | Another account can browse and save the published outfit |
+| 4. Improve importing and discovery | Search field and garment-review row; more small pieces after decisions | Camera capture, extraction, Share to Dressed, product links, recommendations | Faster imports and useful discovery |
+| 5. Explore try-on | Define small components after agreeing on direction | Avatar approach and rendering | An agreed visualization prototype |
 
-## Milestones
+## How tickets connect
 
-| Phase | Outcome / exit gate | Planning IDs |
-| --- | --- | --- |
-| P0 Foundation | Shared contracts, session shell, mocks and verified owner-scoped backend | P0.1-P0.3 |
-| P1 Closet import | Capture or select, extract/manual fallback, review, save, filter and reopen | P1.1-P1.5 |
-| P2 Outfits and OOTD | Arrange garments, save outfit, publish snapshot, browse and save posts | P2.0-P2.4 |
-| P3 Import and discovery | Share drafts, product-link/wishlist flow, scoped search | P3.1-P3.3 |
-| P4 Experiments | Evaluated visual retrieval and tag suggestions; usable 2D avatar prototype | PS4.1, P4.2-P4.4 |
+Approved sample records feed the clothing card, category filter and basic database functions. The clothing card (#56) is reused by the closet grid (#74), outfit tray (#76) and post breakdown (#79). These are component dependencies, not a requirement for every team to finish an entire phase before another team starts.
 
-P0-P2 form the proposed first release. P3 extends it; P4 is exploratory and must not block shipping the reliable core. Nicole's retrieval spike can begin independently using consented fixtures before P3 is complete. No calendar estimates or commitments have been agreed.
+Leads connect the details form and upload/save functions to the closet. Saved outfits then use the selection components and outfit functions. Publishing uses those outfits; feed cards and save-post functions can be built independently with sample data while publishing is developed.
 
-## Implementation order
+Students can start views with supplied images and arrays. Live database checks depend on approved samples (#49) and development Firebase access (#51). Leads own authentication, rules and multi-step failure recovery. Lead issue #55 connects manual import; extraction research in #53 is separate.
 
-Begin P0.1 (contracts) and PS4.1 (retrieval research) independently. After P0.1, the shell, backend, input adapter, review component and closet view can progress against mocks. Integration tickets depend on the relevant upstream contracts and components. Do not interpret every item in a phase as a prerequisite for every later phase; see each ticket's explicit dependencies.
+## Lead work to tackle first
 
-End each milestone with its user-flow demo and update the backlog status. A component being rendered with fixtures is not evidence that Firebase integration works. Use shared cards for closet, post breakdown and outfit picking, and a single confirmation flow for all import sources.
+1. Approve the shared model fields and examples (#49).
+2. Prepare development Firebase access and verify ownership rules (#51).
+3. Connect existing authentication to the three tabs (#50).
+4. Connect the manual photo flow and closet (#55).
 
-## Decisions before implementation
-
-| Decision | Proposed default | Who confirms / when |
-| --- | --- | --- |
-| Tab labels/order | My Closet, Discovery, Camera | Product/team before P0.2 |
-| Category vocabulary | Separate pants and skirts; see scope | All three groups in P0.1 |
-| Persistence | Firestore and Storage; owner-private closet | data in P0.3 |
-| Development Firebase | Separate dev data/config from any real user data | Officer team before backend smoke test |
-| Client plist | Keep existing client config for now; never add privileged keys | Officer team during setup review |
-| Feed audience | Signed-in community; explicit publish | social in P2.2 |
-| Deleted items in posts | Immutable publishable snapshots | social + data in P0.1/P2.2 |
-| Extraction | Select after a bounded device/hosted evaluation; manual fallback required | data in P1.2 |
-| External links | Supported URLs only; missing metadata editable | data in P3.2 |
-| Search corpus | Published in-app content first; retailer catalog later if available | social before P3.3 |
-| Visual similarity | Small labeled corpus; no exact-match promise | Nicole in PS4.1 |
-| Avatar fidelity | 2D composition experiment | viz before P4.3 |
-| Tag weighting | Defer learned personal weights; explicit tags first | social after retrieval baseline |
-| Wider launch | Define report/block/moderation and deletion policy | Team before use beyond the development demo |
-
-## Readiness and completion
-
-A ticket is ready when its input/output contract, owner and dependencies are known. It is complete when the acceptance criteria pass, appropriate build/tests run, review evidence is recorded, and docs reflect changed contracts. Keep changes small enough to review as one behavior or reusable component. Use the existing GitHub templates if tickets or PRs are later created; the user has authorized publishing these scoped tickets with team labels; individual assignment remains unconfirmed.
-
-## Repository maintenance completed
-
-The redundant wrapper folder was removed in `5c10212`; README setup instructions, ignore rules and CI project path were updated, and the simulator build passed. During this planning task, the already-deleted remote `35-neal-kotval` branch was pruned, the local branch was removed, and the working checkout moved to updated `main`. Previous local work is preserved in a named Git stash; do not apply it wholesale because it contains the pre-main folder reorganization.
+These are actionable now, but they are not all already complete. Outfit integration (#58) and publication (#59) follow their required data/UI pieces. Extraction, external sharing, recommendations and avatars remain separate projects of work. Discuss unresolved behavior with Neal before writing student tickets that depend on it.

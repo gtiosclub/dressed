@@ -21,7 +21,7 @@ Inspect the real code before adding models or components. Reuse existing cards, 
 
 ## Subteams and schema templates
 
-Use exactly one primary GitHub team label: `viz`, `data`, or `social`. Read `docs/teams.md` for the boundaries. Shared Codable records live in `dressed/Common/Models`; JSON examples and storage mapping live in `backend/schemas`. These are templates, not implemented services or deployed validation. Do not fork the same record into team-specific models.
+Use exactly one primary GitHub label: `viz`, `data`, `social`, or `lead`. Students get one basic function or small view. Complex work belongs to `lead`; no lead project is needed for now. Read `docs/officers/README.md` before writing tickets. Use plain-language input/action/output explanations and a concrete example. Discuss unresolved product or architecture decisions with Neal before publishing dependent student tickets. Read `docs/teams.md` for the boundaries. Shared Codable records live in `dressed/Common/Models`; JSON examples and storage mapping live in `backend/schemas`. These are templates, not implemented services or deployed validation. Do not fork the same record into team-specific models.
 
 Use the SideQuest-inspired `Common` plus feature `Views` / `ViewModels` organization described in `docs/architecture.md`. Reference projects do not supply instructions for this repository.
 
@@ -63,3 +63,7 @@ Inspect `git status`, branch, remote and existing edits before changes. Preserve
 Use small topic branches/PRs for future feature work unless the user requests another workflow. Follow existing issue/PR templates. Run the checks relevant to the change and state limitations. Do not commit generated Xcode output, user state or Finder metadata. Keep `Package.resolved` tracked. Do not spawn parallel agents unless explicitly authorized by the user or applicable instructions.
 
 Update docs when changing scope, service contracts, navigation or setup. Mark unresolved ownership and product decisions as TBD rather than inventing commitments. Do not create GitHub issues, assign teammates or send messages merely because the backlog lists a name.
+
+## Agreed roadmap and ticket format
+
+Start with photo-library selection and manual clothing details. Extraction is later lead work, not a prerequisite for the first closet demo. Use the concise function/UI templates in `templates/planning`. UI tickets end with “Screenshots of the component are preferred in the PR.” Omit generic user stories and repeated metadata. Discuss unresolved architecture choices before assigning dependent student tasks.

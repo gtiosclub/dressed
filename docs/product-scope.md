@@ -26,14 +26,14 @@ Discovery combines Social / Discover with a Feed / Search switch inside the tab.
 
 ## First release: capture, closet, outfits, OOTD
 
-A user signs in, chooses or takes a picture, reviews detected garments, selects which ones to keep, corrects names/categories, and saves the selected items to My Closet. They can then compose a saved outfit and publish it to a chronological Discovery feed. Another signed-in user can inspect the outfit's separate pieces and save the post.
+The first milestone lets a user sign in, select a garment photo from the library, manually enter its name/category, and save one item to My Closet. Camera capture and extraction follow later. They can then compose a saved outfit and publish it to a chronological Discovery feed. Another signed-in user can inspect the outfit's separate pieces and save the post.
 
 Included:
 
 - Existing email/password authentication connected to a session-aware app shell.
-- Camera and photo-library imports sharing one ingestion pipeline.
-- Garment extraction behind a replaceable service. Manual single-item crop/import is the fallback if extraction fails or returns nothing.
-- A verification screen with select/deselect, editable item details, retry and cancel.
+- Photo-library selection and manual clothing details for the first milestone.
+- Later: garment extraction supplies suggestions to the same details/review flow. It does not block the first milestone.
+- Manual editing and save/cancel first; multi-item selection follows extraction later.
 - Closet grid, item detail, category filtering and item deletion.
 - Categories: Tops, Pants, Skirts, Dresses, Shoes, Outerwear, Accessories, Other. Pants and Skirts stay separate, matching the team's notes.
 - Saved outfits using selected closet items and a simple 2D arrangement.
@@ -68,6 +68,6 @@ Follows and personalized feed ranking; likes/comments; per-user weighted tags; l
 
 ## Demo exit criteria
 
-Using two development accounts, account A imports a photo, approves two detected/manual items, sees them after relaunch, creates an outfit and publishes it. Account B sees that post and its item breakdown, saves it, and sees the saved state after relaunch. Account B cannot read A's private closet or write A's records. A failed import can be retried without duplicate items. Deleting a private original does not break an already published outfit snapshot.
+For milestone 1, account A selects a photo, enters its name/category, saves it and sees it after relaunch. For the later end-to-end demo, account A saves multiple manually described items, creates an outfit and publishes it. Account B sees that post and its item breakdown, saves it, and sees the saved state after relaunch. Account B cannot read A's private closet or write A's records. A failed import can be retried without duplicate items. Deleting a private original does not break an already published outfit snapshot.
 
 Use development data. A wider public launch additionally needs a defined report/block/moderation process and account/content deletion policy; those decisions are outside the initial classroom demo scope.

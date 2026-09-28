@@ -1,24 +1,21 @@
-# Three subteams
+# Student teams and lead responsibilities
 
-| Label | Owns | Primary output | Collaborates with |
-| --- | --- | --- | --- |
-| `data` | Shared schema stewardship, Firebase rules/adapters, private persistence, capture/import pipeline and its review UI, tagging and recommendation logic | Validated owned records, media references, stable service contracts | viz on placements/avatars; social on published snapshots and retrieval |
-| `viz` | Authenticated app shell, My Closet UI, reusable garment cards, outfit picker/canvas and avatar visualization | Views using mock/repository contracts; normalized outfit placements | data for persistence/session contracts; social for reusable cards |
-| `social` | Profiles, OOTD publication/feed, saved posts, Discovery/Search UI and social repository behavior | Publishable snapshots and community interactions | data for rules/storage/query infrastructure and retrieval |
+Students work on one small function or view at a time. Leads provide the shared decisions and connect the pieces into working features.
 
-Each ticket has exactly one primary label. Cross-team consultation belongs in the body, not competing primary labels. `data` is not a catch-all for every method that calls Firebase: social owns Post/SavedPost/UserProfile behavior while data owns common storage/auth boundaries and the shared contract review. viz owns the Outfit/Avatar shapes; data owns their database adapter. Both review contract changes.
+| Label | Student focus | Examples |
+| --- | --- | --- |
+| `data` | Basic backend functions and small import controls | Save one item, fetch clothing, upload supplied image bytes, source buttons |
+| `viz` | Small closet/outfit views and simple array logic | Clothing card, category buttons, grid, category filter, selected-item row |
+| `social` | Small social views and basic post functions | Post card, profile header, search field, save one post, fetch recent posts |
 
-Do not infer individual GitHub handles or assign students from first names. Team membership is still unconfirmed. Nicole was named for similarity recommendations; that ticket belongs to data with social as its consumer.
+`lead` is a separate issue label for complex work, including shared schemas, Firebase rules, authentication/navigation, connecting the import and publication flows, AI choices, share extensions and avatar planning. The lead project is not needed for now.
 
-## Handoffs
+A task receives exactly one primary label from `viz`, `data`, `social`, or `lead`. Leads can help any student team without adding a student label to a complex task. Do not infer individual assignments from first names or old team notes.
 
-1. data publishes shared templates and protocols; viz/social use fixtures rather than duplicate types.
-2. data emits reviewed ClothingItem records; viz displays them and emits Outfit placements.
-3. data persists private outfits; social publishes separate immutable garment/media snapshots.
-4. data returns scored similar-item candidates with provenance; social renders them without claiming exact identification.
+## What leads provide
 
-See [backend schema map](../backend/schemas/README.md) for per-entity contract ownership. Teams do not correspond to three top-level tabs: data owns the Camera import flow; viz owns My Closet and the shell; social owns Discovery.
+Before asking a student to use Firebase, provide an approved example record and development access (#49 and #51). Before asking for a view, provide its input values and what its buttons should report to the parent view. If the product behavior is undecided, discuss it with Neal before assigning the dependent student work.
 
-## Feature folders (SideQuest-inspired)
+The code layout stays SideQuest-inspired: shared records in `Common/Models`, with `Views` and `ViewModels` under feature folders. A simple view does not require its own view model. Basic backend functions can live under `Common/Firebase`; students do not need to invent a service framework.
 
-Use `Common/Models` for shared schemas and future feature `Views` / `ViewModels` pairs. viz primarily works in Closet/Outfits and the shell, data in Camera and common Firebase adapters, social in Discovery/Profile. Folder names describe features, not student rosters. Existing auth code stays in place until its shell ticket.
+See [the student backlog](backlog.md) and [officer ticket guidance](officers/README.md).

@@ -23,3 +23,7 @@ These files are intentionally incomplete and live outside the app target. Copy o
 The schema files are starter contracts. Teams still own schema review, service protocols, validation, migrations, Firebase adapters/rules, extraction, UI and integration. TODO comments name these responsibilities without supplying a finished implementation. Existing enum values and examples are proposals to review, not a database already deployed.
 
 Do not fill a repository method with a fake success, an empty array, or `fatalError` just to make a screen appear functional. Keep service templates protocol-only until the implementation ticket is picked up.
+
+## Keep student work small
+
+Read [officer guidance](../docs/officers/README.md) before assigning work. Use one component or basic function per student ticket, with a plain-language example. These templates are optional aids: a student writing one Firebase function does not need to create a repository framework. Complex choices and integration work use the `lead` label.

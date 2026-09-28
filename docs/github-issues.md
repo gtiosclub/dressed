@@ -1,26 +1,40 @@
-# GitHub issue mapping
+# GitHub issue index
 
-Published from the scoped backlog. GitHub is the live status source. Each issue has one primary team label and linked prerequisites. Individuals are not assigned. Historical closed issues were not repurposed.
+Student tasks are grouped by milestone in [the backlog](backlog.md). Complex decisions and integration remain labeled `lead`; a lead project is not required.
 
-| Plan ID | Team | GitHub issue |
-| --- | --- | --- |
-| P0.1 | `data` | [#49: P0.1 - Foundation: Review schema templates and define service protocols](https://github.com/gtiosclub/dressed/issues/49) |
-| P0.2 | `viz` | [#50: P0.2 - Foundation: Add the authenticated three-tab shell](https://github.com/gtiosclub/dressed/issues/50) |
-| P0.3 | `data` | [#51: P0.3 - Foundation: Verify owner-scoped persistence](https://github.com/gtiosclub/dressed/issues/51) |
-| P1.1 | `data` | [#52: P1.1 - Ingestion: Add camera and library input adapters](https://github.com/gtiosclub/dressed/issues/52) |
-| P1.2 | `data` | [#53: P1.2 - Ingestion: Extract garment candidates with a fallback](https://github.com/gtiosclub/dressed/issues/53) |
-| P1.3 | `data` | [#54: P1.3 - Ingestion: Add candidate verification](https://github.com/gtiosclub/dressed/issues/54) |
-| P1.4 | `data` | [#55: P1.4 - Ingestion: Persist confirmed imports](https://github.com/gtiosclub/dressed/issues/55) |
-| P1.5 | `viz` | [#56: P1.5 - Visualization: Add the categorized closet browser](https://github.com/gtiosclub/dressed/issues/56) |
-| P2.0 | `data` | [#57: P2.0 - Data: Implement private outfit persistence](https://github.com/gtiosclub/dressed/issues/57) |
-| P2.1 | `viz` | [#58: P2.1 - Visualization: Save a two-dimensional outfit composition](https://github.com/gtiosclub/dressed/issues/58) |
-| P2.2 | `social` | [#59: P2.2 - Social: Publish an OOTD snapshot](https://github.com/gtiosclub/dressed/issues/59) |
-| P2.3 | `social` | [#60: P2.3 - Social: Display the chronological Discovery feed](https://github.com/gtiosclub/dressed/issues/60) |
-| P2.4 | `social` | [#61: P2.4 - Social: Persist saved-post state](https://github.com/gtiosclub/dressed/issues/61) |
-| P3.1 | `data` | [#62: P3.1 - Ingestion: Queue Share to Dressed payloads](https://github.com/gtiosclub/dressed/issues/62) |
-| P3.2 | `data` | [#63: P3.2 - Ingestion: Add product-link and wishlist imports](https://github.com/gtiosclub/dressed/issues/63) |
-| P3.3 | `social` | [#64: P3.3 - Discovery: Add constrained clothing search](https://github.com/gtiosclub/dressed/issues/64) |
-| PS4.1 | `data` | [#65: PS4.1 - Discovery: Evaluate visual-similarity retrieval](https://github.com/gtiosclub/dressed/issues/65) |
-| P4.2 | `data` | [#66: P4.2 - Ingestion: Suggest editable category tags](https://github.com/gtiosclub/dressed/issues/66) |
-| P4.3 | `viz` | [#67: P4.3 - Visualization: Prototype a two-dimensional avatar canvas](https://github.com/gtiosclub/dressed/issues/67) |
-| P4.4 | `data` | [#68: P4.4 - Data: Define private tag-preference updates](https://github.com/gtiosclub/dressed/issues/68) |
+| Issue | Owner group |
+| --- | --- |
+| [#49: Lead: Agree on shared data fields and give students sample data](https://github.com/gtiosclub/dressed/issues/49) | `lead` |
+| [#50: Lead: Connect sign-in to the app tabs](https://github.com/gtiosclub/dressed/issues/50) | `lead` |
+| [#51: Lead: Prepare Firebase and decide who can access each record](https://github.com/gtiosclub/dressed/issues/51) | `lead` |
+| [#52: DATA-01 - Build the choose-photo button](https://github.com/gtiosclub/dressed/issues/52) | `data` |
+| [#53: Lead: Choose how a photo becomes separate clothing items](https://github.com/gtiosclub/dressed/issues/53) | `lead` |
+| [#54: DATA-02 - Build one selectable clothing-review row](https://github.com/gtiosclub/dressed/issues/54) | `data` |
+| [#55: Lead: Connect manual photo import to the closet](https://github.com/gtiosclub/dressed/issues/55) | `lead` |
+| [#56: VIZ-01 - Build one clothing-item card](https://github.com/gtiosclub/dressed/issues/56) | `viz` |
+| [#57: DATA-03 - Write the saveOutfit function](https://github.com/gtiosclub/dressed/issues/57) | `data` |
+| [#58: Lead: Connect the outfit editor to saving](https://github.com/gtiosclub/dressed/issues/58) | `lead` |
+| [#59: Lead: Connect outfit publishing without exposing private photos](https://github.com/gtiosclub/dressed/issues/59) | `lead` |
+| [#60: SOCIAL-01 - Build one outfit-post card](https://github.com/gtiosclub/dressed/issues/60) | `social` |
+| [#61: SOCIAL-02 - Write the savePost function](https://github.com/gtiosclub/dressed/issues/61) | `social` |
+| [#62: Lead: Build the Share to Dressed system integration](https://github.com/gtiosclub/dressed/issues/62) | `lead` |
+| [#63: Lead: Decide how product links and wishlists work](https://github.com/gtiosclub/dressed/issues/63) | `lead` |
+| [#64: SOCIAL-03 - Build a reusable search field](https://github.com/gtiosclub/dressed/issues/64) | `social` |
+| [#65: Lead: Plan similar-item recommendations](https://github.com/gtiosclub/dressed/issues/65) | `lead` |
+| [#66: Lead: Decide how optional AI tags fit into import](https://github.com/gtiosclub/dressed/issues/66) | `lead` |
+| [#67: Lead: Plan the avatar experiment](https://github.com/gtiosclub/dressed/issues/67) | `lead` |
+| [#68: Lead: Decide how preferences affect recommendations](https://github.com/gtiosclub/dressed/issues/68) | `lead` |
+| [#70: DATA-04 - Write the saveClothingItem function](https://github.com/gtiosclub/dressed/issues/70) | `data` |
+| [#71: DATA-05 - Write the fetchClothingItems function](https://github.com/gtiosclub/dressed/issues/71) | `data` |
+| [#72: DATA-06 - Write the uploadClothingImage function](https://github.com/gtiosclub/dressed/issues/72) | `data` |
+| [#73: VIZ-02 - Build category-selection buttons](https://github.com/gtiosclub/dressed/issues/73) | `viz` |
+| [#74: VIZ-03 - Build a clothing-card grid](https://github.com/gtiosclub/dressed/issues/74) | `viz` |
+| [#75: VIZ-04 - Write the clothing-category filter](https://github.com/gtiosclub/dressed/issues/75) | `viz` |
+| [#76: VIZ-05 - Build a horizontal outfit-item tray](https://github.com/gtiosclub/dressed/issues/76) | `viz` |
+| [#77: VIZ-06 - Build a selected-outfit item row](https://github.com/gtiosclub/dressed/issues/77) | `viz` |
+| [#78: SOCIAL-04 - Build the profile header](https://github.com/gtiosclub/dressed/issues/78) | `social` |
+| [#79: SOCIAL-05 - Build a post clothing-breakdown row](https://github.com/gtiosclub/dressed/issues/79) | `social` |
+| [#80: SOCIAL-06 - Write the fetchRecentPosts function](https://github.com/gtiosclub/dressed/issues/80) | `social` |
+| [#82: DATA-07 - Build the clothing-details form](https://github.com/gtiosclub/dressed/issues/82) | `data` |
+| [#83: DATA-08 - Write the fetchOutfits function](https://github.com/gtiosclub/dressed/issues/83) | `data` |
+| [#84: VIZ-07 - Build a saved-outfit preview card](https://github.com/gtiosclub/dressed/issues/84) | `viz` |

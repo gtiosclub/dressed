@@ -21,3 +21,7 @@ The first-release boundary and technical contracts below are proposals for revie
 ## Starter templates
 
 Use the [template kit](../templates/README.md) for copyable schema, repository, view, view-model and ticket starters. Keep placeholders out of compiled targets and fill only the scope of the chosen ticket.
+
+## Student task size
+
+The current student backlog has 21 small tasks grouped by the agreed roadmap milestones. Earlier phase-sized assignments have been replaced. Read [docs/officers](officers/README.md) for plain-language ticket writing, examples, ownership and decisions to discuss before assigning work. Complex issues use the `lead` label; a lead project is not needed.
