@@ -2,6 +2,18 @@
 
 ## Observed baseline
 
+Issue #50 adds a session-aware shell: the root waits for Firebase Auth's initial
+state, shows the existing sign-in screen when signed out, and shows My Closet,
+Discovery, and Camera tabs when signed in. Discovery has Feed and Search
+sections. These tabs contain honest empty/coming-soon states; closet, feed,
+search, and import behavior still belong to their own tickets. Signing out
+returns to authentication and discards the tab view's user-specific state.
+The session service is injected, with local preview sessions for both states.
+Debug builds can launch with `-mockSession` for a synthetic sign-in and
+sign-out walkthrough without contacting Auth.
+
+The original baseline below describes the project before #50:
+
 As of commit `5c10212`:
 
 - `dressed.xcodeproj` is at the repository root. Swift and assets live in `dressed/`.
