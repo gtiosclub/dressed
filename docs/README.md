@@ -24,4 +24,4 @@ Use the [template kit](../templates/README.md) for copyable schema, repository, 
 
 ## Student task size
 
-The current student backlog is 18 small tasks, six per team. Earlier phase-sized assignments have been replaced. Read [docs/officers](officers/README.md) for plain-language ticket writing, examples, ownership and decisions to discuss before assigning work. Complex issues use the `lead` label; a lead project is not needed.
+The current student backlog has 21 small tasks grouped by the agreed roadmap milestones. Earlier phase-sized assignments have been replaced. Read [docs/officers](officers/README.md) for plain-language ticket writing, examples, ownership and decisions to discuss before assigning work. Complex issues use the `lead` label; a lead project is not needed.

@@ -159,3 +159,7 @@ Processing can transition to retry or manual crop. Review allows item-level sele
 ## Assigning this work
 
 This document explains the broader system, not the expected size of a student task. Leads own unresolved choices and multi-step integrations. Students use the [small-ticket backlog](backlog.md). Follow [officer guidance](officers/README.md) before turning any proposed service into an assignment.
+
+## Approved first implementation path
+
+Photo-library selection and manual name/category entry come first. Views display supplied values and report interactions; view models hold screen state and call functions; Firebase functions perform individual reads/writes; Common/Models defines records. Leads connect these into the first closet flow. Later extraction can supply suggestions to that same form. See [the roadmap](delivery-plan.md).

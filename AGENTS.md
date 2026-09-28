@@ -63,3 +63,7 @@ Inspect `git status`, branch, remote and existing edits before changes. Preserve
 Use small topic branches/PRs for future feature work unless the user requests another workflow. Follow existing issue/PR templates. Run the checks relevant to the change and state limitations. Do not commit generated Xcode output, user state or Finder metadata. Keep `Package.resolved` tracked. Do not spawn parallel agents unless explicitly authorized by the user or applicable instructions.
 
 Update docs when changing scope, service contracts, navigation or setup. Mark unresolved ownership and product decisions as TBD rather than inventing commitments. Do not create GitHub issues, assign teammates or send messages merely because the backlog lists a name.
+
+## Agreed roadmap and ticket format
+
+Start with photo-library selection and manual clothing details. Extraction is later lead work, not a prerequisite for the first closet demo. Use the concise function/UI templates in `templates/planning`. UI tickets end with “Screenshots of the component are preferred in the PR.” Omit generic user stories and repeated metadata. Discuss unresolved architecture choices before assigning dependent student tasks.

@@ -26,6 +26,8 @@ Questions that need a discussion include:
 | --- | --- | --- |
 | Student task size | One function or small view; use the SideQuest early-week examples | No full-feature delivery responsibility |
 | Ticket writing | Plain-language explanation plus input, action, output and example | No shorthand-only requirements |
+| First milestone | Photo selection and manual name/category entry; extraction later | No AI dependency for the first closet flow |
+| Ticket format | Concise function/UI sections; screenshots preferred for UI PRs | Follow the agreed templates |
 | Starter code | Shared schema templates and optional copyable starters | Students fill in the small assigned behavior |
 | Complex work | `lead` label; no lead project required for now | Student projects stay focused |
 | Product navigation | My Closet, Discovery, Camera remains the planning direction | Students build isolated components; leads wire navigation |

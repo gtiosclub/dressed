@@ -1,29 +1,28 @@
-# Delivery plan
+# Roadmap
 
-## Start with small pieces
+Build one working path first: select a photo, enter a clothing name/category, save it, and see it after reopening the closet. Extraction is later work and must not block this milestone.
 
-The current student work is the [18-ticket starter backlog](backlog.md), with six tasks per team. It replaces the earlier large phase-based student tickets. Students build one view or basic function using provided data. Leads decide the shared behavior and connect the pieces later.
+| Milestone | Student pieces | Lead integration | Working result |
+| --- | --- | --- | --- |
+| 1. Add and browse clothing | Choose-photo button, details form, save/fetch/upload functions, clothing card/grid, category controls/filter | Photo picker, session, IDs, record construction, failure recovery and closet loading | A manually described garment is saved and visible after relaunch |
+| 2. Build an outfit | Item tray, selected-item row, save/fetch outfit functions, preview card | Selection/layout state and opening saved outfits | An outfit can be saved and reopened |
+| 3. Share an outfit | Post card, profile header, fetch posts, save-post function, clothing breakdown | Publication, separate public media and feed wiring | Another account can browse and save the published outfit |
+| 4. Improve importing and discovery | Search field and garment-review row; more small pieces after decisions | Camera capture, extraction, Share to Dressed, product links, recommendations | Faster imports and useful discovery |
+| 5. Explore try-on | Define small components after agreeing on direction | Avatar approach and rendering | An agreed visualization prototype |
 
-Start view work using local sample images and values. VIZ-03, VIZ-05 and SOCIAL-05 reuse the clothing card from #56. Those students can plan their layout while the card is being built. The other student tickets have no dependency on another student's implementation.
+## How tickets connect
 
-Basic Firebase functions can be drafted against the supplied model templates. Their live checks wait for approved examples (#49) and development setup (#51). Do not make a student design rules, handle a multi-step import failure or choose the app's database structure to complete a small function.
+Approved sample records feed the clothing card, category filter and basic database functions. The clothing card (#56) is reused by the closet grid (#74), outfit tray (#76) and post breakdown (#79). These are component dependencies, not a requirement for every team to finish an entire phase before another team starts.
 
-## Leads connect the pieces
+Leads connect the details form and upload/save functions to the closet. Saved outfits then use the selection components and outfit functions. Publishing uses those outfits; feed cards and save-post functions can be built independently with sample data while publishing is developed.
 
-| Outcome | Lead issue |
-| --- | --- |
-| Approved models and usable sample data | #49 |
-| Sign-in and the three-tab shell | #50 |
-| Development Firebase access and security | #51 |
-| Garment extraction and a manual fallback | #53 |
-| A complete reviewed clothing import | #55 |
-| Outfit editing connected to saving | #58 |
-| Publishing an outfit safely | #59 |
+Students can start views with supplied images and arrays. Live database checks depend on approved samples (#49) and development Firebase access (#51). Leads own authentication, rules and multi-step failure recovery. Lead issue #55 connects manual import; extraction research in #53 is separate.
 
-Share extensions, product links, recommendation choices, AI tags, avatars and preference tracking stay in the later lead backlog. Before splitting these into student tasks, discuss the unresolved product and architecture choices with Neal. A long-term feature in the product scope is not an assignment to build that whole feature now.
+## Lead work to tackle first
 
-## Definition of a finished student task
+1. Approve the shared model fields and examples (#49).
+2. Prepare development Firebase access and verify ownership rules (#51).
+3. Connect existing authentication to the three tabs (#50).
+4. Connect the manual photo flow and closet (#55).
 
-The student can show the requested result using the examples in the issue. A small view has been shown in a native preview/simulator; a plain function returns the expected result for a few inputs; a Firebase function has been tried in the lead-provided development environment. The appropriate checks pass and the lead reviews how the component will be connected. There is no requirement to deliver an unrelated full screen or feature.
-
-Use [docs/officers](officers/README.md) when preparing the next batch. GitHub records live status and assignments. No fixed schedule, point estimates or individual roster has been agreed.
+These are actionable now, but they are not all already complete. Outfit integration (#58) and publication (#59) follow their required data/UI pieces. Extraction, external sharing, recommendations and avatars remain separate projects of work. Discuss unresolved behavior with Neal before writing student tickets that depend on it.
