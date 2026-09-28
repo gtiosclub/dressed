@@ -1,23 +1,11 @@
 {
   "ClothingItem": {
     "id": "item_001",
-    "schemaVersion": 1,
     "ownerId": "user_a",
     "name": "Blue shirt",
     "category": "tops",
-    "destination": "closet",
     "imagePath": "users/user_a/items/item_001/original.jpg",
-    "cutoutPath": "users/user_a/items/item_001/cutout.png",
-    "source": {
-      "kind": "photoLibrary",
-      "importedAt": "2026-09-28T19:00:00Z"
-    },
-    "tags": [
-      "casual"
-    ],
-    "suggestedTags": [],
-    "createdAt": "2026-09-28T19:00:00Z",
-    "updatedAt": "2026-09-28T19:00:00Z"
+    "createdAt": "2026-09-28T19:00:00Z"
   },
   "UserProfile": {
     "id": "user_a",

@@ -31,7 +31,8 @@ Questions that need a discussion include:
 | Starter code | Shared schema templates and optional copyable starters | Students fill in the small assigned behavior |
 | Complex work | `lead` label; no lead project required for now | Student projects stay focused |
 | Product navigation | My Closet, Discovery, Camera remains the planning direction | Students build isolated components; leads wire navigation |
-| Backend paths and model fields | Draft templates exist; leads approve examples before real database use | Basic functions may be drafted, but live verification waits for lead setup |
+| First clothing item | Agreed: id, ownerId, name, category, imagePath, createdAt; private owner record | Save/fetch tickets use this six-field example |
+| Other backend records | Draft templates; leads still approve those examples and access rules | Real database checks wait for lead setup |
 | Extraction, recommendations, share extension, avatars | Lead planning/integration, not beginner work | Do not assign algorithm or architecture choices to students |
 
 The current starter tickets deliberately use supplied images, sample arrays and caller-provided records. This allows useful work without deciding the advanced features first. A database ticket can be written against the existing schema template, but its real Firebase check depends on lead-provided examples and access (#49 and #51).

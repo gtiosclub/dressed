@@ -67,3 +67,7 @@ Update docs when changing scope, service contracts, navigation or setup. Mark un
 ## Agreed roadmap and ticket format
 
 Start with photo-library selection and manual clothing details. Extraction is later lead work, not a prerequisite for the first closet demo. Use the concise function/UI templates in `templates/planning`. UI tickets end with “Screenshots of the component are preferred in the PR.” Omit generic user stories and repeated metadata. Discuss unresolved architecture choices before assigning dependent student tasks.
+
+## First closet record
+
+`ClothingItem` has exactly six agreed fields for milestone 1: id, ownerId, name, category, imagePath, and createdAt. The image path refers to a private owner item photo. Import drafts, wishlist metadata, cutouts, tags and product links are later work in separate types. Do not require them in the basic save/fetch student functions.
