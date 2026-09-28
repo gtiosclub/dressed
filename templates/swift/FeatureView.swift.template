@@ -1,0 +1,15 @@
+import SwiftUI
+
+// TEMPLATE: __FEATURE_NAME__View
+// Primary team: __TEAM__ | GitHub issue: __ISSUE_NUMBER__
+// Inputs: __DISPLAY_STATE__ | Actions: __USER_ACTIONS__
+// Reuse: __EXISTING_SHARED_COMPONENTS__
+// TODO: Supply explicit loading, empty, error and content states.
+// TODO: Add accessibility labels and exercise the native flow on a simulator/device.
+// Do not query Firebase or perform writes from this view.
+struct __FEATURE_NAME__View: View {
+    var body: some View {
+        // Replace this placeholder with the ticket's scoped component.
+        Text("__FEATURE_NAME__: template only")
+    }
+}

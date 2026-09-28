@@ -1,0 +1,16 @@
+import Foundation
+
+// TEMPLATE: __REPOSITORY_NAME__
+// Primary team: __TEAM__ | GitHub issue: __ISSUE_NUMBER__
+// Input contract: __INPUT_TYPE_AND_VALIDATION__
+// Output contract: __OUTPUT_TYPE__
+// Auth/access policy: __ACCESS_POLICY__
+// Failure cases: __ERROR_CASES__
+// Retry/idempotency: __RETRY_CONTRACT__
+// Pagination, if applicable: __CURSOR_CONTRACT__
+// TODO: Replace names/types with agreed Common/Models contracts.
+// TODO: Create a separate mock and Firebase adapter in the implementation ticket.
+// No method bodies here: this template does not perform I/O or fake success.
+protocol __REPOSITORY_NAME__ {
+    func __OPERATION_NAME__(_ input: __INPUT_TYPE__) async throws -> __OUTPUT_TYPE__
+}

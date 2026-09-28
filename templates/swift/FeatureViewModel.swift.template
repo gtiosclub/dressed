@@ -1,0 +1,15 @@
+import Foundation
+
+// TEMPLATE: __FEATURE_NAME__ViewModel
+// Primary team: __TEAM__ | GitHub issue: __ISSUE_NUMBER__
+// Dependencies: __REPOSITORY_PROTOCOLS__
+// State: __LOADING_EMPTY_ERROR_CONTENT_STATES__
+// Actions: __USER_ACTIONS__
+// TODO: Choose the app's agreed observation approach before binding a view.
+// TODO: Inject protocols, define cancellation/retry behavior and clear user-bound state.
+// TODO: Test transitions with deterministic success/empty/failure mocks.
+// No fake service calls, live credentials, or speculative implementation here.
+@MainActor
+final class __FEATURE_NAME__ViewModel {
+    // Add the minimal state and injected dependencies required by this ticket.
+}
