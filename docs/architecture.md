@@ -13,7 +13,7 @@ As of commit `5c10212`:
 - Closet models, persistence services, extraction, share extension, feed, search, avatars and recommendation logic are not implemented in this baseline.
 - Firestore/Storage rules, indexes and a backend smoke flow have not been verified.
 
-The current planning branch adds schema-only Codable types in `dressed/Common/Models` and JSON examples under `backend/schemas`; these do not implement persistence or features. The model definitions are the canonical field source, including required updatedAt fields on ClothingItem/UserProfile.
+The current planning branch adds schema-only Codable types in `dressed/Common/Models` and JSON examples under `backend/schemas`; these do not implement persistence or features. The model definitions are the canonical field source, including the six required fields on ClothingItem.
 
 Everything below is a proposed contract. Confirm details in the lead planning tickets before implementation. Firestore plus Storage is the proposed primary persistence stack; do not build a parallel Realtime Database model merely because that dependency is linked.
 
@@ -52,12 +52,12 @@ Use descriptive `View` and `ViewModel` suffixes consistently in new code. Existi
 
 ## Proposed data model
 
-All persisted records have a stable ID and `schemaVersion: 1`; owned records have `ownerId` (posts use `authorId`). Write timestamps with server timestamps, decoding them to dates in domain models. Use Storage object paths as canonical media references instead of assuming a permanent download URL. Keep UI selection, loading, drag gestures and temporary errors out of persisted entities.
+For the first closet milestone, `ClothingItem` has six fields and no schema version. Other proposed records currently have `schemaVersion: 1`; leads must decide their migration policy before those records are stored. Owned records have `ownerId` (posts use `authorId`). Write timestamps with server timestamps, decoding them to dates in domain models. Use Storage object paths as canonical media references instead of assuming a permanent download URL. Keep UI selection, loading, drag gestures and temporary errors out of persisted entities.
 
 | Entity | Minimum fields beyond ID/version | Visibility |
 | --- | --- | --- |
 | UserProfile | username, displayName, avatarPath?, createdAt | Signed-in community profile; no email or measurements |
-| ClothingItem | ownerId, name, category, destination, imagePath, cutoutPath?, source, tags, suggestedTags, brand?, size?, productURL?, createdAt | Owner only |
+| ClothingItem | ownerId, name, category, imagePath, createdAt | Owner only |
 | Outfit | ownerId, name?, placements, createdAt, updatedAt | Owner only |
 | Post | authorId, caption, outfitSnapshot, mediaPath, createdAt | Signed-in community |
 | SavedPost | ownerId, postId, createdAt | Owner only |
@@ -67,9 +67,7 @@ All persisted records have a stable ID and `schemaVersion: 1`; owned records hav
 
 `category`: `tops`, `pants`, `skirts`, `dresses`, `shoes`, `outerwear`, `accessories`, `other`.
 
-`destination`: `closet` or `wishlist`. First release writes `closet`; the later importer asks the user to choose.
-
-`source`: kind (`camera`, `photoLibrary`, `sharedImage`, `sharedURL`, `productURL`), originalURL if available, and importedAt. Imported source media stays private.
+Wishlist destinations and import-source metadata belong to later import work in `ImportSchema.swift`. They are not required to save a manual closet item.
 
 `placements`: array of item ID, normalized center x/y, normalized width, rotation in degrees, and layer order. Store a placement schema version with the outfit. Render using aspect ratio; avoid saving device-specific point coordinates.
 
@@ -86,16 +84,10 @@ Illustrative JSON representation; production Firestore timestamps use its timest
 ```json
 {
   "id": "item_001",
-  "schemaVersion": 1,
   "ownerId": "user_a",
   "name": "Blue shirt",
   "category": "tops",
-  "destination": "closet",
   "imagePath": "users/user_a/items/item_001/original.jpg",
-  "cutoutPath": "users/user_a/items/item_001/cutout.png",
-  "source": {"kind": "photoLibrary", "importedAt": "2026-09-28T19:00:00Z"},
-  "tags": ["casual"],
-  "suggestedTags": [],
   "createdAt": "2026-09-28T19:00:00Z"
 }
 ```

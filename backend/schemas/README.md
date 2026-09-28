@@ -2,7 +2,7 @@
 
 These are contract templates, not deployed collections, security rules, services or migrations. The canonical field definitions are the Foundation-only Codable structs in [`dressed/Common/Models`](../../dressed/Common/Models). All three teams share them. Do not create separate client/backend copies of the same model.
 
-`examples.json` contains synthetic version-1 examples. Dates are ISO-8601 JSON strings; future Firestore adapters must explicitly map Date to/from Timestamp, use server timestamps for writes, and handle pending timestamps. Codable itself does not enforce auth, reference ownership, schema migrations, numeric ranges or URL safety. Those checks belong to the remaining tickets.
+`examples.json` contains synthetic examples. `ClothingItem` is deliberately limited to the six fields agreed for the first closet milestone; other records remain later-phase proposals. Dates are ISO-8601 JSON strings; future Firestore adapters must explicitly map Date to/from Timestamp, use server timestamps for writes, and handle pending timestamps. Codable itself does not enforce auth, reference ownership, schema migrations, numeric ranges or URL safety. Those checks belong to the remaining tickets.
 
 | Record | Proposed location | Primary contract owner | Access intent |
 | --- | --- | --- | --- |
@@ -21,9 +21,9 @@ These are contract templates, not deployed collections, security rules, services
 | ChallengeSubmission | challenges/{id}/submissions/{uid} | social | Owner submission of owned published post |
 | OutfitRecommendation, SimilarItemResult | Service responses | data | Not stored by this template |
 
-`schemaVersion` is explicitly required for persisted records. Reject unsupported versions until an explicit migration is implemented. ID fields must agree with document IDs; owner/author IDs are immutable. Timestamps, category/source enums and private/public media boundaries must be validated before use. Avatar measurements use centimeters and remain private.
+Other proposed persisted records currently include `schemaVersion`; `ClothingItem` does not. Before storing those later records, decide and implement a migration strategy. ID fields must agree with document IDs; owner/author IDs are immutable. Timestamps, category/source enums and private/public media boundaries must be validated before use. Avatar measurements use centimeters and remain private.
 
-Storage paths: private originals/cut-outs under `users/{uid}/items/{id}/`; published copies under `posts/{uid}/{postId}/`. Notifications must not be arbitrarily created by a recipient pretending another user acted. Challenge submissions require ownership checks. No rules or indexes are deployed by adding these files.
+Storage paths: private item photos under `users/{uid}/items/{id}/`; published copies under `posts/{uid}/{postId}/`. Notifications must not be arbitrarily created by a recipient pretending another user acted. Challenge submissions require ownership checks. No rules or indexes are deployed by adding these files.
 
 Templates cover the currently named entities, including deferred follows, preferences, avatars and engagement. Optional future features such as comments/likes, AR or body scans still need approved contracts before implementation. No functioning feature or server is implied by a schema file.
 

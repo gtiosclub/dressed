@@ -14,6 +14,13 @@ struct ValidateSchemas {
 
         func check<T: Codable>(_ type: T.Type, _ key: String) throws {
             let original = fixtures[key] as! [String: Any]
+            if key == "ClothingItem" {
+                let expected: Set<String> = ["id", "ownerId", "name", "category", "imagePath", "createdAt"]
+                guard Set(original.keys) == expected else {
+                    throw NSError(domain: "SchemaFixture", code: 2,
+                                  userInfo: [NSLocalizedDescriptionKey: "ClothingItem fixture has unexpected fields"])
+                }
+            }
             let encoded = try JSONSerialization.data(withJSONObject: original)
             let value = try decoder.decode(type, from: encoded)
             let roundTrip = try JSONSerialization.jsonObject(with: encoder.encode(value)) as! [String: Any]
