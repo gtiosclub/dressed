@@ -10,7 +10,7 @@ Students work on one small function or view at a time. Leads provide the shared 
 
 `lead` is a separate issue label for complex work, including shared schemas, Firebase rules, authentication/navigation, connecting the import and publication flows, AI choices, share extensions and avatar planning. The lead project is not needed for now.
 
-A task receives exactly one primary label from `viz`, `data`, `social`, or `lead`. Leads can help any student team without adding a student label to a complex task. Do not infer individual assignments from first names or old team notes.
+A task receives exactly one primary ownership label from `viz`, `data`, `social`, or `lead`, plus `frontend`, `backend`, or both for the kind of work. Views and client-side filtering are frontend; Firebase functions and shared data contracts are backend; integration across both gets both. Leads can help any student team without adding a student label to a complex task. Do not infer individual assignments from first names or old team notes.
 
 ## What leads provide
 

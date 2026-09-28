@@ -19,3 +19,7 @@ Use familiar words and complete sentences. “Saving the same ID updates the sam
 Only add dependency, setup or scope notes when needed. Keep team and priority in GitHub labels/project fields and delivery order in the milestone, rather than repeating metadata in the body. A small view need not have its own view model; one database function does not require the student to invent a repository framework.
 
 If expected behavior or shared inputs are undecided, discuss them with Neal before assigning dependent work. See [the decision process](decisions-before-tickets.md). First delivery uses photo selection and manual clothing details; AI extraction is not required to start.
+
+## Labels
+
+Choose one owner label: `viz`, `data`, `social`, or `lead`. Then choose `frontend` for views/client presentation, `backend` for data/Firebase work, or both when the ticket includes both. A team label does not imply a work type: the data team can build a UI component, and the social team can write a database function. Keep these labels out of the ticket body.
