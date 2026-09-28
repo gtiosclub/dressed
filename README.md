@@ -1,2 +1,38 @@
 # dressed
 GT iOS Club Fall 2026 - Dressed app
+
+Native SwiftUI app for iPhone and iPad, using Firebase and Swift Package Manager.
+
+## Run locally
+
+1. Open `dressed.xcodeproj` in Xcode (local setup uses Xcode 26.6).
+2. Allow Xcode to resolve the Firebase Swift packages.
+3. Select the `dressed` scheme and an iOS 26.5 or newer simulator.
+4. Press **Command-R** to build and run.
+
+The deployment target is iOS 26.5. Older installed simulator runtimes cannot run this target.
+
+## Firebase
+
+The existing `dressed/GoogleService-Info.plist` matches the app bundle identifier, `gtiosclub.dressed`. Firebase is initialized in `DressedApp.swift`.
+
+Email/password sign-in and account creation require the Email/Password provider to be enabled in the matching Firebase project's Authentication settings. Local compilation does not verify that server-side setting. Successful authentication currently prints a message; the app does not yet navigate to another screen.
+
+To use a different Firebase project, register an iOS app with the matching bundle identifier and replace the configuration plist with that project's downloaded file.
+
+## Command-line build
+
+From this directory:
+
+```sh
+xcodebuild -project dressed.xcodeproj \
+  -scheme dressed \
+  -configuration Debug \
+  -destination 'generic/platform=iOS Simulator' \
+  -derivedDataPath /private/tmp/dressed-setup-build \
+  CODE_SIGNING_ALLOWED=NO build
+```
+
+For a physical iPhone or iPad, select your development team under **Signing & Capabilities** in Xcode. Simulator builds do not require a signing account.
+
+Keep the workspace's shared `Package.resolved` file in version control to preserve resolved dependency versions. Ignore generated build files and per-user Xcode settings using the included `.gitignore`.

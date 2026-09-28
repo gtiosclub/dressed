@@ -30,7 +30,7 @@ jobs:
       - name: Build app
         run: |
           xcodebuild \
-            -project "dressed/dressed.xcodeproj" \
+            -project "dressed.xcodeproj" \
             -scheme "dressed" \
             -sdk iphonesimulator \
             -destination 'platform=iOS Simulator,name=iPhone 17' \
