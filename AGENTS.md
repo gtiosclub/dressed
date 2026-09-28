@@ -71,3 +71,7 @@ Start with photo-library selection and manual clothing details. Extraction is la
 ## First closet record
 
 `ClothingItem` has exactly six agreed fields for milestone 1: id, ownerId, name, category, imagePath, and createdAt. The image path refers to a private owner item photo. Import drafts, wishlist metadata, cutouts, tags and product links are later work in separate types. Do not require them in the basic save/fetch student functions.
+
+## GitHub work-type labels
+
+Every open feature ticket has one ownership label (`viz`, `data`, `social`, or `lead`) and at least one work-type label (`frontend`, `backend`, or both). Label UI components and client-side filters frontend; label Firebase functions and shared data contracts backend; use both for integration that touches UI and data. Keep labels in GitHub metadata, not repeated in the ticket body.
