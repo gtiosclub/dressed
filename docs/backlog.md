@@ -1,5 +1,7 @@
 # Feature backlog
 
+Template-first implementation: start with [the template kit](../templates/README.md), reuse existing schema records, and fill TODOs for the selected ticket. A starter file does not complete a ticket.
+
 20 scoped tickets organized into exactly three primary subteams: `viz`, `data`, `social`. Each GitHub issue receives exactly one team label plus `enhancement` (or `documentation` where relevant). Priority, phase and dependencies are recorded in the body. Area tags below are descriptive metadata, not additional team assignments. Individual assignees remain unset; Nicole is named as the proposed visual-retrieval contributor only.
 
 The schema templates now exist, but services, mocks, rules and UI remain planned. P0.1 reviews and completes those contracts instead of recreating them. See [team boundaries](teams.md), [scope](product-scope.md), [architecture](architecture.md) and [GitHub mapping](github-issues.md).

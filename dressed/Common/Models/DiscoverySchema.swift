@@ -1,5 +1,10 @@
 import Foundation
 
+// SCHEMA TEMPLATE: field contract only; no service or validation implementation.
+// Primary owner: data (recommendations); social (engagement)
+// Follow-up tickets: PS4.1 / P4.4; engagement deferred
+// TODO: Confirm scoring/event retention and notification trust boundaries before enabling these later-phase records.
+
 // Later-phase templates. No event collection or personalization is enabled by these types.
 struct PreferenceEvent: Codable, Identifiable {
     enum Kind: String, Codable { case view, like, save, wear, dismiss }

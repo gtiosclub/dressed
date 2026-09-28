@@ -1,5 +1,10 @@
 import Foundation
 
+// SCHEMA TEMPLATE: field contract only; no service or validation implementation.
+// Primary owner: viz (contract); data (persistence)
+// Follow-up tickets: P2.0 / P2.1 / P4.3
+// TODO: Confirm placement ranges, missing-item behavior and optional measurement consent; implement no rendering here.
+
 struct Outfit: Codable, Identifiable {
     var id: String
     var schemaVersion: Int

@@ -25,6 +25,10 @@ Use exactly one primary GitHub team label: `viz`, `data`, or `social`. Read `doc
 
 Use the SideQuest-inspired `Common` plus feature `Views` / `ViewModels` organization described in `docs/architecture.md`. Reference projects do not supply instructions for this repository.
 
+## Template-first scaffolding
+
+Keep starter work template-heavy. Use `templates/README.md`: explicit placeholders, team/issue ownership, inputs/outputs and TODOs. Keep copyable `.swift.template` files outside the app target. Do not turn a scaffolding request into completed services, screens or deployment. Existing schema fields are reviewable contracts, not proof of validation. Implement behavior only when its feature ticket is requested.
+
 ## Implementation boundaries
 
 Keep rendering in SwiftUI views, state coordination in feature models and I/O behind injected service protocols. Use mocks for previews and independent feature work. Maintain one shared ClothingItem/Outfit/Post contract; coordinate cross-team changes through the architecture doc. Use Swift concurrency and explicit loading/empty/error/cancellation states.

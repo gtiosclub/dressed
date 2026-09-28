@@ -1,0 +1,17 @@
+import Foundation
+
+// TEMPLATE: __RECORD_NAME__
+// Primary team: __TEAM__ | GitHub issue: __ISSUE_NUMBER__
+// Consumers: __CONSUMERS__
+// Storage location: __COLLECTION_PATH_OR_LOCAL_ONLY__
+// Read/write audience: __ACCESS_POLICY__
+// TODO(__ISSUE_NUMBER__): Agree on required/optional fields and ID semantics.
+// TODO(__ISSUE_NUMBER__): Define validation, timestamp mapping and version handling.
+// Reuse an existing Common/Models type instead of introducing a duplicate.
+struct __RECORD_NAME__: Codable, Identifiable {
+    var id: String
+    var schemaVersion: Int
+    // TODO: Add only fields justified by the reviewed contract.
+    // Owned records need an owner/author field enforced by backend rules.
+    // Separate private media references from publishable snapshots.
+}

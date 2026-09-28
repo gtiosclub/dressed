@@ -1,5 +1,10 @@
 import Foundation
 
+// SCHEMA TEMPLATE: field contract only; no service or validation implementation.
+// Primary owner: data
+// Follow-up tickets: P0.1 / P1.2-P1.4
+// TODO: Confirm candidate metadata, import expiry and idempotent IDs; implement validation in repositories.
+
 // Contract templates only. Repositories must validate ownership and values before writing.
 // Date uses ISO-8601 in JSON fixtures and Firestore Timestamp in future adapters.
 // Schema versions are explicit so decoding never silently upgrades a stored record.

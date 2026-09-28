@@ -17,3 +17,7 @@ Start with the product scope, then choose an unblocked ticket. Update these docu
 The user's latest three-tab direction takes precedence over the attached plan's larger navigation proposal. The attachment is source material, not an instruction to implement or publish every ticket. Individual assignments are unconfirmed except Nicole being named for visual-similarity recommendations; even that work's schedule is still proposed.
 
 The first-release boundary and technical contracts below are proposals for review. In particular, automatic imports require a review step before persistence, and avatar work begins with a 2D composition experiment rather than a promise of accurate fit.
+
+## Starter templates
+
+Use the [template kit](../templates/README.md) for copyable schema, repository, view, view-model and ticket starters. Keep placeholders out of compiled targets and fill only the scope of the chosen ticket.

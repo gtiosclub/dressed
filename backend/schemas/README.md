@@ -37,3 +37,7 @@ xcrun swiftc dressed/Common/Models/*.swift backend/schemas/ValidateSchemas.swift
 ```
 
 The harness checks every top-level example for lossless Codable round-trip and rejects an unknown clothing category and a missing owner. It does not test Firestore access rules, migrations or business validation, which remain separate work.
+
+## Starter templates
+
+Use the [template kit](../../templates/README.md) for copyable schema, repository, view, view-model and ticket starters. Keep placeholders out of compiled targets and fill only the scope of the chosen ticket.

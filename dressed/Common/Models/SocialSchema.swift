@@ -1,5 +1,10 @@
 import Foundation
 
+// SCHEMA TEMPLATE: field contract only; no service or validation implementation.
+// Primary owner: social
+// Follow-up tickets: P2.2-P2.4
+// TODO: Confirm profile visibility, snapshot media ownership, deletion and relationship access rules.
+
 struct UserProfile: Codable, Identifiable {
     var id: String // Firebase auth UID. No email or private measurements here.
     var schemaVersion: Int
