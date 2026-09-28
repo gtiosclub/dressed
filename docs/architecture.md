@@ -15,7 +15,7 @@ As of commit `5c10212`:
 
 The current planning branch adds schema-only Codable types in `dressed/Common/Models` and JSON examples under `backend/schemas`; these do not implement persistence or features. The model definitions are the canonical field source, including required updatedAt fields on ClothingItem/UserProfile.
 
-Everything below is a proposed contract. Confirm details in the foundation tickets before implementation. Firestore plus Storage is the proposed primary persistence stack; do not build a parallel Realtime Database model merely because that dependency is linked.
+Everything below is a proposed contract. Confirm details in the lead planning tickets before implementation. Firestore plus Storage is the proposed primary persistence stack; do not build a parallel Realtime Database model merely because that dependency is linked.
 
 ## Source organization
 
@@ -148,10 +148,14 @@ Every I/O operation is `async throws`. Authentication comes from the session; a 
 | SearchService, next | search(query, filters, cursor) -> result page | Explicit dataset and supported matching semantics |
 | RecommendationService, later | similar(item/image, limit) -> scored candidates | Corpus IDs, score, provenance, and optional verified product URL |
 
-Provide mock success, empty, delayed, no-detection and failed responses before connecting views to Firebase. Review the provided Swift schema templates, optional fields and date handling in P0.1. Protocols and mocks remain to be implemented.
+Provide mock success, empty, delayed, no-detection and failed responses before connecting views to Firebase. Review the provided Swift schema templates, optional fields and date handling in lead issue #49. Protocols and mocks remain to be implemented.
 
 ## Ingestion state machine
 
 `source selection -> draft received -> processing -> review -> saving -> saved`
 
 Processing can transition to retry or manual crop. Review allows item-level select/deselect and metadata correction. Cancel discards temporary assets. Saving failures retain the draft and selected IDs. Only confirmed items are persisted. The share extension queues an authenticated-user-bound payload in an App Group; it must not assume arbitrary control over the containing app's launch behavior. Expiration, sign-out/user changes and duplicate deliveries must be handled before release.
+
+## Assigning this work
+
+This document explains the broader system, not the expected size of a student task. Leads own unresolved choices and multi-step integrations. Students use the [small-ticket backlog](backlog.md). Follow [officer guidance](officers/README.md) before turning any proposed service into an assignment.

@@ -1,41 +1,43 @@
-# __PLAN_ID__ - __AREA__: __IMPERATIVE_TITLE__
+# __TEAM_ID__ - __Build_one_small_thing__
 
-Primary team: __viz_OR_data_OR_social__
-Priority: __High_Medium_Low__
-Milestone: __PHASE__
-Individual assignee: __CONFIRMED_HANDLE_OR_UNASSIGNED__
-Blocked by: __ISSUE_LINKS_OR_NONE__
-Related: __CONTRACT_OR_CONSUMER_ISSUES__
+## Why we need this
 
-## Problem
+Explain where this small piece will be used and why the app needs it. Use complete sentences that a new member can understand.
 
-**Context.** __USER_OR_TEAM_PROBLEM__
+## What to build
 
-## User Story
+Name one function or one small view. Explain what it should do. Do not ask for an entire page or connected feature.
 
-As a __USER__, I want __CAPABILITY__ so that __OUTCOME__.
+## What your code receives and returns
 
-## Implementation Plan
+- The caller gives you: __INPUT_VALUES_AND_TYPES__.
+- Your code should: __ONE_OPERATION__.
+- It returns or displays: __EXPECTED_RESULT__.
 
-**Task.** __ONE_COMPONENT_CONTRACT_OR_INTEGRATION__
+Explain unfamiliar terms such as a binding, callback or async function when they are needed.
 
-- Reuse: __EXISTING_FILES_OR_TYPES__
-- Template: __TEMPLATE_PATH__
-- Inputs: __TYPES_AND_PRECONDITIONS__
-- Outputs/actions: __TYPES_AND_POSTCONDITIONS__
-- Owner/consumer handoff: __TEAMS_AND_SHARED_CONTRACT__
-- Outside scope: __EXPLICIT_BOUNDARY__
+## Example
 
-## Acceptance Criteria
+Given __SAMPLE_INPUT__, the expected result is __SAMPLE_OUTPUT_OR_VISIBLE_BEHAVIOR__.
 
-- [ ] __OBSERVABLE_HAPPY_PATH__
-- [ ] __OBSERVABLE_EMPTY_ERROR_OR_PERMISSION_CASE__
-- [ ] __RETRY_CANCELLATION_OR_OWNERSHIP_CASE_IF_RELEVANT__
+## Where to work
 
-## Initial Concerns / Roadblocks
+Suggested file: __PATH__. Reuse __EXISTING_MODEL_OR_COMPONENT__. Say whether the file already exists or should be created.
 
-__OPEN_DECISIONS_DEPENDENCIES_AND_WHO_RESOLVES_THEM__
+## How we know it is done
 
-## Verification Evidence
+- [ ] __NORMAL_EXAMPLE_WORKS__
+- [ ] __EMPTY_OR_SIMPLE_FAILURE_EXAMPLE_WORKS__
+- [ ] __ONE_OTHER_OBSERVABLE_RESULT_IF_NEEDED__
 
-__COMMAND_RESULTS_OR_OBSERVED_NATIVE_UI_FLOW__
+## You do not need to build
+
+Explain the related work that a lead or another ticket will handle.
+
+## Getting started and checking your work
+
+Tell the student which sample data, preview or development setup to use. If something must be supplied by a lead, link the issue and say so explicitly.
+
+Team/project: __viz_OR_data_OR_social__. Priority: __High_Medium_Low__.
+Stage: __STAGE__. Individual assignee: __CONFIRMED_PERSON_OR_UNASSIGNED__.
+Blocked by: __LINKS_OR_NONE__. Related lead work: __LINKS_IF_NEEDED__.
