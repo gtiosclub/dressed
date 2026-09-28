@@ -1,0 +1,63 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owns(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function validItem(uid, itemId) {
+      let item = request.resource.data;
+      return item.keys().hasAll(['id', 'ownerId', 'name', 'category', 'imagePath', 'createdAt'])
+        && item.keys().hasOnly(['id', 'ownerId', 'name', 'category', 'imagePath', 'createdAt'])
+        && item.id == itemId
+        && item.ownerId == uid
+        && item.name is string && item.name.size() > 0 && item.name.size() <= 80
+        && item.category in ['tops', 'pants', 'skirts', 'dresses', 'shoes', 'outerwear', 'accessories', 'other']
+        && item.imagePath is string
+        && item.imagePath.matches('users/' + uid + '/items/' + itemId + '/original\\.jpg')
+        && item.createdAt is timestamp;
+    }
+
+    function validOutfit(uid, outfitId) {
+      let outfit = request.resource.data;
+      return outfit.keys().hasAll(['id', 'schemaVersion', 'ownerId', 'placementSchemaVersion', 'placements', 'createdAt', 'updatedAt'])
+        && outfit.keys().hasOnly(['id', 'schemaVersion', 'ownerId', 'name', 'placementSchemaVersion', 'placements', 'createdAt', 'updatedAt'])
+        && outfit.id == outfitId && outfit.ownerId == uid
+        && outfit.schemaVersion == 1 && outfit.placementSchemaVersion == 1
+        && (!('name' in outfit) || (outfit.name is string && outfit.name.size() <= 80))
+        && outfit.placements is list && outfit.placements.size() <= 20
+        && outfit.createdAt is timestamp && outfit.updatedAt is timestamp;
+    }
+
+    match /users/{uid}/items/{itemId} {
+      allow get, list: if owns(uid);
+      allow create: if owns(uid) && validItem(uid, itemId);
+      allow update: if owns(uid)
+        && resource.data.id == itemId && resource.data.ownerId == uid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && validItem(uid, itemId);
+      allow delete: if owns(uid);
+    }
+
+    match /users/{uid}/outfits/{outfitId} {
+      allow get, list: if owns(uid);
+      allow create: if owns(uid) && validOutfit(uid, outfitId);
+      allow update: if owns(uid)
+        && resource.data.id == outfitId && resource.data.ownerId == uid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && validOutfit(uid, outfitId);
+      allow delete: if owns(uid);
+    }
+
+    // #59 must define and test safe publication before clients can write posts.
+    match /posts/{postId} {
+      allow get, list: if request.auth != null;
+      allow create, update, delete: if false;
+    }
+
+    // Includes the existing uppercase legacy collections and unapproved models.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

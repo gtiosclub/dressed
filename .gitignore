@@ -66,3 +66,10 @@ fastlane/test_output
 DerivedData/
 build/
 *.xcuserstate
+
+# Firebase rules test dependencies and local emulator state
+node_modules/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.firebase/

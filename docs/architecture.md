@@ -15,6 +15,8 @@ As of commit `5c10212`:
 
 The current planning branch adds schema-only Codable types in `dressed/Common/Models` and JSON examples under `backend/schemas`; these do not implement persistence or features. The model definitions are the canonical field source, including the six required fields on ClothingItem.
 
+The access-rules work adds local Firestore and Storage rules with emulator tests for synthetic users. It does not deploy rules to `out-fitted` or make live Storage available. See [Firebase testing](officers/firebase-testing.md) before assigning live database work.
+
 Everything below is a proposed contract. Confirm details in the lead planning tickets before implementation. Firestore plus Storage is the proposed primary persistence stack; do not build a parallel Realtime Database model merely because that dependency is linked.
 
 ## Source organization
