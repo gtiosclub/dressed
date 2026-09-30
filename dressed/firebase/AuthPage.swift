@@ -80,6 +80,35 @@ struct Authentication: View {
         } else {
             print("Successfully authenticated!")
             print("User ID:", Auth.auth().currentUser?.uid ?? "No UID")
+            Task {
+                guard let uid = Auth.auth().currentUser?.uid else { return }
+
+                let now = Date()
+                var outfit = Outfit(
+                    id: "save_test_\(UUID().uuidString)",
+                    schemaVersion: 1,
+                    ownerId: uid,
+                    name: "Test outfit",
+                    placementSchemaVersion: 1,
+                    placements: [],
+                    createdAt: now,
+                    updatedAt: now
+                )
+
+                do {
+                    try await saveOutfit(outfit)
+                    print("First save succeeded")
+
+                    outfit.name = "Updated test outfit"
+                    outfit.updatedAt = Date()
+
+                    try await saveOutfit(outfit)
+                    print("Second save succeeded")
+                    print("Check: users/\(uid)/outfits/\(outfit.id)")
+                } catch {
+                    print("Outfit save failed:", error)
+                }
+            }
         }
     }
 }
