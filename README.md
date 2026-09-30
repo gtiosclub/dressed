@@ -7,10 +7,10 @@ Native SwiftUI app for iPhone and iPad, using Firebase and Swift Package Manager
 
 1. Open `dressed.xcodeproj` in Xcode (local setup uses Xcode 26.6).
 2. Allow Xcode to resolve the Firebase Swift packages.
-3. Select the `dressed` scheme and an iOS 26.5 or newer simulator.
+3. Select the `dressed` scheme and an iOS 18.0 or newer simulator.
 4. Press **Command-R** to build and run.
 
-The deployment target is iOS 26.5. Older installed simulator runtimes cannot run this target.
+The deployment target is iOS 18.0. Use an iOS 18.0 or newer simulator or device.
 
 ## Firebase
 
