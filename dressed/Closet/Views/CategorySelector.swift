@@ -17,15 +17,12 @@ struct CategorySelector: View {
                     Button {
                         selection = type
                     } label: {
-                        Text(type?.rawValue ?? "all")
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
-                            .background(isSelected ? .blue : .gray.opacity(0.2))
-                            .foregroundStyle(isSelected ? .white : .primary)
-                            .clipShape(Capsule())
-                            .overlay(
-                                Capsule().stroke(isSelected ? .blue : .gray, lineWidth: 2)
-                            )
+                        if (isSelected) {
+                            Label(type?.rawValue ?? "all", systemImage: "checkmark").plumEditorialChip(isSelected: true)
+                        }
+                        else {
+                            Text(type?.rawValue ?? "all").plumEditorialChip(isSelected: isSelected)
+                        }
                     }
 
                 }
@@ -33,6 +30,63 @@ struct CategorySelector: View {
             .padding(.horizontal)
         }
         
+    }
+}
+
+// DIFFERENT STYLES FOR BUTTONS
+private extension View {
+    func plumEditorialChip(isSelected: Bool) -> some View {
+        self
+            .font(.subheadline.weight(.semibold))
+            .fixedSize(horizontal: true, vertical: false)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .foregroundStyle(
+                isSelected
+                    ? .white
+                    : Color(red: 0.27, green: 0.10, blue: 0.24)
+            )
+            .background(
+                isSelected
+                    ? Color(red: 0.28, green: 0.08, blue: 0.24)
+                    : Color(red: 0.94, green: 0.89, blue: 0.95)
+            )
+            .clipShape(Capsule())
+            .overlay(
+                Capsule().stroke(
+                    isSelected
+                        ? Color(red: 0.80, green: 0.66, blue: 0.36)
+                        : Color(red: 0.65, green: 0.55, blue: 0.68),
+                    lineWidth: isSelected ? 2 : 1
+                )
+            )
+    }
+}
+
+private extension View {
+    func inkAndCreamChip(isSelected: Bool) -> some View {
+        self
+            .font(.subheadline.weight(.semibold))
+            .fixedSize(horizontal: true, vertical: false)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .foregroundStyle(
+                isSelected
+                    ? .white
+                    : Color(red: 0.10, green: 0.10, blue: 0.09)
+            )
+            .background(
+                isSelected
+                    ? Color(red: 0.08, green: 0.08, blue: 0.08)
+                    : Color(red: 0.97, green: 0.95, blue: 0.91)
+            )
+            .clipShape(Capsule())
+            .overlay(
+                Capsule().stroke(
+                    Color(red: 0.60, green: 0.56, blue: 0.49),
+                    lineWidth: 1
+                )
+            )
     }
 }
 
