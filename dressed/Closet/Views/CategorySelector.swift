@@ -8,31 +8,16 @@ struct CategorySelector: View {
         // TODO(#73): Show "All" and ClothingCategory.allCases.
         // Give the selected choice a distinct style and update selection on tap.
         Spacer()
-        ScrollView(.horizontal, showsIndicators: false) {
+        let clothingChoices: [ClothingCategory?] = [nil] + ClothingCategory.allCases
+        
+        ScrollView(.horizontal, showsIndicators: true) {
             HStack(spacing: 8) {
-                let isAllSelected = selection == nil
-                Button {
-                    selection = nil
-                } label: {
-                    Text("all")
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(isAllSelected ? .blue : .gray.opacity(0.2))
-                        .foregroundStyle(isAllSelected ? .white : .primary)
-                        .clipShape(Capsule())
-                        .overlay(
-                            Capsule().stroke(isAllSelected ? .blue : .gray, lineWidth: 2)
-                        )
-                }
-                
-                ForEach(ClothingCategory.allCases, id: \.self) { theme in
-                    let isSelected = selection == theme
-
+                ForEach(clothingChoices, id: \.self) { type in
+                    let isSelected = selection == type
                     Button {
-                        selection = theme
-                        print(theme.rawValue)
+                        selection = type
                     } label: {
-                        Text(theme.rawValue)
+                        Text(type?.rawValue ?? "all")
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
                             .background(isSelected ? .blue : .gray.opacity(0.2))
