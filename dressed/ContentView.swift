@@ -64,6 +64,7 @@ private struct AppTabs: View {
             .tabItem { Label("Discovery", systemImage: "safari") }
             .tag(1)
 
+            
             NavigationStack {
                 ContentUnavailableView(
                     "Import is coming soon",
@@ -75,6 +76,8 @@ private struct AppTabs: View {
             .tabItem { Label("Camera", systemImage: "camera") }
             .tag(2)
         }
+
+        
         .alert("Could not sign out", isPresented: Binding(
             get: { signOutError != nil },
             set: { if !$0 { signOutError = nil } }
@@ -83,6 +86,8 @@ private struct AppTabs: View {
         } message: {
             Text(signOutError ?? "Please try again.")
         }
+        
+        
     }
 
     @ToolbarContentBuilder
