@@ -10,14 +10,14 @@ import SwiftUI
 struct ProfileView: View {
     
     var body: some View {
-        VStack{
-            HStack{
+        VStack {
+            HStack {
                 Image("profile_icon1")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 80, height: 80)
                     .padding(.leading, 10)
-                VStack(alignment: .leading){
+                VStack(alignment: .leading) {
                     Text("Example Person")
                         .font(.system(size: 24))
                     Text("example_user")
@@ -33,6 +33,6 @@ struct ProfileView: View {
     }
 }
 
-#Preview{
+#Preview {
     ProfileView()
 }
