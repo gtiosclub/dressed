@@ -84,7 +84,7 @@ private struct AppTabs: View {
             Text(signOutError ?? "Please try again.")
         }
     }
-
+    
     @ToolbarContentBuilder
     private var signOutToolbar: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
