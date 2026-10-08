@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct ProfileView: View {
+struct ProfileHeader: View {
     
     var body: some View {
         VStack {
@@ -18,7 +18,7 @@ struct ProfileView: View {
                     .frame(width: 80, height: 80)
                     .padding(.leading, 10)
                 VStack(alignment: .leading) {
-                    Text("Example Person")
+                    Text("Placeholder Example Name of User")
                         .font(.system(size: 24))
                     Text("example_user")
                         .font(.system(size: 18))
@@ -27,12 +27,13 @@ struct ProfileView: View {
             }
             Spacer()
         }
-        .padding(.top, 10)
+
+        .padding(.top)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding()
     }
 }
 
 #Preview {
-    ProfileView()
+    ProfileHeader()
 }
