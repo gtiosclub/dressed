@@ -8,32 +8,38 @@
 import SwiftUI
 
 struct ProfileHeader: View {
+    let avatar : Image
+    let name: String
+    let username: String
     
     var body: some View {
         VStack {
             HStack {
-                Image("profile_icon1")
+                avatar
                     .resizable()
                     .scaledToFit()
                     .frame(width: 80, height: 80)
+                    .clipShape(Circle())
                     .padding(.leading, 10)
                 VStack(alignment: .leading) {
-                    Text("Placeholder Example Name of User")
+                    Text(name)
                         .font(.system(size: 24))
-                    Text("example_user")
+                    Text(username)
                         .font(.system(size: 18))
                 }
-                .padding(10)
+                .padding()
             }
             Spacer()
         }
 
-        .padding(.top)
+        //.padding(.top)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding()
     }
 }
 
 #Preview {
-    ProfileHeader()
+    ProfileHeader(avatar: Image(systemName: "person.circle.fill"),
+        name: "Alexandra Elizabeth Montgomery-Williams",
+        username: "@alexandra")
 }
