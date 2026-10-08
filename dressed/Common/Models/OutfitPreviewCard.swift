@@ -6,14 +6,13 @@
 //
 import SwiftUI
 
-struct OutfitPreviewCard: View
-{
+struct OutfitPreviewCard: View {
     let name: String
     let image: Image
     let onTap: () -> Void
-    
+
     var body: some View {
-        Button{
+        Button {
             onTap()
         } label: {
             VStack {
@@ -30,10 +29,12 @@ struct OutfitPreviewCard: View
         }
     }
 }
+
 #Preview {
     OutfitPreviewCard(
         name: "Monday",
         image: Image(systemName: "photo"),
-        onTap: { print("tapped")}
+        onTap: {
+             print("tapped") }
     )
 }
