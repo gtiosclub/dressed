@@ -22,4 +22,17 @@ extension OutfitFunctions {
             .document(outfit.id)
             .setData(data)
     }
+
+    /// Fetch owner-scoped records and propagate read or decoding errors.
+    func fetchOutfits(ownerId: String) async throws -> [Outfit] {
+        let snapshot = try await Firestore.firestore()
+            .collection("users")
+            .document(ownerId)
+            .collection("outfits")
+            .getDocuments(source: .server)
+
+        return try snapshot.documents.map { document in
+            try document.data(as: Outfit.self)
+        }
+    }
 }
