@@ -7,6 +7,7 @@ Working scope based on the team's feature notes and attached setup/backlog plan,
 - [Delivery plan and ownership](delivery-plan.md): milestones, team handoffs, open decisions.
 - [Feature backlog](backlog.md): small work units, dependencies, acceptance criteria.
 - [Three subteams](teams.md): viz, data, social and their handoffs.
+- [Ticket feasibility check](officers/ticket-feasibility.md): unblocked student work and the live-service gates.
 - [Firebase testing for students](officers/firebase-testing.md): current project, safe emulator checks, and live setup limits.
 - [Backend schema templates](../backend/schemas/README.md): canonical types, examples and storage map.
 - [Agent instructions](../AGENTS.md): repository-specific guidance for coding agents.
@@ -21,7 +22,7 @@ The first-release boundary and technical contracts below are proposals for revie
 
 ## Starter templates
 
-Use the [template kit](../templates/README.md) for copyable schema, repository, view, view-model and ticket starters. Keep placeholders out of compiled targets and fill only the scope of the chosen ticket.
+Use the [template kit](../templates/README.md) for copyable schema, repository, view, view-model and ticket starters. The first Camera, Closet and Firebase ticket files also have source-level outlines at their assigned paths. Those outlines compile but do not implement the tasks; fill only the scope of the chosen ticket.
 
 ## Student task size
 

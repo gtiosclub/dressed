@@ -1,7 +1,7 @@
 import SwiftUI
-import FirebaseAuth
 
 struct Authentication: View {
+    @ObservedObject var session: SessionViewModel
     @State private var email = ""
     @State private var password = ""
     @State private var isCreatingAccount = false
@@ -47,11 +47,9 @@ struct Authentication: View {
                 isCreatingAccount.toggle()
                 errorMessage = ""
             } label: {
-                Text(
-                    isCreatingAccount
+                Text(isCreatingAccount
                     ? "Already have an account? Sign in"
-                    : "Don't have an account? Create one"
-                )
+                    : "Don't have an account? Create one")
             }
         }
         .padding()
@@ -61,58 +59,22 @@ struct Authentication: View {
         errorMessage = ""
         isLoading = true
 
-        if isCreatingAccount {
-            Auth.auth().createUser(withEmail: email, password: password) { _, error in
-                handleAuthResult(error)
-            }
-        } else {
-            Auth.auth().signIn(withEmail: email, password: password) { _, error in
-                handleAuthResult(error)
-            }
-        }
-    }
-
-    private func handleAuthResult(_ error: Error?) {
-        isLoading = false
-
-        if let error = error {
-            errorMessage = error.localizedDescription
-        } else {
-            print("Successfully authenticated!")
-            print("User ID:", Auth.auth().currentUser?.uid ?? "No UID")
-            Task {
-                guard let uid = Auth.auth().currentUser?.uid else { return }
-
-                let now = Date()
-                var outfit = Outfit(
-                    id: "save_test_\(UUID().uuidString)",
-                    schemaVersion: 1,
-                    ownerId: uid,
-                    name: "Test outfit",
-                    placementSchemaVersion: 1,
-                    placements: [],
-                    createdAt: now,
-                    updatedAt: now
-                )
-
-                do {
-                    try await saveOutfit(outfit)
-                    print("First save succeeded")
-
-                    outfit.name = "Updated test outfit"
-                    outfit.updatedAt = Date()
-
-                    try await saveOutfit(outfit)
-                    print("Second save succeeded")
-                    print("Check: users/\(uid)/outfits/\(outfit.id)")
-                } catch {
-                    print("Outfit save failed:", error)
+        Task {
+            do {
+                if isCreatingAccount {
+                    try await session.createAccount(email: email, password: password)
+                } else {
+                    try await session.signIn(email: email, password: password)
                 }
+                password = ""
+            } catch {
+                errorMessage = error.localizedDescription
             }
+            isLoading = false
         }
     }
 }
 
 #Preview {
-    Authentication()
+    Authentication(session: SessionViewModel(service: PreviewSessionService(userId: nil)))
 }

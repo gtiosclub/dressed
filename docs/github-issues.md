@@ -16,7 +16,7 @@ Student tasks are grouped by milestone in [the backlog](backlog.md). Complex dec
 | [#58: Lead: Connect the outfit editor to saving](https://github.com/gtiosclub/dressed/issues/58) | `lead` |
 | [#59: Lead: Connect outfit publishing without exposing private photos](https://github.com/gtiosclub/dressed/issues/59) | `lead` |
 | [#60: SOCIAL-01 - Build one outfit-post card](https://github.com/gtiosclub/dressed/issues/60) | `social` |
-| [#61: SOCIAL-02 - Write the savePost function](https://github.com/gtiosclub/dressed/issues/61) | `social` |
+| [#61: SOCIAL-02 - Save a post to the user's saved list](https://github.com/gtiosclub/dressed/issues/61) | `social` |
 | [#62: Lead: Build the Share to Dressed system integration](https://github.com/gtiosclub/dressed/issues/62) | `lead` |
 | [#63: Lead: Decide how product links and wishlists work](https://github.com/gtiosclub/dressed/issues/63) | `lead` |
 | [#64: SOCIAL-03 - Build a reusable search field](https://github.com/gtiosclub/dressed/issues/64) | `social` |
@@ -39,3 +39,7 @@ Student tasks are grouped by milestone in [the backlog](backlog.md). Complex dec
 | [#83: DATA-08 - Write the fetchOutfits function](https://github.com/gtiosclub/dressed/issues/83) | `data` |
 | [#84: VIZ-07 - Build a saved-outfit preview card](https://github.com/gtiosclub/dressed/issues/84) | `viz` |
 | [#87: Lead: Check Firebase Storage costs and club credits](https://github.com/gtiosclub/dressed/issues/87) | `lead` |
+| [#90: Lead: Test a clothing save and read from the iOS app](https://github.com/gtiosclub/dressed/issues/90) | `lead` |
+| [#93: Lead: Create repeatable local Firebase demo data](https://github.com/gtiosclub/dressed/issues/93) | `lead` |
+| [#94: Lead: Allow owner-only saved posts in Firestore](https://github.com/gtiosclub/dressed/issues/94) | `lead` |
+| [#95: Lead: Connect the Debug app to local Firebase demo data](https://github.com/gtiosclub/dressed/issues/95) | `lead` |

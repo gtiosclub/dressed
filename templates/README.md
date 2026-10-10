@@ -2,6 +2,8 @@
 
 These files are intentionally incomplete and live outside the app target. Copy only the pieces your ticket needs, replace every `__PLACEHOLDER__`, and implement the ticket's acceptance criteria. `.swift.template` files are not compiled. No template is a working feature or permission to deploy a backend.
 
+For the first assigned tickets, matching starter files already exist in the app source: `Camera/Views/ChoosePhotoButton.swift` (#52), `Camera/Views/ImportCandidateRow.swift` (#54), `Closet/Views/ClothingItemCard.swift` (#56), `Closet/Views/CategorySelector.swift` (#73), `Common/Firebase/ClothingFunctions.swift` (#70/#71), and `Common/Firebase/OutfitFunctions.swift` (#57/#83). Fill those files in place instead of copying a generic template over them. The views currently render nothing, and the protocols have no Firebase implementation.
+
 | Team | Start here | Fill in |
 | --- | --- | --- |
 | data | [Schema](swift/Record.swift.template), [repository contract](swift/Repository.swift.template) | Field meanings, validation, ownership, persistence/error contracts |
@@ -13,7 +15,7 @@ These files are intentionally incomplete and live outside the app target. Copy o
 
 1. Read the linked GitHub ticket and identify its primary team.
 2. Check `dressed/Common/Models` before copying Record: reuse an existing schema whenever possible.
-3. Copy needed Swift templates into `Common` or the feature's `Views` / `ViewModels` folder. Use the SideQuest-inspired layout in [architecture](../docs/architecture.md).
+3. If the ticket already names a starter source file above, edit it in place. Otherwise copy only the needed Swift template into `Common` or the feature's `Views` / `ViewModels` folder. Use the SideQuest-inspired layout in [architecture](../docs/architecture.md).
 4. Replace tokens and annotate unresolved decisions with an owner and issue ID. Keep unresolved code out of the app target until it compiles.
 5. Add synthetic fixtures, then implement the behavior required by the ticket. A mock is only a preview/test dependency, never a silent production substitute.
 6. Run the relevant checks and record which acceptance criteria are demonstrated.

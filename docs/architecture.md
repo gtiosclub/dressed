@@ -2,6 +2,18 @@
 
 ## Observed baseline
 
+Issue #50 adds a session-aware shell: the root waits for Firebase Auth's initial
+state, shows the existing sign-in screen when signed out, and shows My Closet,
+Discovery, and Camera tabs when signed in. Discovery has Feed and Search
+sections. These tabs contain honest empty/coming-soon states; closet, feed,
+search, and import behavior still belong to their own tickets. Signing out
+returns to authentication and discards the tab view's user-specific state.
+The session service is injected, with local preview sessions for both states.
+Debug builds can launch with `-mockSession` for a synthetic sign-in and
+sign-out walkthrough without contacting Auth.
+
+The original baseline below describes the project before #50:
+
 As of commit `5c10212`:
 
 - `dressed.xcodeproj` is at the repository root. Swift and assets live in `dressed/`.
@@ -15,13 +27,13 @@ As of commit `5c10212`:
 
 The current planning branch adds schema-only Codable types in `dressed/Common/Models` and JSON examples under `backend/schemas`; these do not implement persistence or features. The model definitions are the canonical field source, including the six required fields on ClothingItem.
 
-The access-rules work adds local Firestore and Storage rules with emulator tests for synthetic users. It does not deploy rules to `out-fitted` or make live Storage available. See [Firebase testing](officers/firebase-testing.md) before assigning live database work.
+The access-rules work added Firestore and Storage rules with emulator tests for synthetic users. Firestore rules were published to `out-fitted` on September 28, 2026; live Rules Playground simulations confirmed owner and non-owner read decisions. Storage rules remain local because live Storage is unavailable. See [Firebase testing](officers/firebase-testing.md) before assigning live database work.
 
 Everything below is a proposed contract. Confirm details in the lead planning tickets before implementation. Firestore plus Storage is the proposed primary persistence stack; do not build a parallel Realtime Database model merely because that dependency is linked.
 
 ## Source organization
 
-Inspired by the shared-code and feature-based MVVM layout inspected in SideQuest. Only Common/Models is added now. Create each feature's Views and ViewModels when its ticket is implemented; no placeholder screens or service implementations are implied.
+Inspired by the shared-code and feature-based MVVM layout inspected in SideQuest. `Common/Models` holds the shared records. The first Camera and Closet view files and the clothing/outfit Firebase contract files are starter outlines for their linked student tickets; their `EmptyView` bodies and protocol declarations do not implement a feature or perform I/O. Create other feature folders when their tickets are implemented.
 
 ```text
 dressed/
@@ -29,13 +41,13 @@ dressed/
   ContentView.swift
   Common/
     Models/              shared Codable schema templates (present)
-    Firebase/            future Firebase adapters and session service
+    Firebase/            clothing/outfit contracts (present); future adapters and session service
     Views/               future reusable cards and state views
   Closet/
-    Views/
+    Views/               starter ClothingItemCard and CategorySelector (present)
     ViewModels/
   Camera/
-    Views/
+    Views/               starter ChoosePhotoButton and ImportCandidateRow (present)
     ViewModels/
   Outfits/
     Views/
@@ -142,7 +154,7 @@ Every I/O operation is `async throws`. Authentication comes from the session; a 
 | SearchService, next | search(query, filters, cursor) -> result page | Explicit dataset and supported matching semantics |
 | RecommendationService, later | similar(item/image, limit) -> scored candidates | Corpus IDs, score, provenance, and optional verified product URL |
 
-Provide mock success, empty, delayed, no-detection and failed responses before connecting views to Firebase. Review the provided Swift schema templates, optional fields and date handling in lead issue #49. Protocols and mocks remain to be implemented.
+Provide mock success, empty, delayed, no-detection and failed responses before connecting views to Firebase. Review the provided Swift schema templates, optional fields and date handling in lead issue #49. The clothing and outfit function protocols are starter signatures only. Firebase adapters and mocks remain to be implemented.
 
 ## Ingestion state machine
 

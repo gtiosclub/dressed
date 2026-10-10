@@ -2,7 +2,7 @@
 //  DressedApp.swift
 //  dressed
 //
-//  Created by Riva Patel on 9/29/26.
+//  Created by Developer on 9/10/26.
 //
 import FirebaseCore
 import SwiftUI
@@ -13,10 +13,18 @@ import SwiftUI
 struct DressedApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("-mockSession") {
+                ContentView(session: SessionViewModel(service: PreviewSessionService(userId: nil)))
+            } else {
+                ContentView(session: SessionViewModel(service: FirebaseSessionService()))
+            }
+            #else
+            ContentView(session: SessionViewModel(service: FirebaseSessionService()))
+            #endif
         }
     }
     init() {
-            FirebaseApp.configure()
-        }
+        FirebaseApp.configure()
+    }
 }

@@ -34,7 +34,7 @@ Each ticket uses the agreed short function or UI format. UI tickets include the 
 | Ticket | Team |
 | --- | --- |
 | [#60: SOCIAL-01 - Build one outfit-post card](https://github.com/gtiosclub/dressed/issues/60) | `social` |
-| [#61: SOCIAL-02 - Write the savePost function](https://github.com/gtiosclub/dressed/issues/61) | `social` |
+| [#61: SOCIAL-02 - Save a post to the user's saved list](https://github.com/gtiosclub/dressed/issues/61) | `social` |
 | [#78: SOCIAL-04 - Build the profile header](https://github.com/gtiosclub/dressed/issues/78) | `social` |
 | [#79: SOCIAL-05 - Build a post clothing-breakdown row](https://github.com/gtiosclub/dressed/issues/79) | `social` |
 | [#80: SOCIAL-06 - Write the fetchRecentPosts function](https://github.com/gtiosclub/dressed/issues/80) | `social` |
