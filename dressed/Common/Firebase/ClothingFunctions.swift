@@ -12,6 +12,17 @@ protocol ClothingFunctions {
 }
 
 extension ClothingFunctions {
+    /// Save at the supplied stable ID; propagate encoding and write errors.
+    func saveClothingItem(_ item: ClothingItem) async throws {
+        let data = try Firestore.Encoder().encode(item)
+        try await Firestore.firestore()
+            .collection("users")
+            .document(item.ownerId)
+            .collection("items")
+            .document(item.id)
+            .setData(data)
+    }
+
     /// Default Firestore implementation; conformers can override it for previews or tests.
     func fetchClothingItems(ownerId: String) async throws -> [ClothingItem] {
         let snapshot = try await Firestore.firestore()
