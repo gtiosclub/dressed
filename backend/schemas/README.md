@@ -2,7 +2,7 @@
 
 These are contract templates, not deployed collections, security rules, services or migrations. The canonical field definitions are the Foundation-only Codable structs in [`dressed/Common/Models`](../../dressed/Common/Models). All three teams share them. Do not create separate client/backend copies of the same model.
 
-`examples.json` contains synthetic examples. `ClothingItem` is deliberately limited to the six fields agreed for the first closet milestone; other records remain later-phase proposals. Dates are ISO-8601 JSON strings; future Firestore adapters must explicitly map Date to/from Timestamp, use server timestamps for writes, and handle pending timestamps. Codable itself does not enforce auth, reference ownership, schema migrations, numeric ranges or URL safety. Those checks belong to the remaining tickets.
+`examples.json` contains synthetic examples. `ClothingItem` is deliberately limited to the six fields agreed for the first closet milestone; other records remain later-phase proposals. Dates are ISO-8601 JSON strings; Firestore adapters must explicitly map Date to/from Timestamp, use server timestamps for writes, and handle pending timestamps. The clothing and outfit save functions currently set server timestamps; other records remain proposals. Codable itself does not enforce auth, reference ownership, schema migrations, numeric ranges or URL safety. Those checks belong to the remaining tickets.
 
 | Record | Proposed location | Primary contract owner | Access intent |
 | --- | --- | --- | --- |

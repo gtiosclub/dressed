@@ -2,7 +2,7 @@
 
 These files are intentionally incomplete and live outside the app target. Copy only the pieces your ticket needs, replace every `__PLACEHOLDER__`, and implement the ticket's acceptance criteria. `.swift.template` files are not compiled. No template is a working feature or permission to deploy a backend.
 
-For the first assigned tickets, matching starter files already exist in the app source: `Camera/Views/ChoosePhotoButton.swift` (#52), `Camera/Views/ImportCandidateRow.swift` (#54), `Closet/Views/ClothingItemCard.swift` (#56), `Closet/Views/CategorySelector.swift` (#73), `Common/Firebase/ClothingFunctions.swift` (#70/#71), and `Common/Firebase/OutfitFunctions.swift` (#57/#83). Fill those files in place instead of copying a generic template over them. The views currently render nothing, and the protocols have no Firebase implementation.
+For the first assigned tickets, matching starter files already exist in the app source: `Camera/Views/ChoosePhotoButton.swift` (#52), `Camera/Views/ImportCandidateRow.swift` (#54), `Closet/Views/ClothingItemCard.swift` (#56), `Closet/Views/CategorySelector.swift` (#73), `Common/Firebase/ClothingFunctions.swift` (#70/#71), and `Common/Firebase/OutfitFunctions.swift` (#57/#83). Fill those files in place instead of copying a generic template over them. Check each source file before editing: `ImportCandidateRow` now renders a review row, and the clothing/outfit protocols include default Firestore save/fetch implementations. Other starter UI files may still be placeholders.
 
 | Team | Start here | Fill in |
 | --- | --- | --- |
@@ -24,7 +24,7 @@ For the first assigned tickets, matching starter files already exist in the app 
 
 The schema files are starter contracts. Teams still own schema review, service protocols, validation, migrations, Firebase adapters/rules, extraction, UI and integration. TODO comments name these responsibilities without supplying a finished implementation. Existing enum values and examples are proposals to review, not a database already deployed.
 
-Do not fill a repository method with a fake success, an empty array, or `fatalError` just to make a screen appear functional. Keep service templates protocol-only until the implementation ticket is picked up.
+Do not fill a repository method with a fake success, an empty array, or `fatalError` just to make a screen appear functional. Keep copyable service templates protocol-only until their implementation ticket is picked up; the app-source clothing and outfit functions already have default Firestore implementations.
 
 ## Keep student work small
 
