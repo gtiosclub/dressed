@@ -12,15 +12,25 @@ protocol OutfitFunctions {
 }
 
 extension OutfitFunctions {
-    /// Replace the document with the same ID; propagate encoding and write errors.
+    /// Save at the supplied stable ID; the server owns both timestamps.
     func saveOutfit(_ outfit: Outfit) async throws {
-        let data = try Firestore.Encoder().encode(outfit)
-        try await Firestore.firestore()
+        var data = try Firestore.Encoder().encode(outfit)
+        let document = Firestore.firestore()
             .collection("users")
             .document(outfit.ownerId)
             .collection("outfits")
             .document(outfit.id)
-            .setData(data)
+        let existing = try await document.getDocument(source: .server)
+
+        data["updatedAt"] = FieldValue.serverTimestamp()
+        if existing.exists {
+            // Preserve the original creation time across edits and retries.
+            data.removeValue(forKey: "createdAt")
+            try await document.updateData(data)
+        } else {
+            data["createdAt"] = FieldValue.serverTimestamp()
+            try await document.setData(data)
+        }
     }
 
     /// Fetch owner-scoped records and propagate read or decoding errors.

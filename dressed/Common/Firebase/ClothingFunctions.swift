@@ -12,15 +12,24 @@ protocol ClothingFunctions {
 }
 
 extension ClothingFunctions {
-    /// Save at the supplied stable ID; propagate encoding and write errors.
+    /// Save at the supplied stable ID; the server sets createdAt on first write.
     func saveClothingItem(_ item: ClothingItem) async throws {
-        let data = try Firestore.Encoder().encode(item)
-        try await Firestore.firestore()
+        var data = try Firestore.Encoder().encode(item)
+        let document = Firestore.firestore()
             .collection("users")
             .document(item.ownerId)
             .collection("items")
             .document(item.id)
-            .setData(data)
+        let existing = try await document.getDocument(source: .server)
+
+        if existing.exists {
+            // Keep the original server timestamp when a save is retried or edited.
+            data.removeValue(forKey: "createdAt")
+            try await document.updateData(data)
+        } else {
+            data["createdAt"] = FieldValue.serverTimestamp()
+            try await document.setData(data)
+        }
     }
 
     /// Default Firestore implementation; conformers can override it for previews or tests.
