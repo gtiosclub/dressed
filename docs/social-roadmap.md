@@ -21,7 +21,7 @@ The October 19 local import/recognition prototype stays private in My Closet. It
 
 **Inputs and outputs:** Cards accept supplied `Post` display data and callbacks. The recent-post function reads a bounded page of public post records; the lead defines cursor ordering, indexes, and the safe DTO. Do not use private `ClothingItem.imagePath` in a feed card.
 
-**Tickets:** [#60 post card](https://github.com/gtiosclub/dressed/issues/60), [#80 recent posts](https://github.com/gtiosclub/dressed/issues/80), and [#125 feed status views](https://github.com/gtiosclub/dressed/issues/125). [Lead #59](https://github.com/gtiosclub/dressed/issues/59) owns publication, public media, and feed wiring.
+**Tickets:** [#60 post card](https://github.com/gtiosclub/dressed/issues/60), [#80 recent posts](https://github.com/gtiosclub/dressed/issues/80), [#125 feed status views](https://github.com/gtiosclub/dressed/issues/125), and [#151 expandable caption](https://github.com/gtiosclub/dressed/issues/151). [Lead #59](https://github.com/gtiosclub/dressed/issues/59) owns publication, public media, and feed wiring.
 
 **Acceptance checks:** Supplied recent posts appear in stable newest-first order; a card tap reports one ID; empty and failed requests show different messages; retry calls the supplied action once; private closet paths never appear in public post data.
 
@@ -31,7 +31,7 @@ The October 19 local import/recognition prototype stays private in My Closet. It
 
 **Inputs and outputs:** The breakdown row receives publishable item names/categories and public media references from the post snapshot. The profile header receives a community-safe display name and avatar reference supplied by the lead. Auth email, private item paths, measurements, and source photos are not display inputs.
 
-**Tickets:** [#79 clothing breakdown](https://github.com/gtiosclub/dressed/issues/79) and [#78 profile header](https://github.com/gtiosclub/dressed/issues/78). Lead #49 must settle author display examples and [#59](https://github.com/gtiosclub/dressed/issues/59) must create a separate publishable snapshot.
+**Tickets:** [#79 clothing breakdown row](https://github.com/gtiosclub/dressed/issues/79), [#150 breakdown list](https://github.com/gtiosclub/dressed/issues/150), and [#78 profile header](https://github.com/gtiosclub/dressed/issues/78). Lead #49 must settle author display examples and [#59](https://github.com/gtiosclub/dressed/issues/59) must create a separate publishable snapshot.
 
 **Acceptance checks:** A two-piece fixture shows two distinct rows; a missing image retains its label; the profile displays only supplied public fields; no post action exposes a private owner path or silently imports a piece.
 
@@ -41,7 +41,7 @@ The October 19 local import/recognition prototype stays private in My Closet. It
 
 **Inputs and outputs:** The save/unsave functions receive a post ID and derive the owner from the current session. The list function returns saved IDs or a bounded page; the lead joins them with available public posts and clears user-specific state after sign-out. A save never copies a post into the private closet.
 
-**Tickets:** [#61 save post](https://github.com/gtiosclub/dressed/issues/61), [#121 remove saved post](https://github.com/gtiosclub/dressed/issues/121), [#122 fetch saved IDs](https://github.com/gtiosclub/dressed/issues/122), and [#124 saved-post grid](https://github.com/gtiosclub/dressed/issues/124). [Lead #94](https://github.com/gtiosclub/dressed/issues/94) owns the owner-only Firestore rules before live writes.
+**Tickets:** [#61 save post](https://github.com/gtiosclub/dressed/issues/61), [#121 remove saved post](https://github.com/gtiosclub/dressed/issues/121), [#122 fetch saved IDs](https://github.com/gtiosclub/dressed/issues/122), [#124 saved-post grid](https://github.com/gtiosclub/dressed/issues/124), [#149 save toggle](https://github.com/gtiosclub/dressed/issues/149), and [#148 filter saved posts](https://github.com/gtiosclub/dressed/issues/148). [Lead #94](https://github.com/gtiosclub/dressed/issues/94) owns the owner-only Firestore rules before live writes.
 
 **Acceptance checks:** Account A can save, relaunch, and still see the state; a second save creates no duplicate; Account B cannot read or alter A's saved relation; unsaving removes only A's relation; a deleted post gives a removed-content state.
 

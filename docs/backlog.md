@@ -55,6 +55,10 @@ Each ticket uses the agreed short function or UI format. UI tickets include the 
 | [#123: SOCIAL-09 - Build a post-caption field](https://github.com/gtiosclub/dressed/issues/123) | `social` |
 | [#124: SOCIAL-10 - Build a saved-post grid](https://github.com/gtiosclub/dressed/issues/124) | `social` |
 | [#125: SOCIAL-11 - Build feed status views](https://github.com/gtiosclub/dressed/issues/125) | `social` |
+| [#149: SOCIAL-13 - Build a save-post toggle](https://github.com/gtiosclub/dressed/issues/149) | `social` |
+| [#148: SOCIAL-14 - Filter posts by saved IDs](https://github.com/gtiosclub/dressed/issues/148) | `social` |
+| [#150: SOCIAL-15 - Build a post clothing-breakdown list](https://github.com/gtiosclub/dressed/issues/150) | `social` |
+| [#151: SOCIAL-16 - Build an expandable post caption](https://github.com/gtiosclub/dressed/issues/151) | `social` |
 
 ## 4 - Improve importing and discovery
 
