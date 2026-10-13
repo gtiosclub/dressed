@@ -23,6 +23,16 @@ func savePost(_ savedPost: SavedPost) async throws {
 
 }
 
+
+func removeSavedPost(ownerId: String, postId: String) async throws {
+    let docRef = Firestore.firestore()
+        .collection("users")
+        .document(ownerId)
+        .collection("savedPosts")
+        .document(postId)
+    try await docRef.delete()
+}
+
 // SOCIAL-08 (#122): list the post IDs a user bookmarked at users/{ownerId}/savedPosts.
 // Returns IDs only; loading the public post bodies is separate work.
 // The caller supplies the signed-in user's ID; Firestore rules enforce ownership (#94).
@@ -41,11 +51,4 @@ func fetchSavedPostIds(ownerId: String) async throws -> [String] {
         .filter { seen.insert($0).inserted }
 }
 
-func removeSavedPost(ownerId: String, postId: String) async throws {
-    let docRef = Firestore.firestore()
-        .collection("users")
-        .document(ownerId)
-        .collection("savedPosts")
-        .document(postId)
-    try await docRef.delete()
-}
+
