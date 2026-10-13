@@ -4,6 +4,7 @@ struct ClothingItemCard: View {
     let image: Image
     let name: String
     let category: ClothingCategory
+    var subtitle: String? = nil  // replaces the category label when set
     let onTap: () -> Void
 
     var body: some View {
@@ -18,7 +19,7 @@ struct ClothingItemCard: View {
                     .font(.headline)
                     .lineLimit(2)
 
-                Text(category.rawValue.capitalized)
+                Text(subtitle ?? category.rawValue.capitalized)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -53,4 +54,3 @@ private struct ClothingItemCardPreview: View {
         }
     }
 }
-
