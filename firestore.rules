@@ -1,6 +1,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // LOCAL STAND-IN FOR #61 EVIDENCE — DO NOT COMMIT
+    match /users/{uid}/savedPosts/{postId} {
+      allow read, write: if uid == "alice";
+    }
     function owns(uid) {
       return request.auth != null && request.auth.uid == uid;
     }
