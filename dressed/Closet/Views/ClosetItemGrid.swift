@@ -45,7 +45,7 @@ struct ClosetItemGrid: View {
     }
 }
 
-private extension ClothingItem {
+extension ClothingItem {
     static let previewSamples: [ClothingItem] = [
         ("item-1", "Blue shirt", ClothingCategory.tops),
         ("item-2", "Black jeans", .pants),
