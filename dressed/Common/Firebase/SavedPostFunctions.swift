@@ -23,7 +23,6 @@ func savePost(_ savedPost: SavedPost) async throws {
 
 }
 
-
 func removeSavedPost(ownerId: String, postId: String) async throws {
     let docRef = Firestore.firestore()
         .collection("users")
