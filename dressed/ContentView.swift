@@ -27,17 +27,25 @@ private struct AppTabs: View {
     @State private var selectedTab = 0
     @State private var discoverySection = 0
     @State private var signOutError: String?
+    // Shared by the My Closet and Avatar tabs so saved outfits show up in both.
+    @State private var studio = OutfitStudioModel()
 
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack {
-                ContentUnavailableView(
-                    "Your closet is coming soon",
-                    systemImage: "hanger",
-                    description: Text("Your saved clothes and outfits will appear here.")
+                ClothingItemsList(
+                    items: ClothingItem.previewSamples,
+                    outfits: studio.savedOutfits,
+                    onSelect: { _ in
+                        // open item detail later
+                    },
+                    onSelectOutfit: { id in
+                        studio.wearOutfit(id: id)
+                        selectedTab = 3  // jump to the Avatar tab wearing that outfit
+                    }
                 )
                 .navigationTitle("My Closet")
-                .toolbar { signOutToolbar }
+                .navigationBarTitleDisplayMode(.inline)
             }
             .tabItem { Label("My Closet", systemImage: "hanger") }
             .tag(0)
@@ -74,6 +82,11 @@ private struct AppTabs: View {
             }
             .tabItem { Label("Camera", systemImage: "camera") }
             .tag(2)
+
+            // OutfitStudioView has its own NavigationStack, so it is not wrapped in another one.
+            OutfitStudioView(items: ClothingItem.previewSamples, model: studio)  // swap for real items later
+                .tabItem { Label("Avatar", systemImage: "figure.stand") }
+                .tag(3)
         }
         .alert("Could not sign out", isPresented: Binding(
             get: { signOutError != nil },

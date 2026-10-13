@@ -10,11 +10,22 @@ struct OutfitItem: Identifiable {
     let image: Image
     let name: String
     let category: ClothingCategory
+    var subtitle: String? = nil  // shown instead of the category label when set
 }
 
 struct OutfitItemTray: View {
     let items: [OutfitItem]
     let onSelect: (UUID) -> Void
+
+    private let laps = 100  // was 10_000; huge ranges made the tray very slow
+    private let cardWidth: CGFloat = 180 //this needs to match what's in clothingitemcard
+    @State private var position: Int?
+
+    // Explicit init: the automatic one is private to this file because of the private properties above.
+    init(items: [OutfitItem], onSelect: @escaping (UUID) -> Void) {
+        self.items = items
+        self.onSelect = onSelect
+    }
 
     private let laps = 100
     private let cardWidth: CGFloat = 180 //this needs to match what's in clothingitemcard
@@ -36,6 +47,7 @@ struct OutfitItemTray: View {
                                 image: item.image,
                                 name: item.name,
                                 category: item.category,
+                                subtitle: item.subtitle,
                                 onTap: { onSelect(item.id) }
                             )
                             .scrollTransition(.interactive.threshold(.centered), axis: .horizontal) { content, phase in
