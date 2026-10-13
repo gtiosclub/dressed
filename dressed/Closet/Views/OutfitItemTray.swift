@@ -16,7 +16,7 @@ struct OutfitItemTray: View {
     let items: [OutfitItem]
     let onSelect: (UUID) -> Void
 
-    private let laps = 10_000
+    private let laps = 100
     private let cardWidth: CGFloat = 180 //this needs to match what's in clothingitemcard
     @State private var position: Int?
 
