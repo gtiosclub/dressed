@@ -51,10 +51,6 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-useEmulator"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
             argument = "-mockSession"
             isEnabled = "NO">
          </CommandLineArgument>

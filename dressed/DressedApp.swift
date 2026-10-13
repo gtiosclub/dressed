@@ -1,6 +1,7 @@
 import FirebaseCore
-import FirebaseFirestore
 import SwiftUI
+
+// initialization of the app
 
 @main
 struct DressedApp: App {
@@ -10,7 +11,7 @@ struct DressedApp: App {
             if ProcessInfo.processInfo.arguments.contains("-mockSession") {
                 ContentView(session: SessionViewModel(service: PreviewSessionService(userId: nil)))
             } else {
-                SavePostTestView() // TEMP
+                ContentView(session: SessionViewModel(service: FirebaseSessionService()))
             }
             #else
             ContentView(session: SessionViewModel(service: FirebaseSessionService()))
@@ -19,14 +20,5 @@ struct DressedApp: App {
     }
     init() {
         FirebaseApp.configure()
-        #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("-useEmulator") {
-            let settings = Firestore.firestore().settings
-            settings.host = "127.0.0.1:8080"
-            settings.isSSLEnabled = false
-            settings.cacheSettings = MemoryCacheSettings()
-            Firestore.firestore().settings = settings
-        }
-        #endif
     }
 }
