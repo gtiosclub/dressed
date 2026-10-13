@@ -107,6 +107,7 @@ private struct AppTabs: View {
             }
             .tabItem { Label("Camera", systemImage: "camera") }
             .tag(2)
+
         }
         .alert("Could not sign out", isPresented: Binding(
             get: { signOutError != nil },
