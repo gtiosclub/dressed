@@ -9,7 +9,7 @@ The `social` team owns small Discovery views and basic post/save operations. It 
 | D1. Feed components | Discovery Feed can render supplied OOTD post cards and loading/empty/error states. | Lead supplies safe public `Post` snapshots and feed state. |
 | D2. Inspect a post | A post opens its outfit breakdown and author profile header. | Lead defines safe author display data and publication media. |
 | D3. Save a post | A user saves/unsaves a post and sees a saved-post list after relaunch. | Lead supplies owner-only rules and handles removed posts. |
-| D4. Search entry | Discovery Search accepts a query and reports it to a defined search service. | Lead chooses dataset and supported matching behavior. |
+| D4. Search entry | Discovery Search queries the public catalog of selected retailer products. | Lead approves the first retailer source and supported matching behavior. |
 
 The October 19 local import/recognition prototype stays private in My Closet. It does not create an OOTD post or unblock publication.
 
@@ -47,7 +47,7 @@ The October 19 local import/recognition prototype stays private in My Closet. It
 
 ## Track S: Search and composing a post
 
-**Search:** [#64 search field](https://github.com/gtiosclub/dressed/issues/64) accepts text and reports query changes or submit events. The lead defines whether the first dataset is public posts, products, or both, and what filters and matching are supported. A field alone is not a search service; arbitrary substring search must not be assumed from Firestore.
+**Search:** [#64 search field](https://github.com/gtiosclub/dressed/issues/64) accepts text and reports query changes or submit events. The first dataset is selected retailer products, represented by the separate public `CatalogProduct` contract. The lead still must approve the first live retailer source and matching behavior. The fixture-backed API and network client in PR #144 demonstrate search wiring; they do not provide live retailer data. [#147 catalog-product row](https://github.com/gtiosclub/dressed/issues/147) starts after that PR merges. A field alone is not a search service; arbitrary substring search must not be assumed from Firestore.
 
 **Compose:** [#123 caption field](https://github.com/gtiosclub/dressed/issues/123) receives text and enforces the agreed local length display. The lead owns explicit publication from a saved outfit, author permissions, a safe snapshot, separate public media, and failure cleanup. Camera recognition and Share to Dressed remain private import steps until the user separately publishes an OOTD.
 
@@ -66,7 +66,7 @@ Students should receive exact sample input/output values and callbacks before st
 ## Decisions for Neal and leads
 
 1. Define the public post snapshot and media lifetime without exposing private originals.
-2. Choose the first Search dataset and matching behavior before connecting #64 to results.
+2. Approve the first live retailer source and matching behavior for the selected-product Search dataset.
 3. Decide author display data, deleted-post behavior, and the report/block/moderation path before wider release.
 
 See the [architecture](architecture.md), [delivery plan](delivery-plan.md), and [ticket index](github-issues.md) for shared contracts and dependencies.
