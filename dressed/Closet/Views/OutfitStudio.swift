@@ -104,13 +104,13 @@ private struct AvatarCustomizationScreen: View {
 
             VStack(spacing: 12) {
                 Picker("Part", selection: $part) {
-                    ForEach(AvatarPart.allCases) { Text($0.rawValue.capitalized).tag($0) }
+                    ForEach(AvatarPart.allCases) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.segmented)
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
-                        ForEach(0..<8, id: \.self) { index in
+                        ForEach(0..<part.optionCount, id: \.self) { index in
                             optionTile(index)
                         }
                     }
@@ -128,9 +128,8 @@ private struct AvatarCustomizationScreen: View {
 
     private func optionTile(_ index: Int) -> some View {
         let isSelected = model.look[part] == index
-        let fill: Color = part == .body
-            ? AvatarView.bodyTints[index % AvatarView.bodyTints.count]
-            : Color.gray.opacity(0.25)
+        let swatch = part.swatch(index)
+        let fill: Color = swatch ?? Color.gray.opacity(0.25)
 
         return Button {
             model.look[part] = index
@@ -139,7 +138,7 @@ private struct AvatarCustomizationScreen: View {
                 .fill(fill)
                 .frame(width: 90, height: 90)
                 .overlay {
-                    if part != .body { Text("\(index + 1)").foregroundStyle(.secondary) }
+                    if swatch == nil { Text(part.label(index)).font(.caption).foregroundStyle(.secondary) }
                 }
                 .overlay {
                     RoundedRectangle(cornerRadius: 12)
@@ -362,7 +361,7 @@ private struct TakePicScreen: View {
 
     private func render() -> UIImage? {
         let renderer = ImageRenderer(
-            content: AvatarView(look: model.look, worn: model.worn, image: image, zoom: model.zoom)
+            content: AvatarView(look: model.look, worn: model.worn, image: image, zoom: model.zoom, use3D: false)
                 .frame(width: 300, height: 450)
         )
         renderer.scale = 3
