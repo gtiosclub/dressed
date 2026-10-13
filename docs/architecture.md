@@ -33,7 +33,7 @@ Everything below is a proposed contract. Confirm details in the lead planning ti
 
 ## Source organization
 
-Inspired by the shared-code and feature-based MVVM layout inspected in SideQuest. `Common/Models` holds the shared records. The first Camera and Closet view files and the clothing/outfit Firebase contract files are starter outlines for their linked student tickets; their `EmptyView` bodies and protocol declarations do not implement a feature or perform I/O. Create other feature folders when their tickets are implemented.
+Inspired by the shared-code and feature-based MVVM layout inspected in SideQuest. `Common/Models` holds the shared records. The first Camera and Closet view files and the clothing/outfit Firebase files were created for linked student tickets. `ImportCandidateRow` renders a candidate review row; `ClothingFunctions` and `OutfitFunctions` now include default owner-scoped Firestore save and fetch operations. These components do not constitute a complete import or closet flow. Create other feature folders when their tickets are implemented.
 
 ```text
 dressed/
@@ -41,13 +41,13 @@ dressed/
   ContentView.swift
   Common/
     Models/              shared Codable schema templates (present)
-    Firebase/            clothing/outfit contracts (present); future adapters and session service
+    Firebase/            clothing/outfit Firestore save/fetch (present); future session service
     Views/               future reusable cards and state views
   Closet/
     Views/               starter ClothingItemCard and CategorySelector (present)
     ViewModels/
   Camera/
-    Views/               starter ChoosePhotoButton and ImportCandidateRow (present)
+    Views/               ChoosePhotoButton and ImportCandidateRow (present)
     ViewModels/
   Outfits/
     Views/
@@ -154,7 +154,7 @@ Every I/O operation is `async throws`. Authentication comes from the session; a 
 | SearchService, next | search(query, filters, cursor) -> result page | Explicit dataset and supported matching semantics |
 | RecommendationService, later | similar(item/image, limit) -> scored candidates | Corpus IDs, score, provenance, and optional verified product URL |
 
-Provide mock success, empty, delayed, no-detection and failed responses before connecting views to Firebase. Review the provided Swift schema templates, optional fields and date handling in lead issue #49. The clothing and outfit function protocols are starter signatures only. Firebase adapters and mocks remain to be implemented.
+Provide mock success, empty, delayed, no-detection and failed responses before connecting views to Firebase. Review the provided Swift schema templates, optional fields and date handling in lead issue #49. The clothing and outfit function protocols include default Firestore save/fetch implementations. Dependency-injected mocks and the broader import and closet flows remain to be implemented.
 
 ## Ingestion state machine
 
