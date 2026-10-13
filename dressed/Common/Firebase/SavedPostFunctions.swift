@@ -17,3 +17,12 @@ func fetchSavedPostIds(ownerId: String) async throws -> [String] {
         .map { document in try document.data(as: SavedPost.self).postId }
         .filter { seen.insert($0).inserted }
 }
+
+func removeSavedPost(ownerId: String, postId: String) async throws {
+    let docRef = Firestore.firestore()
+        .collection("users")
+        .document(ownerId)
+        .collection("savedPosts")
+        .document(postId)
+    try await docRef.delete()
+}
