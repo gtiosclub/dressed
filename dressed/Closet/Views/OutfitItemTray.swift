@@ -26,11 +26,7 @@ struct OutfitItemTray: View {
         self.items = items
         self.onSelect = onSelect
     }
-
-    private let laps = 100
-    private let cardWidth: CGFloat = 180 //this needs to match what's in clothingitemcard
-    @State private var position: Int?
-
+    
     var body: some View {
         if items.isEmpty {
             Text("No items available")
