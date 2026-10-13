@@ -64,3 +64,6 @@ Student tasks are grouped by milestone in [the backlog](backlog.md). Complex dec
 | [#133: DATA-16 - Search categories for manual import correction](https://github.com/gtiosclub/dressed/issues/133) | `data` |
 | [#134: Lead: Save reviewed shared pieces and one outfit](https://github.com/gtiosclub/dressed/issues/134) | `lead` |
 | [#135: Lead: Implement garment recognition for shared images](https://github.com/gtiosclub/dressed/issues/135) | `lead` |
+| [#145: VIZ-14 - Sort supplied closet pieces](https://github.com/gtiosclub/dressed/issues/145) | `viz` |
+| [#146: DATA-17 - Return selected import candidates](https://github.com/gtiosclub/dressed/issues/146) | `data` |
+| [#147: SOCIAL-12 - Build a catalog-product result row](https://github.com/gtiosclub/dressed/issues/147) | `social` |

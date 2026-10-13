@@ -23,6 +23,7 @@ Each ticket uses the agreed short function or UI format. UI tickets include the 
 | [#114: DATA-12 - Build a selected-photo preview](https://github.com/gtiosclub/dressed/issues/114) | `data` |
 | [#116: VIZ-08 - Build a clothing-item detail view](https://github.com/gtiosclub/dressed/issues/116) | `viz` |
 | [#118: VIZ-10 - Build a closet sort control](https://github.com/gtiosclub/dressed/issues/118) | `viz` |
+| [#145: VIZ-14 - Sort supplied closet pieces](https://github.com/gtiosclub/dressed/issues/145) | `viz` |
 
 ## 2 - Build an outfit
 
@@ -64,3 +65,5 @@ Each ticket uses the agreed short function or UI format. UI tickets include the 
 | [#115: DATA-13 - Build an import-review action bar](https://github.com/gtiosclub/dressed/issues/115) | `data` |
 | [#132: DATA-15 - Choose an alternate garment detection](https://github.com/gtiosclub/dressed/issues/132) | `data` |
 | [#133: DATA-16 - Search categories for manual import correction](https://github.com/gtiosclub/dressed/issues/133) | `data` |
+| [#146: DATA-17 - Return selected import candidates](https://github.com/gtiosclub/dressed/issues/146) | `data` |
+| [#147: SOCIAL-12 - Build a catalog-product result row](https://github.com/gtiosclub/dressed/issues/147) | `social` |
