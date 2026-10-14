@@ -31,7 +31,7 @@ The October 19 local import/recognition prototype stays private in My Closet. It
 
 **Inputs and outputs:** The breakdown row receives publishable item names/categories and public media references from the post snapshot. The profile header receives a community-safe display name and avatar reference supplied by the lead. Auth email, private item paths, measurements, and source photos are not display inputs.
 
-**Tickets:** [#79 clothing breakdown row](https://github.com/gtiosclub/dressed/issues/79), [#150 breakdown list](https://github.com/gtiosclub/dressed/issues/150), and [#78 profile header](https://github.com/gtiosclub/dressed/issues/78). Lead #49 must settle author display examples and [#59](https://github.com/gtiosclub/dressed/issues/59) must create a separate publishable snapshot.
+**Tickets:** [#79 clothing breakdown row](https://github.com/gtiosclub/dressed/issues/79), [#150 breakdown list](https://github.com/gtiosclub/dressed/issues/150), [#78 profile header](https://github.com/gtiosclub/dressed/issues/78), [#162 filter supplied posts by author](https://github.com/gtiosclub/dressed/issues/162), and [#167 published-post image fallback](https://github.com/gtiosclub/dressed/issues/167). Lead #49 must settle author display examples and [#59](https://github.com/gtiosclub/dressed/issues/59) must create a separate publishable snapshot.
 
 **Acceptance checks:** A two-piece fixture shows two distinct rows; a missing image retains its label; the profile displays only supplied public fields; no post action exposes a private owner path or silently imports a piece.
 
@@ -47,7 +47,7 @@ The October 19 local import/recognition prototype stays private in My Closet. It
 
 ## Track S: Search and composing a post
 
-**Search:** [#64 search field](https://github.com/gtiosclub/dressed/issues/64) accepts text and reports query changes or submit events. The first dataset is selected retailer products, represented by the separate public `CatalogProduct` contract. The lead still must approve the first live retailer source and matching behavior. The fixture-backed API and network client in PR #144 demonstrate search wiring; they do not provide live retailer data. [#147 catalog-product row](https://github.com/gtiosclub/dressed/issues/147) starts after that PR merges. A field alone is not a search service; arbitrary substring search must not be assumed from Firestore.
+**Search:** [#161 Feed/Search switch](https://github.com/gtiosclub/dressed/issues/161) reports the selected Discovery section to its parent. [#64 search field](https://github.com/gtiosclub/dressed/issues/64) accepts text and reports query changes or submit events. The first dataset is selected retailer products, represented by the separate public `CatalogProduct` contract. The lead still must approve the first live retailer source and matching behavior. The fixture-backed API and network client in PR #144 demonstrate search wiring; they do not provide live retailer data. [#147 catalog-product row](https://github.com/gtiosclub/dressed/issues/147) starts after that PR merges. A field alone is not a search service; arbitrary substring search must not be assumed from Firestore.
 
 **Compose:** [#123 caption field](https://github.com/gtiosclub/dressed/issues/123) receives text and enforces the agreed local length display. The lead owns explicit publication from a saved outfit, author permissions, a safe snapshot, separate public media, and failure cleanup. Camera recognition and Share to Dressed remain private import steps until the user separately publishes an OOTD.
 

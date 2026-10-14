@@ -71,3 +71,10 @@ Student tasks are grouped by milestone in [the backlog](backlog.md). Complex dec
 | [#149: SOCIAL-13 - Build a save-post toggle](https://github.com/gtiosclub/dressed/issues/149) | `social` |
 | [#150: SOCIAL-15 - Build a post clothing-breakdown list](https://github.com/gtiosclub/dressed/issues/150) | `social` |
 | [#151: SOCIAL-16 - Build an expandable post caption](https://github.com/gtiosclub/dressed/issues/151) | `social` |
+| [#161: SOCIAL-17 - Build a Discovery Feed/Search switch](https://github.com/gtiosclub/dressed/issues/161) | `social` |
+| [#162: SOCIAL-18 - Filter supplied posts by author](https://github.com/gtiosclub/dressed/issues/162) | `social` |
+| [#163: DATA-18 - Filter supplied clothing items by name](https://github.com/gtiosclub/dressed/issues/163) | `data` |
+| [#164: DATA-19 - Fetch one saved outfit](https://github.com/gtiosclub/dressed/issues/164) | `data` |
+| [#165: VIZ-15 - Build a Pieces/Outfits switch](https://github.com/gtiosclub/dressed/issues/165) | `viz` |
+| [#166: VIZ-16 - Build closet loading and error states](https://github.com/gtiosclub/dressed/issues/166) | `viz` |
+| [#167: SOCIAL-19 - Build a published-post image fallback](https://github.com/gtiosclub/dressed/issues/167) | `social` |

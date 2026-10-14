@@ -21,7 +21,7 @@ The October 19 local prototype may display a simpler Pieces grid and one reviewe
 
 **Inputs and outputs:** The card receives an image, name, category, and tap callback. The grid receives a supplied array and reports the tapped item ID. The category control reports a category or `nil` for All. The pure filter returns a new array without mutating input. These views do not fetch records or grant access to private media.
 
-**Tickets:** [#56 item card](https://github.com/gtiosclub/dressed/issues/56), [#73 category choices](https://github.com/gtiosclub/dressed/issues/73), [#74 card grid](https://github.com/gtiosclub/dressed/issues/74), [#75 category filter](https://github.com/gtiosclub/dressed/issues/75), and [#118 sort control](https://github.com/gtiosclub/dressed/issues/118). The lead supplies loading/error/empty screen state and makes a card tap open details.
+**Tickets:** [#56 item card](https://github.com/gtiosclub/dressed/issues/56), [#73 category choices](https://github.com/gtiosclub/dressed/issues/73), [#74 card grid](https://github.com/gtiosclub/dressed/issues/74), [#75 category filter](https://github.com/gtiosclub/dressed/issues/75), [#118 sort control](https://github.com/gtiosclub/dressed/issues/118), [#165 Pieces/Outfits switch](https://github.com/gtiosclub/dressed/issues/165), and [#166 loading/error states](https://github.com/gtiosclub/dressed/issues/166). The lead supplies the state and makes a card tap open details.
 
 **Acceptance checks:** Long names remain legible; every category can be chosen; filtering All restores the supplied list; a card tap reports exactly one ID; empty and failed loads are visually distinct. Check the native UI at iPhone and iPad sizes and with larger text.
 

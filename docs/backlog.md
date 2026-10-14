@@ -24,6 +24,9 @@ Each ticket uses the agreed short function or UI format. UI tickets include the 
 | [#116: VIZ-08 - Build a clothing-item detail view](https://github.com/gtiosclub/dressed/issues/116) | `viz` |
 | [#118: VIZ-10 - Build a closet sort control](https://github.com/gtiosclub/dressed/issues/118) | `viz` |
 | [#145: VIZ-14 - Sort supplied closet pieces](https://github.com/gtiosclub/dressed/issues/145) | `viz` |
+| [#163: DATA-18 - Filter supplied clothing items by name](https://github.com/gtiosclub/dressed/issues/163) | `data` |
+| [#165: VIZ-15 - Build a Pieces/Outfits switch](https://github.com/gtiosclub/dressed/issues/165) | `viz` |
+| [#166: VIZ-16 - Build closet loading and error states](https://github.com/gtiosclub/dressed/issues/166) | `viz` |
 
 ## 2 - Build an outfit
 
@@ -40,6 +43,7 @@ Each ticket uses the agreed short function or UI format. UI tickets include the 
 | [#120: VIZ-12 - Build a saved-outfit grid](https://github.com/gtiosclub/dressed/issues/120) | `viz` |
 | [#130: DATA-14 - Filter outfits that use one item](https://github.com/gtiosclub/dressed/issues/130) | `data` |
 | [#131: VIZ-13 - Show outfits using one item](https://github.com/gtiosclub/dressed/issues/131) | `viz` |
+| [#164: DATA-19 - Fetch one saved outfit](https://github.com/gtiosclub/dressed/issues/164) | `data` |
 
 ## 3 - Share an outfit
 
@@ -59,6 +63,8 @@ Each ticket uses the agreed short function or UI format. UI tickets include the 
 | [#148: SOCIAL-14 - Filter posts by saved IDs](https://github.com/gtiosclub/dressed/issues/148) | `social` |
 | [#150: SOCIAL-15 - Build a post clothing-breakdown list](https://github.com/gtiosclub/dressed/issues/150) | `social` |
 | [#151: SOCIAL-16 - Build an expandable post caption](https://github.com/gtiosclub/dressed/issues/151) | `social` |
+| [#162: SOCIAL-18 - Filter supplied posts by author](https://github.com/gtiosclub/dressed/issues/162) | `social` |
+| [#167: SOCIAL-19 - Build a published-post image fallback](https://github.com/gtiosclub/dressed/issues/167) | `social` |
 
 ## 4 - Improve importing and discovery
 
@@ -71,3 +77,4 @@ Each ticket uses the agreed short function or UI format. UI tickets include the 
 | [#133: DATA-16 - Search categories for manual import correction](https://github.com/gtiosclub/dressed/issues/133) | `data` |
 | [#146: DATA-17 - Return selected import candidates](https://github.com/gtiosclub/dressed/issues/146) | `data` |
 | [#147: SOCIAL-12 - Build a catalog-product result row](https://github.com/gtiosclub/dressed/issues/147) | `social` |
+| [#161: SOCIAL-17 - Build a Discovery Feed/Search switch](https://github.com/gtiosclub/dressed/issues/161) | `social` |
