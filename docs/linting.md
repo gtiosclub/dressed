@@ -2,6 +2,8 @@
 
 SwiftLint checks Swift source style. The `PR Checks` workflow runs it on pull requests and pushes to the branches listed in [`.github/workflows/pr.yml`](../.github/workflows/pr.yml). The workflow reports violations; it does not edit source or push a fix commit.
 
+The repository has no merge ruleset. Build and lint checks still report results on pull requests and pushes, but a failing check does not block a merge or direct push to `main`.
+
 ## Run it locally
 
 Install SwiftLint with `brew install swiftlint`, then run the same command as CI from the app source directory:
