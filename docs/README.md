@@ -15,6 +15,7 @@ Working scope based on the team's feature notes and attached setup/backlog plan,
 - [Firebase testing for students](officers/firebase-testing.md): current project, safe emulator checks, and live setup limits.
 - [Backend schema templates](../backend/schemas/README.md): canonical types, examples and storage map.
 - [Local catalog prototype](../backend/catalog/README.md): fixture ingestion, SQLite state, read-only demo API, and test commands.
+- [SwiftLint guide](linting.md): local lint command, CI behavior, and fix workflow.
 - [Agent instructions](../AGENTS.md): repository-specific guidance for coding agents.
 
 Start with the product scope, then choose an unblocked ticket. Update these documents when a product or contract decision changes. IDs in this backlog are local planning IDs, not GitHub issue numbers. See [GitHub issue mapping](github-issues.md) for published tickets; individuals are not assigned.
