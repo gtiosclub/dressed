@@ -17,7 +17,7 @@ From the repository root, run the same command and working directory used by CI:
 (cd dressed && swiftlint lint)
 ```
 
-You can also enter the `dressed/` directory and run `swiftlint lint` there. A clean run exits successfully. Findings identify the file, line, rule, and severity; an error makes the CI lint job fail. SwiftLint is not currently installed by the Xcode project, so an Xcode build alone does not run this check.
+You can also enter the `dressed/` directory and run `swiftlint lint` there. A clean run exits successfully. Findings identify the file, line, rule, and severity; an error makes the CI lint job fail. Run the lint command directly even after an Xcode build: branch-specific build phases may be absent or nonblocking.
 
 ## Fix findings
 
