@@ -82,7 +82,8 @@ final class OutfitTrayViewModel {
             OutfitItem(id: UUID(), image: Image(systemName: "photo"), name: "Black pants", category: .tops),
             OutfitItem(id: UUID(), image: Image(systemName: "shoe"), name: "White sneakers", category: .shoes),
         ]
-    }    
+    }
+
     func loadMany(count: Int = 50) {
         let symbols = ["tshirt", "photo", "shoe", "hanger", "bag"]
         items = (1...count).map { i in
