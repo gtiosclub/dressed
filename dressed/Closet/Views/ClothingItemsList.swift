@@ -19,8 +19,6 @@ struct ClothingItemsList: View {
     let image: (ClothingItem) -> Image
     let onSelect: (String) -> Void
     let onSelectOutfit: (UUID) -> Void
-    let onEditOutfit: (UUID) -> Void
-    let onDeleteOutfit: (UUID) -> Void
 
     @State private var tab: ListTab = .clothing
     @State private var selectedCategory: ClothingCategory? = nil  // nil = All
@@ -33,17 +31,13 @@ struct ClothingItemsList: View {
         outfits: [SavedOutfit] = [],
         image: @escaping (ClothingItem) -> Image = { _ in Image(systemName: "photo") },
         onSelect: @escaping (String) -> Void,
-        onSelectOutfit: @escaping (UUID) -> Void = { _ in },
-        onEditOutfit: @escaping (UUID) -> Void = { _ in },
-        onDeleteOutfit: @escaping (UUID) -> Void = { _ in }
+        onSelectOutfit: @escaping (UUID) -> Void = { _ in }
     ) {
         self.items = items
         self.outfits = outfits
         self.image = image
         self.onSelect = onSelect
         self.onSelectOutfit = onSelectOutfit
-        self.onEditOutfit = onEditOutfit
-        self.onDeleteOutfit = onDeleteOutfit
     }
 
     private var filteredItems: [ClothingItem] {
@@ -93,19 +87,6 @@ struct ClothingItemsList: View {
                         onTap: { onSelectOutfit(outfit.id) }
                     )
                     .buttonStyle(.plain)
-                    .contextMenu {
-                        Button {
-                            onEditOutfit(outfit.id)
-                        } label: {
-                            Label("Edit outfit", systemImage: "pencil")
-                        }
-
-                        Button(role: .destructive) {
-                            onDeleteOutfit(outfit.id)
-                        } label: {
-                            Label("Remove outfit", systemImage: "trash")
-                        }
-                    }
                 }
             }
             .padding()

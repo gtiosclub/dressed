@@ -29,6 +29,7 @@ private struct AppTabs: View {
     @State private var signOutError: String?
     // Shared by the My Closet and Avatar tabs so saved outfits show up in both.
     @State private var studio = OutfitStudioModel()
+
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack {
@@ -41,13 +42,6 @@ private struct AppTabs: View {
                     onSelectOutfit: { id in
                         studio.wearOutfit(id: id)
                         selectedTab = 3  // jump to the Avatar tab wearing that outfit
-                    },
-                    onEditOutfit: { id in
-                        studio.beginEditingOutfit(id: id, shouldOpenTryOn: true)
-                        selectedTab = 3
-                    },
-                    onDeleteOutfit: { id in
-                        studio.removeOutfit(id: id)
                     }
                 )
                 .navigationTitle("My Closet")

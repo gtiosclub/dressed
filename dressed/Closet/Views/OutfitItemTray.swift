@@ -16,24 +16,15 @@ struct OutfitItem: Identifiable {
 struct OutfitItemTray: View {
     let items: [OutfitItem]
     let onSelect: (UUID) -> Void
-    let onEdit: ((UUID) -> Void)?
-    let onDelete: ((UUID) -> Void)?
 
     private let laps = 100  // was 10_000; huge ranges made the tray very slow
     private let cardWidth: CGFloat = 180 //this needs to match what's in clothingitemcard
     @State private var position: Int?
 
     // Explicit init: the automatic one is private to this file because of the private properties above.
-    init(
-        items: [OutfitItem],
-        onSelect: @escaping (UUID) -> Void,
-        onEdit: ((UUID) -> Void)? = nil,
-        onDelete: ((UUID) -> Void)? = nil
-    ) {
+    init(items: [OutfitItem], onSelect: @escaping (UUID) -> Void) {
         self.items = items
         self.onSelect = onSelect
-        self.onEdit = onEdit
-        self.onDelete = onDelete
     }
     
     var body: some View {
@@ -55,23 +46,6 @@ struct OutfitItemTray: View {
                                 subtitle: item.subtitle,
                                 onTap: { onSelect(item.id) }
                             )
-                            .contextMenu {
-                                if let onEdit {
-                                    Button {
-                                        onEdit(item.id)
-                                    } label: {
-                                        Label("Edit outfit", systemImage: "pencil")
-                                    }
-                                }
-
-                                if let onDelete {
-                                    Button(role: .destructive) {
-                                        onDelete(item.id)
-                                    } label: {
-                                        Label("Remove outfit", systemImage: "trash")
-                                    }
-                                }
-                            }
                             .scrollTransition(.interactive.threshold(.centered), axis: .horizontal) { content, phase in
                                 let distance = abs(phase.value)
                                 return content
@@ -109,6 +83,7 @@ final class OutfitTrayViewModel {
             OutfitItem(id: UUID(), image: Image(systemName: "shoe"), name: "White sneakers", category: .shoes),
         ]
     }
+    
     func loadMany(count: Int = 50) {
         let symbols = ["tshirt", "photo", "shoe", "hanger", "bag"]
         items = (1...count).map { i in
