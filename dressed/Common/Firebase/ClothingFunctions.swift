@@ -45,4 +45,38 @@ extension ClothingFunctions {
             try document.data(as: ClothingItem.self)
         }
     }
+    
+    func updateClothingDetails(
+        ownerId: String,
+        itemId: String,
+        name: String,
+        category: ClothingCategory
+    ) async throws {
+        let db = Firestore.firestore()
+        let document = db.collection("clothing").document(itemId)
+
+        let snapshot = try await document.getDocument()
+
+        guard snapshot.exists else {
+            throw NSError(
+                domain: "ClothingFunctions",
+                code: 404,
+                userInfo: [NSLocalizedDescriptionKey: "Clothing item not found."]
+            )
+        }
+
+        guard let existingOwnerId = snapshot.data()?["ownerId"] as? String,
+              existingOwnerId == ownerId else {
+            throw NSError(
+                domain: "ClothingFunctions",
+                code: 403,
+                userInfo: [NSLocalizedDescriptionKey: "Clothing item does not belong to this owner."]
+            )
+        }
+
+        try await document.updateData([
+            "name": name,
+            "category": category.rawValue
+        ])
+    }
 }
