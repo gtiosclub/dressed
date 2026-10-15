@@ -14,7 +14,9 @@ struct DressedApp: App {
     var body: some Scene {
         WindowGroup {
             #if DEBUG
-            if ProcessInfo.processInfo.arguments.contains("-mockSession") {
+            if ProcessInfo.processInfo.arguments.contains("-mockSignedIn") {
+                ContentView(session: SessionViewModel(service: PreviewSessionService(userId: "preview_user")))
+            } else if ProcessInfo.processInfo.arguments.contains("-mockSession") {
                 ContentView(session: SessionViewModel(service: PreviewSessionService(userId: nil)))
             } else {
                 ContentView(session: SessionViewModel(service: FirebaseSessionService()))

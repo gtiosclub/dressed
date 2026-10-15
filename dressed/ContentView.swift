@@ -15,7 +15,7 @@ struct ContentView: View {
             case .signedOut:
                 Authentication(session: session)
             case .signedIn(let userId):
-                AppTabs(session: session)
+                AppTabs(session: session, userId: userId)
                     .id(userId)
             }
         }
@@ -24,7 +24,10 @@ struct ContentView: View {
 
 private struct AppTabs: View {
     @ObservedObject var session: SessionViewModel
-    @State private var selectedTab = 0
+    let userId: String
+    @StateObject private var closet: PrototypeClosetStore
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var selectedTab: Int
     @State private var discoverySection = 0
     @State private var signOutError: String?
     // Shared by the My Closet and Avatar tabs so saved outfits show up in both.
@@ -65,13 +68,15 @@ private struct AppTabs: View {
                     .pickerStyle(.segmented)
                     .padding()
 
-                    ContentUnavailableView(
-                        discoverySection == 0 ? "No posts yet" : "Search is coming soon",
-                        systemImage: discoverySection == 0 ? "person.2" : "magnifyingglass",
-                        description: Text(discoverySection == 0
-                            ? "Outfit posts will appear here."
-                            : "Find clothing and outfits here later.")
-                    )
+                    if discoverySection == 0 {
+                        ContentUnavailableView(
+                            "No posts yet",
+                            systemImage: "person.2",
+                            description: Text("Outfit posts will appear here.")
+                        )
+                    } else {
+                        PrototypeCatalogView()
+                    }
                 }
                 .navigationTitle("Discovery")
             }
@@ -79,12 +84,17 @@ private struct AppTabs: View {
             .tag(1)
 
             NavigationStack {
-                ContentUnavailableView(
-                    "Import is coming soon",
-                    systemImage: "camera",
-                    description: Text("Photo selection and capture will appear here.")
-                )
-                .navigationTitle("Camera")
+                PrototypeImportView(closet: closet)
+                    .toolbar {
+                        if deferredSharedId != nil {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button("Review Share") {
+                                    deferredSharedId = nil
+                                    presentNextSharedImage()
+                                }
+                            }
+                        }
+                    }
             }
             .tabItem { Label("Camera", systemImage: "camera") }
             .tag(2)
@@ -102,6 +112,36 @@ private struct AppTabs: View {
         } message: {
             Text(signOutError ?? "Please try again.")
         }
+        .sheet(item: $pendingSharedImage, onDismiss: {
+            if let presentedSharedId {
+                deferredSharedId = presentedSharedId
+                self.presentedSharedId = nil
+            } else {
+                presentNextSharedImage()
+            }
+        }) { image in
+            ImportReviewView(
+                image: image,
+                closet: closet,
+                onCancel: {
+                    deferredSharedId = image.id
+                    pendingSharedImage = nil
+                },
+                onSaved: {
+                    SharedImageInbox.remove(id: image.id)
+                    presentedSharedId = nil
+                    deferredSharedId = nil
+                    pendingSharedImage = nil
+                }
+            )
+        }
+        .onAppear {
+            SharedImageInbox.setActiveOwner(userId)
+            presentNextSharedImage()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { presentNextSharedImage() }
+        }
     }
 
     @ToolbarContentBuilder
@@ -110,11 +150,20 @@ private struct AppTabs: View {
             Button("Sign Out") {
                 do {
                     try session.signOut()
+                    SharedImageInbox.setActiveOwner(nil)
                 } catch {
                     signOutError = error.localizedDescription
                 }
             }
         }
+    }
+
+    private func presentNextSharedImage() {
+        guard pendingSharedImage == nil, presentedSharedId == nil, deferredSharedId == nil,
+              let image = SharedImageInbox.next(for: userId) else { return }
+        presentedSharedId = image.id
+        selectedTab = 2
+        pendingSharedImage = image
     }
 }
 

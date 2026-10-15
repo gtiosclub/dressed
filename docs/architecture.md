@@ -1,5 +1,70 @@
 # Architecture and shared contracts
 
+## Recognition experiment
+
+`backend/recognition/product_search.py` now parses a synthetic Google Product
+Search response into separate, unselected garment candidates with normalized
+boxes. It resolves similar product IDs only against active records in the local
+catalog and leaves an empty/manual result when no regions are found. A developer
+can make one live call using Application Default Credentials and an already
+indexed Google Product Search set. This is a backend experiment: no hosted
+endpoint, iOS connection, multi-item review UI, live catalog images, or actual
+recognition quality has been verified. A local evaluation harness now compares
+saved responses with annotated garment boxes; its bundled example is synthetic
+and demonstrates scoring only. See
+[`backend/recognition/README.md`](../backend/recognition/README.md).
+
+## Local catalog prototype
+
+`backend/catalog/catalog.py` ingests a synthetic fixture feed into local
+SQLite and serves a read-only API on loopback. It records stable product IDs,
+changed fields, full versus partial runs, and stale/unavailable status. Discovery
+Search now requests that API through an injected client service and shows loading,
+empty, error, and retry states. Debug builds accept `-catalogAPIURL` for simulator
+checks; release builds use the `CATALOG_API_BASE_URL` build setting. The demo
+source uses `.example` URLs and does not fetch retailer pages or offer working
+purchase links. Catalog products are separate from private `ClothingItem`
+records. On October 12, 2026, the four catalog behavior tests and iOS Simulator
+build passed; Discovery Search displayed all three fixture products on iOS
+26.2, with category filtering and a no-match search state observed. On October 12,
+the network client displayed three products from the loopback API, a server search
+returned one sneaker, and stopping the server displayed the retry state. This
+is still synthetic local data, not a hosted retailer integration. See
+[`backend/catalog/README.md`](../backend/catalog/README.md) for commands.
+
+## Local import prototype in progress
+
+The current `main` working tree contains a local-only import prototype under
+`dressed/Camera/ViewModels/PrototypeImportStore.swift`,
+`dressed/Camera/Views/PrototypeImportView.swift`, and
+`DressedShareExtension/ShareViewController.swift`. A share extension accepts one
+supported image from file, data, or UIImage share representations, converts it
+to a bounded JPEG, writes a user-bound draft into `group.gtiosclub.dressed`, and tells the
+user to open Dressed. Camera and photo-library images enter the same review
+screen. Apple's on-device Vision classifier may suggest a category for one
+garment in the whole image; no-match and failure states allow manual details.
+The user edits the name/category before confirming. Cancelling review keeps a
+shared draft queued, with a Camera action to reopen it. Confirmed pieces are
+stored as private on-device JPEG and JSON files for the signed-in user. My
+Closet supports local search, category filtering, item details, edits, and deletion.
+
+This is a prototype path, not the proposed S1 release flow. It does not extract
+multiple separate garments, create an outfit, upload to Firebase Storage, sync
+between devices, or enforce cloud ownership. Device signing requires the App
+Group capability on both targets. On October 11, 2026, an iPhone 16 Pro iOS
+18.6 simulator build passed; a synthetic image shared from Photos appeared in
+the extension and then in Dressed's review. A reviewed piece was saved locally
+and remained visible after relaunch. The synthetic drawing produced the manual
+`other` fallback, so recognition quality on real garment photos is unverified.
+On October 12, the integrated app and extension built for iOS Simulator and
+the Camera screen opened on an iOS 26.2 iPhone 17 Pro simulator. The revised
+closet detail, name edit, and category empty-result interaction were exercised
+on an iOS 18.6 iPhone 16 Pro simulator with a synthetic saved shirt. The revised
+photo review, share cancellation, and closet deletion interactions have not yet
+been verified on a device or in a complete native UI walkthrough.
+The six-field `ClothingItem` contract is unchanged; the local image path is a
+prototype storage reference.
+
 ## Observed baseline
 
 Issue #50 adds a session-aware shell: the root waits for Firebase Auth's initial

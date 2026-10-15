@@ -1,0 +1,43 @@
+{
+  "source": {
+    "id": "fixture-retailer",
+    "name": "Demo Retailer (fixture)",
+    "allowedHosts": ["catalog.example"]
+  },
+  "complete": true,
+  "products": [
+    {
+      "externalId": "top-001",
+      "title": "Blue cotton shirt",
+      "productURL": "https://catalog.example/products/top-001",
+      "category": "tops",
+      "sourceCategory": "Shirts",
+      "brand": "Example Studio",
+      "priceCents": 3900,
+      "currency": "USD",
+      "availability": "inStock"
+    },
+    {
+      "externalId": "pants-002",
+      "title": "Straight black pants",
+      "productURL": "https://catalog.example/products/pants-002",
+      "category": "pants",
+      "sourceCategory": "Trousers",
+      "brand": "Example Studio",
+      "priceCents": 6400,
+      "currency": "USD",
+      "availability": "inStock"
+    },
+    {
+      "externalId": "shoes-003",
+      "title": "White low-top sneakers",
+      "productURL": "https://catalog.example/products/shoes-003",
+      "category": "shoes",
+      "sourceCategory": "Sneakers",
+      "brand": "Example Studio",
+      "priceCents": 8900,
+      "currency": "USD",
+      "availability": "unknown"
+    }
+  ]
+}
