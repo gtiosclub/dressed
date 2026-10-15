@@ -11,6 +11,9 @@ final class OutfitStudioModel {
     var look: [AvatarPart: Int] = [:]
     var worn: [ClothingCategory: ClothingItem] = [:]
     var savedOutfits: [SavedOutfit] = []
+    var draftOutfitName = ""
+    var editingOutfitID: UUID?
+    var shouldOpenTryOn = false
     var zoom: Double = 1
 
     // Tapping the worn item again takes it off.
@@ -23,13 +26,55 @@ final class OutfitStudioModel {
     }
 
     func saveCurrentOutfit() {
-        savedOutfits.append(SavedOutfit(name: "Outfit \(savedOutfits.count + 1)", worn: worn))
+        let name = resolvedOutfitName()
+
+        if let editingOutfitID,
+           let index = savedOutfits.firstIndex(where: { $0.id == editingOutfitID }) {
+            savedOutfits[index].name = name
+            savedOutfits[index].worn = worn
+        } else {
+            savedOutfits.append(SavedOutfit(name: name, worn: worn))
+        }
+
+        self.editingOutfitID = nil
+        draftOutfitName = ""
+    }
+
+    func removeOutfit(id: UUID) {
+        savedOutfits.removeAll { outfit in
+            outfit.id == id
+        }
+
+        if editingOutfitID == id {
+            editingOutfitID = nil
+            draftOutfitName = ""
+        }
+    }
+
+    func beginEditingOutfit(id: UUID, shouldOpenTryOn: Bool = false) {
+        guard let outfit = savedOutfits.first(where: { $0.id == id }) else { return }
+
+        worn = outfit.worn
+        draftOutfitName = outfit.name
+        editingOutfitID = outfit.id
+        self.shouldOpenTryOn = shouldOpenTryOn
     }
 
     func wearOutfit(id: UUID) {
         if let outfit = savedOutfits.first(where: { $0.id == id }) {
             worn = outfit.worn
         }
+    }
+
+    private func resolvedOutfitName() -> String {
+        let trimmedName = draftOutfitName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmedName.isEmpty else { return trimmedName }
+
+        var nextUnnamedOutfitNumber = 1
+        let name = "Unnamed Outfit \(nextUnnamedOutfitNumber)"
+        nextUnnamedOutfitNumber += 1
+
+        return name
     }
 }
 
@@ -69,6 +114,11 @@ struct OutfitStudioView: View {
                         TakePicScreen(model: model, image: image)
                     }
                 }
+        }
+        .onChange(of: model.shouldOpenTryOn) { _, shouldOpen in
+            guard shouldOpen else { return }
+            path = [.tryOn]
+            model.shouldOpenTryOn = false
         }
     }
 }
@@ -228,7 +278,9 @@ private struct TryOnScreen: View {
                     subtitle: "\(outfit.worn.count) pieces"
                 )
             },
-            onSelect: { model.wearOutfit(id: $0) }
+            onSelect: { model.wearOutfit(id: $0) },
+            onEdit: { model.beginEditingOutfit(id: $0) },
+            onDelete: { model.removeOutfit(id: $0) }
         )
     }
 }
@@ -239,15 +291,25 @@ private struct FullBodyScreen: View {
     @Bindable var model: OutfitStudioModel
     let image: (ClothingItem) -> Image
     let onFullScreen: () -> Void
+    
+    @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            AvatarView(look: model.look, worn: model.worn, image: image, zoom: model.zoom)
-            wornList.padding(8)
+        VStack(spacing: 0) {
+            ZStack(alignment: .topLeading) {
+                AvatarView(look: model.look, worn: model.worn, image: image, zoom: model.zoom)
+                wornList.padding(8)
+            }
         }
-        .navigationTitle("User avatar")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                TextField("Unnamed Outfit", text: $model.draftOutfitName)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: .infinity)
+                    .layoutPriority(1)
+                    .accessibilityLabel("Outfit name")
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Save") { model.saveCurrentOutfit() }
             }
