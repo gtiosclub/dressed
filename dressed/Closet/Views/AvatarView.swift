@@ -118,8 +118,8 @@ struct AvatarView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let w = geo.size.width
-            let h = geo.size.height
+            let width = geo.size.width
+            let height = geo.size.height
             ZStack {
                 if use3D {
                     RealityView { content in
@@ -134,8 +134,8 @@ struct AvatarView: View {
                         .resizable()
                         .scaledToFit()
                         .foregroundStyle(Color(uiColor: AvatarScene.skinColor(look)))
-                        .frame(height: h * 0.95)
-                        .position(x: w / 2, y: h / 2)
+                        .frame(height: height * 0.95)
+                        .position(x: width / 2, y: height / 2)
                 }
 
                 ForEach(ClothingCategory.layerOrder, id: \.self) { category in
@@ -144,8 +144,8 @@ struct AvatarView: View {
                         image(item)
                             .resizable()
                             .scaledToFit()
-                            .frame(width: w * 0.5, height: h * slot.size)
-                            .position(x: w / 2, y: h * slot.y)
+                            .frame(width: width * 0.5, height: height * slot.size)
+                            .position(x: width / 2, y: height * slot.y)
                     }
                 }
             }
