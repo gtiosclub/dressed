@@ -1,89 +1,6 @@
 import SwiftUI
 import RealityKit
 
-// MARK: - Customization options
-
-enum AvatarPart: String, CaseIterable, Identifiable {
-    case bangs, hair, color, eyes, body
-    var id: String { rawValue }
-}
-
-enum AvatarPalette {
-    static let skin: [UIColor] = [
-        UIColor(red: 0.98, green: 0.87, blue: 0.78, alpha: 1),
-        UIColor(red: 0.95, green: 0.80, blue: 0.68, alpha: 1),
-        UIColor(red: 0.89, green: 0.72, blue: 0.58, alpha: 1),
-        UIColor(red: 0.80, green: 0.62, blue: 0.46, alpha: 1),
-        UIColor(red: 0.69, green: 0.50, blue: 0.36, alpha: 1),
-        UIColor(red: 0.55, green: 0.38, blue: 0.27, alpha: 1),
-        UIColor(red: 0.42, green: 0.28, blue: 0.20, alpha: 1),
-        UIColor(red: 0.30, green: 0.20, blue: 0.15, alpha: 1)
-    ]
-    // black, dark brown, chestnut, auburn, blonde, platinum, ginger, gray
-    static let hair: [UIColor] = [
-        UIColor(red: 0.08, green: 0.07, blue: 0.07, alpha: 1),
-        UIColor(red: 0.22, green: 0.13, blue: 0.09, alpha: 1),
-        UIColor(red: 0.36, green: 0.21, blue: 0.12, alpha: 1),
-        UIColor(red: 0.55, green: 0.22, blue: 0.12, alpha: 1),
-        UIColor(red: 0.86, green: 0.70, blue: 0.40, alpha: 1),
-        UIColor(red: 0.93, green: 0.90, blue: 0.82, alpha: 1),
-        UIColor(red: 0.78, green: 0.35, blue: 0.15, alpha: 1),
-        UIColor(red: 0.60, green: 0.60, blue: 0.62, alpha: 1)
-    ]
-    // brown, dark brown, hazel, green, blue, gray
-    static let eyes: [UIColor] = [
-        UIColor(red: 0.30, green: 0.18, blue: 0.10, alpha: 1),
-        UIColor(red: 0.12, green: 0.08, blue: 0.06, alpha: 1),
-        UIColor(red: 0.50, green: 0.38, blue: 0.18, alpha: 1),
-        UIColor(red: 0.28, green: 0.50, blue: 0.32, alpha: 1),
-        UIColor(red: 0.25, green: 0.45, blue: 0.75, alpha: 1),
-        UIColor(red: 0.55, green: 0.58, blue: 0.62, alpha: 1)
-    ]
-}
-
-extension AvatarPart {
-    static let hairStyleNames = ["None", "Short", "Long", "Bun", "Curly", "Ponytail"]
-    static let bangsNames = ["None", "Straight", "Side", "Curtain"]
-
-    var title: String {
-        switch self {
-        case .bangs: return "Bangs"
-        case .hair: return "Hair"
-        case .color: return "Color"
-        case .eyes: return "Eyes"
-        case .body: return "Skin"
-        }
-    }
-
-    var optionCount: Int {
-        switch self {
-        case .bangs: return Self.bangsNames.count
-        case .hair: return Self.hairStyleNames.count
-        case .color: return AvatarPalette.hair.count
-        case .eyes: return AvatarPalette.eyes.count
-        case .body: return AvatarPalette.skin.count
-        }
-    }
-
-    /// Color swatch for options that are colors; nil for options that need a text label.
-    func swatch(_ index: Int) -> Color? {
-        switch self {
-        case .color: return Color(uiColor: AvatarPalette.hair[index % AvatarPalette.hair.count])
-        case .eyes: return Color(uiColor: AvatarPalette.eyes[index % AvatarPalette.eyes.count])
-        case .body: return Color(uiColor: AvatarPalette.skin[index % AvatarPalette.skin.count])
-        case .bangs, .hair: return nil
-        }
-    }
-
-    func label(_ index: Int) -> String {
-        switch self {
-        case .bangs: return Self.bangsNames[index % Self.bangsNames.count]
-        case .hair: return Self.hairStyleNames[index % Self.hairStyleNames.count]
-        default: return ""
-        }
-    }
-}
-
 // MARK: - Clothing layout (2D overlay)
 
 extension ClothingCategory {
@@ -106,8 +23,8 @@ extension ClothingCategory {
 
 // MARK: - AvatarView
 
-// 3D figure built from RealityKit shapes (needs iOS 18 for RealityView with a virtual camera).
-// Clothes are still the 2D placeholder, drawn on top of the figure.
+// 3D mannequin on a turntable: drag sideways to spin it, double-tap to face front again.
+// Clothes are still the 2D placeholder drawn over the figure; they narrow and fade as it turns away.
 // Set use3D to false to get the old flat mannequin (used for the take-pic snapshot).
 struct AvatarView: View {
     let look: [AvatarPart: Int]
@@ -116,43 +33,135 @@ struct AvatarView: View {
     var zoom: Double = 1
     var use3D: Bool = true
 
+    @State private var orbit = AvatarOrbit()
+
     var body: some View {
         GeometryReader { geo in
-            let w = geo.size.width
-            let h = geo.size.height
+            let size = geo.size
             ZStack {
+                AvatarBackdrop(size: size, zoom: zoom, showsFloorShadow: use3D)
                 if use3D {
-                    RealityView { content in
-                        content.camera = .virtual
-                        content.add(AvatarScene.makeRoot(look: look))
-                    } update: { content in
-                        guard let root = content.entities.first(where: { $0.name == AvatarScene.rootName }) else { return }
-                        AvatarScene.refreshFigure(in: root, look: look)
-                    }
+                    AvatarStage(look: look, zoom: zoom, orbit: orbit)
                 } else {
                     Image(systemName: "figure.stand")
                         .resizable()
                         .scaledToFit()
-                        .foregroundStyle(Color(uiColor: AvatarScene.skinColor(look)))
-                        .frame(height: h * 0.95)
-                        .position(x: w / 2, y: h / 2)
+                        .foregroundStyle(Color(uiColor: AvatarScene.tint(look)))
+                        .frame(height: size.height * 0.95)
+                        .position(x: size.width / 2, y: size.height / 2)
+                        .scaleEffect(zoom, anchor: .top)
                 }
-
-                ForEach(ClothingCategory.layerOrder, id: \.self) { category in
-                    if let item = worn[category] {
-                        let slot = category.avatarSlot
-                        image(item)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: w * 0.5, height: h * slot.size)
-                            .position(x: w / 2, y: h * slot.y)
-                    }
+                GarmentOverlay(worn: worn, image: image, size: size, orbit: orbit)
+                    .scaleEffect(zoom, anchor: .top)
+                    .allowsHitTesting(false)
+            }
+            .contentShape(Rectangle())
+            .gesture(turnGesture(viewWidth: size.width), including: use3D ? .all : .none)
+            .onTapGesture(count: 2) {
+                if use3D { orbit.resetToFront() }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Avatar")
+            .accessibilityHint(use3D ? "Swipe up or down to turn the avatar." : "")
+            .accessibilityAdjustableAction { direction in
+                guard use3D else { return }
+                switch direction {
+                case .increment: orbit.turn(by: .pi / 4)
+                case .decrement: orbit.turn(by: -.pi / 4)
+                @unknown default: break
                 }
             }
-            .scaleEffect(zoom, anchor: .top)
         }
-        .background(Color(white: 0.93))
         .clipped()
+    }
+
+    private func turnGesture(viewWidth: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 4)
+            .onChanged { orbit.dragChanged(translation: $0.translation.width, viewWidth: viewWidth) }
+            .onEnded { orbit.dragEnded(velocity: $0.velocity.width, viewWidth: viewWidth) }
+    }
+}
+
+/// The RealityKit scene. It reads the orbit itself, so spinning re-renders only this view.
+private struct AvatarStage: View {
+    let look: [AvatarPart: Int]
+    let zoom: Double
+    let orbit: AvatarOrbit
+
+    var body: some View {
+        let yaw = orbit.yaw
+        RealityView { content in
+            content.camera = .virtual
+            content.add(AvatarScene.makeRoot(look: look, zoom: zoom, yaw: yaw))
+        } update: { content in
+            guard let root = content.entities.first(where: { $0.name == AvatarScene.rootName }) else { return }
+            AvatarScene.update(root, look: look, zoom: zoom, yaw: yaw)
+        }
+        // Let the SwiftUI backdrop show through instead of the system background.
+        .backgroundStyle(Color.clear)
+    }
+}
+
+/// The 2D clothing placeholder. Flat images can't turn, so they narrow and fade as the avatar spins away.
+private struct GarmentOverlay: View {
+    let worn: [ClothingCategory: ClothingItem]
+    let image: (ClothingItem) -> Image
+    let size: CGSize
+    let orbit: AvatarOrbit
+
+    var body: some View {
+        let facing = CGFloat(cos(orbit.yaw))
+        ZStack {
+            ForEach(ClothingCategory.layerOrder, id: \.self) { category in
+                if let item = worn[category] {
+                    let slot = category.avatarSlot
+                    image(item)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: size.width * 0.5, height: size.height * slot.size)
+                        .position(x: size.width / 2, y: size.height * slot.y)
+                }
+            }
+        }
+        .frame(width: size.width, height: size.height)
+        .scaleEffect(x: max(facing, 0.01), y: 1)
+        .opacity(Double(min(max((facing - 0.35) / 0.65, 0), 1)))
+    }
+}
+
+/// Soft studio backdrop with a contact shadow where the feet meet the floor.
+private struct AvatarBackdrop: View {
+    let size: CGSize
+    let zoom: Double
+    let showsFloorShadow: Bool
+
+    var body: some View {
+        ZStack {
+            LinearGradient(colors: [Color(white: 0.97), Color(white: 0.88)], startPoint: .top, endPoint: .bottom)
+            RadialGradient(
+                colors: [Color.white.opacity(0.85), Color.white.opacity(0)],
+                center: UnitPoint(x: 0.5, y: 0.4),
+                startRadius: 0,
+                endRadius: size.height * 0.55
+            )
+            if showsFloorShadow {
+                floorShadow.scaleEffect(zoom, anchor: .top)
+            }
+        }
+    }
+
+    private var floorShadow: some View {
+        ZStack {
+            Ellipse()
+                .fill(Color.black.opacity(0.12))
+                .frame(width: size.height * 0.24, height: size.height * 0.035)
+                .blur(radius: size.height * 0.012)
+            Ellipse()
+                .fill(Color.black.opacity(0.18))
+                .frame(width: size.height * 0.14, height: size.height * 0.014)
+                .blur(radius: size.height * 0.005)
+        }
+        .position(x: size.width / 2, y: size.height * AvatarScene.floorFraction)
     }
 }
 
@@ -160,130 +169,150 @@ struct AvatarView: View {
 
 private enum AvatarScene {
     static let rootName = "avatarRoot"
-    static let figurePrefix = "figure-"
+    private static let cameraName = "avatarCamera"
+    private static let turntableName = "avatarTurntable"
+    private static let bodyPrefix = "body-"
+    private static let hairPrefix = "hair-"
 
-    static func skinColor(_ look: [AvatarPart: Int]) -> UIColor {
-        AvatarPalette.skin[(look[.body] ?? 2) % AvatarPalette.skin.count]
+    // Framing: the figure is 1 unit tall with feet at y = 0. At zoom 1 it fills 95% of the view height,
+    // which the 2D overlay assumes. Zooming narrows the view but keeps its top edge fixed, matching the
+    // overlay's scaleEffect(anchor: .top). A narrow lens from far away keeps proportions natural.
+    private static let fieldOfView: Float = 20
+    private static let visibleHeight: Float = 1 / 0.95
+    private static let frameTop: Float = 0.5 + visibleHeight / 2
+
+    /// Where the floor under the feet lands, as a fraction of the view height at zoom 1.
+    static let floorFraction: CGFloat = 0.978
+
+    static func tint(_ look: [AvatarPart: Int]) -> UIColor {
+        AvatarPalette.mannequin[AvatarPart.skin.selection(in: look)]
     }
 
-    static func makeRoot(look: [AvatarPart: Int]) -> Entity {
+    /// Name of the empty anchor where a 3D garment of this category can attach later.
+    /// Anchors live on the turntable, so they turn with the avatar and survive body changes.
+    static func slotName(for category: ClothingCategory) -> String {
+        "slot-\(category.rawValue)"
+    }
+
+    static func makeRoot(look: [AvatarPart: Int], zoom: Double, yaw: Double) -> Entity {
         let root = Entity()
         root.name = rootName
 
-        // The figure is 1 unit tall, feet at y = 0. A narrow field of view from far away
-        // gives a nearly flat framing where the figure fills 95% of the view height,
-        // which is what the 2D clothing overlay assumes.
-        let fov: Float = 20
-        let distance = (0.5 / 0.95) / tan(fov * .pi / 360)
         let camera = PerspectiveCamera()
-        camera.camera.fieldOfViewInDegrees = fov
-        camera.position = [0, 0.5, distance]
+        camera.name = cameraName
+        camera.camera.fieldOfViewInDegrees = fieldOfView
         root.addChild(camera)
 
-        let key = DirectionalLight()
-        key.light.intensity = 2500
-        root.addChild(key)
-        key.look(at: [0, 0.5, 0], from: [0.8, 1.5, 2], relativeTo: nil)
+        addLights(to: root)
 
-        let fill = DirectionalLight()
-        fill.light.intensity = 1000
-        root.addChild(fill)
-        fill.look(at: [0, 0.5, 0], from: [-1, 0.5, 2], relativeTo: nil)
+        let turntable = Entity()
+        turntable.name = turntableName
+        root.addChild(turntable)
+        for category in ClothingCategory.layerOrder {
+            let slot = Entity()
+            slot.name = slotName(for: category)
+            slot.position = [0, frameTop - Float(category.avatarSlot.y) * visibleHeight, 0]
+            turntable.addChild(slot)
+        }
 
-        refreshFigure(in: root, look: look)
+        update(root, look: look, zoom: zoom, yaw: yaw)
         return root
     }
 
-    /// Rebuilds the figure only when the look actually changed (not on every zoom tick).
-    static func refreshFigure(in root: Entity, look: [AvatarPart: Int]) {
-        let signature = figurePrefix + look
-            .sorted { $0.key.rawValue < $1.key.rawValue }
-            .map { "\($0.key.rawValue)\($0.value)" }
-            .joined(separator: "-")
+    /// Cheap enough to run every frame while spinning: meshes rebuild only when the look changes.
+    static func update(_ root: Entity, look: [AvatarPart: Int], zoom: Double, yaw: Double) {
+        root.findEntity(named: cameraName)?.position = cameraPosition(zoom: zoom)
+        guard let turntable = root.findEntity(named: turntableName) else { return }
+        turntable.orientation = simd_quatf(angle: Float(yaw), axis: [0, 1, 0])
 
-        if root.children.contains(where: { $0.name == signature }) { return }
-
-        for child in root.children where child.name.hasPrefix(figurePrefix) {
-            child.removeFromParent()
+        let body = BodyShape.presets[AvatarPart.body.selection(in: look)]
+        let face = FaceShape.presets[AvatarPart.face.selection(in: look)]
+        replaceChild(of: turntable, prefix: bodyPrefix, signature: signature(look, [.body, .face, .skin])) {
+            model(Mannequin.body(body, face: face), material: porcelain(tint(look)))
         }
-        root.addChild(buildFigure(look: look, name: signature))
+
+        let hairStyle = HairStyle(rawValue: AvatarPart.hair.selection(in: look)) ?? .short
+        let bangs = BangsStyle(rawValue: AvatarPart.bangs.selection(in: look)) ?? .open
+        let hairColor = AvatarPalette.hair[AvatarPart.color.selection(in: look)]
+        let hairParts: [AvatarPart] = [.hair, .bangs, .color, .face, .body]
+        replaceChild(of: turntable, prefix: hairPrefix, signature: signature(look, hairParts)) {
+            model(Mannequin.hair(hairStyle, bangs: bangs, face: face, body: body), material: hairFinish(hairColor))
+        }
     }
 
-    // Everything is an ellipsoid: a unit sphere with a non-uniform scale.
-    // Positions use y = 1 - (fraction of height measured from the top).
-    private static func buildFigure(look: [AvatarPart: Int], name: String) -> Entity {
-        let skin = skinColor(look)
-        let hairColor = AvatarPalette.hair[(look[.color] ?? 2) % AvatarPalette.hair.count]
-        let eyeColor = AvatarPalette.eyes[(look[.eyes] ?? 0) % AvatarPalette.eyes.count]
-        let hairStyle = look[.hair] ?? 1
-        let bangs = look[.bangs] ?? 0
+    private static func cameraPosition(zoom: Double) -> SIMD3<Float> {
+        let height = visibleHeight / Float(max(zoom, 1))
+        let distance = (height / 2) / tan(fieldOfView * .pi / 360)
+        return [0, frameTop - height / 2, distance]
+    }
 
-        let figure = Entity()
-        figure.name = name
+    /// Studio three-point lighting on top of RealityKit's default environment light.
+    /// The lights stay put while the turntable spins, like a photo studio.
+    private static func addLights(to root: Entity) {
+        let key = DirectionalLight()
+        key.light.intensity = 2600
+        key.shadow = DirectionalLightComponent.Shadow(maximumDistance: 5, depthBias: 2)
+        root.addChild(key)
+        key.look(at: [0, 0.55, 0], from: [0.9, 1.8, 2.2], relativeTo: nil)
 
-        func add(_ radii: SIMD3<Float>, _ position: SIMD3<Float>, _ color: UIColor, rotationZ: Float = 0) {
-            let entity = ModelEntity(
-                mesh: .generateSphere(radius: 1),
-                materials: [SimpleMaterial(color: color, roughness: 0.6, isMetallic: false)]
-            )
-            entity.scale = radii
-            entity.position = position
-            if rotationZ != 0 {
-                entity.orientation = simd_quatf(angle: rotationZ, axis: [0, 0, 1])
-            }
-            figure.addChild(entity)
-        }
+        let fill = DirectionalLight()
+        fill.light.intensity = 900
+        root.addChild(fill)
+        fill.look(at: [0, 0.5, 0], from: [-1.4, 0.7, 1.6], relativeTo: nil)
 
-        // Head, neck, torso, hips
-        let headY: Float = 0.935
-        add([0.045, 0.062, 0.050], [0, headY, 0], skin)
-        add([0.022, 0.025, 0.022], [0, 0.86, 0], skin)
-        add([0.095, 0.165, 0.058], [0, 0.68, 0], skin)
-        add([0.090, 0.060, 0.060], [0, 0.50, 0], skin)
+        let rim = DirectionalLight()
+        rim.light.intensity = 1400
+        root.addChild(rim)
+        rim.look(at: [0, 0.6, 0], from: [-0.6, 1.4, -2], relativeTo: nil)
+    }
 
-        // Arms and legs (left and right)
-        for side: Float in [-1, 1] {
-            add([0.022, 0.075, 0.022], [side * 0.120, 0.73, 0], skin)   // upper arm
-            add([0.019, 0.070, 0.019], [side * 0.125, 0.60, 0], skin)   // forearm
-            add([0.018, 0.025, 0.012], [side * 0.128, 0.50, 0], skin)   // hand
-            add([0.040, 0.115, 0.040], [side * 0.050, 0.37, 0], skin)   // thigh
-            add([0.030, 0.105, 0.030], [side * 0.050, 0.16, 0], skin)   // calf
-            add([0.030, 0.020, 0.055], [side * 0.050, 0.035, 0.025], skin)  // foot
-        }
+    private static func signature(_ look: [AvatarPart: Int], _ parts: [AvatarPart]) -> String {
+        parts.map { "\($0.rawValue)\($0.selection(in: look))" }.joined(separator: "-")
+    }
 
-        // Face: eyes, nose, mouth
-        for side: Float in [-1, 1] {
-            add([0.007, 0.007, 0.007], [side * 0.018, headY + 0.006, 0.047], eyeColor)
-        }
-        add([0.008, 0.010, 0.010], [0, headY - 0.012, 0.050], skin)
-        add([0.013, 0.004, 0.006], [0, headY - 0.035, 0.046], UIColor(red: 0.70, green: 0.35, blue: 0.35, alpha: 1))
+    private static func replaceChild(of parent: Entity, prefix: String, signature: String, build: () -> Entity) {
+        let name = prefix + signature
+        if parent.children.contains(where: { $0.name == name }) { return }
+        parent.children.filter { $0.name.hasPrefix(prefix) }.forEach { $0.removeFromParent() }
+        let entity = build()
+        entity.name = name
+        parent.addChild(entity)
+    }
 
-        // Hair style (0 = none)
-        if hairStyle != 0 {
-            if hairStyle == 4 {
-                add([0.066, 0.072, 0.064], [0, headY + 0.012, -0.012], hairColor)   // curly volume
-            } else {
-                add([0.049, 0.058, 0.054], [0, headY + 0.012, -0.008], hairColor)   // cap
-            }
-            switch hairStyle {
-            case 2: add([0.052, 0.120, 0.030], [0, headY - 0.075, -0.035], hairColor)  // long
-            case 3: add([0.026, 0.026, 0.026], [0, headY + 0.065, -0.030], hairColor)  // bun
-            case 5: add([0.015, 0.055, 0.015], [0, headY - 0.035, -0.068], hairColor)  // ponytail
-            default: break
-            }
-        }
+    private static func model(_ mesh: MannequinMesh, material: PhysicallyBasedMaterial) -> Entity {
+        guard !mesh.isEmpty, let resource = try? mesh.resource() else { return Entity() }
+        return ModelEntity(mesh: resource, materials: [material])
+    }
 
-        // Bangs (0 = none)
-        switch bangs {
-        case 1: add([0.044, 0.016, 0.012], [0, headY + 0.036, 0.040], hairColor)
-        case 2: add([0.044, 0.014, 0.012], [0.010, headY + 0.038, 0.040], hairColor, rotationZ: -0.3)
-        case 3:
-            add([0.022, 0.020, 0.012], [-0.020, headY + 0.034, 0.040], hairColor, rotationZ: 0.4)
-            add([0.022, 0.020, 0.012], [0.020, headY + 0.034, 0.040], hairColor, rotationZ: -0.4)
-        default: break
-        }
+    /// Satin porcelain, like a display mannequin.
+    private static func porcelain(_ color: UIColor) -> PhysicallyBasedMaterial {
+        var material = PhysicallyBasedMaterial()
+        material.baseColor = .init(tint: color)
+        material.roughness = .init(floatLiteral: 0.45)
+        material.metallic = .init(floatLiteral: 0)
+        material.clearcoat = .init(floatLiteral: 0.3)
+        material.clearcoatRoughness = .init(floatLiteral: 0.25)
+        return material
+    }
 
-        return figure
+    /// Hair shells are open, so both sides render.
+    private static func hairFinish(_ color: UIColor) -> PhysicallyBasedMaterial {
+        var material = PhysicallyBasedMaterial()
+        material.baseColor = .init(tint: color)
+        material.roughness = .init(floatLiteral: 0.55)
+        material.metallic = .init(floatLiteral: 0)
+        material.faceCulling = .none
+        return material
+    }
+}
+
+private extension MannequinMesh {
+    func resource() throws -> MeshResource {
+        var descriptor = MeshDescriptor(name: "mannequin")
+        descriptor.positions = MeshBuffers.Positions(positions)
+        descriptor.normals = MeshBuffers.Normals(normals)
+        descriptor.primitives = .triangles(indices)
+        return try MeshResource.generate(from: [descriptor])
     }
 }
 

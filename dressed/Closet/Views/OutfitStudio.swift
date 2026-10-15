@@ -127,7 +127,7 @@ private struct AvatarCustomizationScreen: View {
     }
 
     private func optionTile(_ index: Int) -> some View {
-        let isSelected = model.look[part] == index
+        let isSelected = part.selection(in: model.look) == index
         let swatch = part.swatch(index)
         let fill: Color = swatch ?? Color.gray.opacity(0.25)
 
