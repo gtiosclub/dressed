@@ -32,10 +32,6 @@ struct ClothingItemCard: View {
     }
 }
 
-#Preview {
-    ClothingItemCardPreview()
-}
-
 private struct ClothingItemCardPreview: View {
     @State private var taps = 0
 
@@ -54,3 +50,4 @@ private struct ClothingItemCardPreview: View {
         }
     }
 }
+
