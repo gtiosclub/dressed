@@ -73,3 +73,7 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 .firebase/
+
+# Python catalog prototype
+__pycache__/
+*.py[cod]
