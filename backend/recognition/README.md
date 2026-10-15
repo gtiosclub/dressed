@@ -13,9 +13,14 @@ python3 backend/recognition/product_search.py \
   --import-id demo-1 \
   --response-file backend/recognition/fixtures/product-search-response.json
 python3 -m unittest discover -s backend/recognition -p 'test_*.py' -v
+python3 backend/recognition/evaluate.py \
+  --db /private/tmp/dressed-recognition-demo.sqlite \
+  --manifest backend/recognition/fixtures/evaluation-example.json
 ```
 
 The saved response is synthetic. Its two item boxes resolve to the fixture catalog's shirt and pants. The `.example` URLs are demonstration data, not shopping links. A whole-image box is ignored because it does not isolate a garment. An unknown or inactive catalog ID produces no product link. The suggested name is a generic category name, not a claimed exact product.
+
+The evaluation example has three annotated garments and two fixture detections, so it reports one missed shoe. This only checks the scoring code; it says nothing about Google's accuracy on real photos. To evaluate real output, save each API response as JSON and add a sample to a manifest with its `importId`, response path, and manually drawn normalized `boundingBox` plus Dressed `category` for each garment. The evaluator pairs boxes at intersection-over-union ≥ 0.5 and reports localization precision/recall, category accuracy on paired boxes, and per-category misses. Keep private test images and real response JSON outside Git.
 
 ## One live developer request
 

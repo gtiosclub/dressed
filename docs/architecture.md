@@ -9,7 +9,9 @@ catalog and leaves an empty/manual result when no regions are found. A developer
 can make one live call using Application Default Credentials and an already
 indexed Google Product Search set. This is a backend experiment: no hosted
 endpoint, iOS connection, multi-item review UI, live catalog images, or actual
-recognition quality has been verified. See
+recognition quality has been verified. A local evaluation harness now compares
+saved responses with annotated garment boxes; its bundled example is synthetic
+and demonstrates scoring only. See
 [`backend/recognition/README.md`](../backend/recognition/README.md).
 
 ## Local catalog prototype
