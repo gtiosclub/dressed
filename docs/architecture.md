@@ -29,6 +29,8 @@ The current planning branch adds schema-only Codable types in `dressed/Common/Mo
 
 The access-rules work added Firestore and Storage rules with emulator tests for synthetic users. Firestore rules were published to `out-fitted` on September 28, 2026; live Rules Playground simulations confirmed owner and non-owner read decisions. Storage rules remain local because live Storage is unavailable. See [Firebase testing](officers/firebase-testing.md) before assigning live database work.
 
+The visualization branch adds an avatar prototype in `Closet/Views`. `OutfitStudio` follows the Figma flow: customize, try on, full body, full screen, then take a picture. `AvatarView` renders a faceless procedural mannequin (`Mannequin`, `MannequinGeometry`) with RealityKit's non-AR camera. Users drag it to turn it on a turntable (`AvatarOrbit`), and clothes are still flat 2D images that narrow and fade as it turns. Body, face, hair and bangs are presets, and skin is a light tint on porcelain. This is outfit visualization, not fit prediction. The 3D model source, 3D garment representation and take-pic capture of the 3D view are TBD. A replacement model must keep the procedural figure's framing: 1 unit tall, feet at y = 0, facing +z.
+
 Everything below is a proposed contract. Confirm details in the lead planning tickets before implementation. Firestore plus Storage is the proposed primary persistence stack; do not build a parallel Realtime Database model merely because that dependency is linked.
 
 ## Source organization
