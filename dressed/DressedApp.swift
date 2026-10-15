@@ -11,8 +11,7 @@ struct DressedApp: App {
             if ProcessInfo.processInfo.arguments.contains("-mockSession") {
                 ContentView(session: SessionViewModel(service: PreviewSessionService(userId: nil)))
             } else {
-//                ContentView(session: SessionViewModel(service: FirebaseSessionService()))
-                testView()
+                ContentView(session: SessionViewModel(service: FirebaseSessionService()))
             }
             #else
             ContentView(session: SessionViewModel(service: FirebaseSessionService()))
