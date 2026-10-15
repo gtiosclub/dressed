@@ -1,0 +1,26 @@
+{
+  "responses": [
+    {
+      "productSearchResults": {
+        "indexTime": "2026-10-15T12:00:00Z",
+        "productGroupedResults": [
+          {
+            "boundingPoly": {"normalizedVertices": [{}, {"x": 1}, {"x": 1, "y": 1}, {"y": 1}]},
+            "results": [{"product": {"name": "projects/demo/locations/us-east1/products/a746893a17ff08555857cc4f"}, "score": 0.9}]
+          },
+          {
+            "boundingPoly": {"normalizedVertices": [{"x": 0.1, "y": 0.08}, {"x": 0.52, "y": 0.08}, {"x": 0.52, "y": 0.55}, {"x": 0.1, "y": 0.55}]},
+            "results": [
+              {"product": {"name": "projects/demo/locations/us-east1/products/a746893a17ff08555857cc4f"}, "score": 0.74},
+              {"product": {"name": "projects/demo/locations/us-east1/products/unknown"}, "score": 0.98}
+            ]
+          },
+          {
+            "boundingPoly": {"normalizedVertices": [{"x": 0.19, "y": 0.52}, {"x": 0.6, "y": 0.52}, {"x": 0.6, "y": 0.92}, {"x": 0.19, "y": 0.92}]},
+            "results": [{"product": {"name": "projects/demo/locations/us-east1/products/219eacb3a2cf0a826b96b03a"}, "score": 0.61}]
+          }
+        ]
+      }
+    }
+  ]
+}
