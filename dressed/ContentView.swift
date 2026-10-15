@@ -136,7 +136,7 @@ private struct AppTabs: View {
             if phase == .active { presentNextSharedImage() }
         }
     }
-
+    
     @ToolbarContentBuilder
     private var signOutToolbar: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
