@@ -1,5 +1,17 @@
 # Architecture and shared contracts
 
+## Recognition experiment
+
+`backend/recognition/product_search.py` now parses a synthetic Google Product
+Search response into separate, unselected garment candidates with normalized
+boxes. It resolves similar product IDs only against active records in the local
+catalog and leaves an empty/manual result when no regions are found. A developer
+can make one live call using Application Default Credentials and an already
+indexed Google Product Search set. This is a backend experiment: no hosted
+endpoint, iOS connection, multi-item review UI, live catalog images, or actual
+recognition quality has been verified. See
+[`backend/recognition/README.md`](../backend/recognition/README.md).
+
 ## Local catalog prototype
 
 `backend/catalog/catalog.py` ingests a synthetic fixture feed into local

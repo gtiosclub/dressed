@@ -1,6 +1,6 @@
 # Retail catalog and clothing recognition — proposed spec
 
-**Status:** Proposal for lead review, October 12, 2026. A fixture-backed local SQLite catalog importer and read-only localhost API now exist. Discovery Search calls the API and handles loading, empty, failure, and retry. No live retailer crawler/feed, hosted recognition API, product-matching service, or cloud deployment is implemented.
+**Status:** Proposal for lead review, October 15, 2026. A fixture-backed local SQLite catalog importer and read-only localhost API exist. Discovery Search calls the API and handles loading, empty, failure, and retry. A developer-only Google Product Search response adapter now parses localized boxes and resolves similar products against the fixture catalog. No live retailer crawler/feed, hosted recognition endpoint, app integration, or cloud deployment is implemented.
 
 ## Outcome and boundaries
 
@@ -64,6 +64,8 @@ For the first source, ingest a bounded fixture and then an approved live source.
 The current Apple Vision path classifies the **whole image** and does not locate every garment. Cloud general-purpose baselines to evaluate include [Google Cloud Vision Object Localization](https://docs.cloud.google.com/vision/docs/object-localizer), which returns multiple rectangular object regions, and [Amazon Rekognition DetectLabels](https://docs.aws.amazon.com/rekognition/latest/dg/labels-detect-labels-image.html), which can include bounding boxes for common apparel labels. Neither documentation promises complete fashion segmentation or exact product identity. If those baselines miss garments, test a clothing-specific detection/segmentation model through a replaceable provider adapter. [Roboflow Inference](https://inference.roboflow.com/quickstart/roboflow_ecosystem/) is one hosted/self-hosted deployment option, contingent on model/data quality and its current terms.
 
 **Recommended first API spike:** Google Cloud Vision Object Localization on a small, synthetic or consented image set. It directly tests whether a general hosted API returns separate boxes for clothing pieces. Compare its output with the existing on-device classifier and a manual gold standard before connecting it to the app. A Google Cloud project, billing setup, and an approved spend limit may be needed; the repository's Firebase dependencies do not provision this service.
+
+The [Product Search experiment](../backend/recognition/README.md) adds a second comparison path. It can return garment boxes and similar matches from a preloaded product set in one response, but those matches are limited to that set. Its fixture test is not evidence of detection quality. The user's demo budget is $10; live calls remain bounded developer tests until quality, photo handling, and billing are reviewed.
 
 ### Recognition contract and privacy
 
