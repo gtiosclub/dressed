@@ -37,6 +37,10 @@ For a physical iPhone or iPad, select your development team under **Signing & Ca
 
 Keep the workspace's shared `Package.resolved` file in version control to preserve resolved dependency versions. Ignore generated build files and per-user Xcode settings using the included `.gitignore`.
 
+## Linting
+
+See the [SwiftLint guide](docs/linting.md) for installation, the exact local command, how CI runs it, and how to review automatic fixes.
+
 ## Project scope and subteams
 
 Start with [project docs](docs/README.md), [team ownership](docs/teams.md), and the [GitHub backlog](docs/github-issues.md). Work is split between `viz`, `data`, and `social`. Shared schema templates live in [dressed/Common/Models](dressed/Common/Models), following SideQuest's shared-code / feature-folder pattern. [Backend examples](backend/schemas/README.md) document the proposed storage contracts. These types do not implement or deploy backend services. Coding agents should read [AGENTS.md](AGENTS.md).

@@ -1,0 +1,13 @@
+{
+  "samples": [
+    {
+      "importId": "synthetic-outfit-1",
+      "responseFile": "product-search-response.json",
+      "groundTruth": [
+        {"category": "tops", "boundingBox": {"x": 0.1, "y": 0.08, "width": 0.42, "height": 0.47}},
+        {"category": "pants", "boundingBox": {"x": 0.19, "y": 0.52, "width": 0.41, "height": 0.4}},
+        {"category": "shoes", "boundingBox": {"x": 0.2, "y": 0.93, "width": 0.35, "height": 0.06}}
+      ]
+    }
+  ]
+}
