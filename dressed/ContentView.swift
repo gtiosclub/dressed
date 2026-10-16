@@ -30,18 +30,35 @@ private struct AppTabs: View {
     @State private var selectedTab: Int
     @State private var discoverySection = 0
     @State private var signOutError: String?
+    @State private var pendingSharedImage: ReviewImage?
+    @State private var presentedSharedId: String?
+    @State private var deferredSharedId: String?
+    @State private var selectedItemId: String?
     // Shared by the My Closet and Avatar tabs so saved outfits show up in both.
     @State private var studio = OutfitStudioModel()
+
+    init(session: SessionViewModel, userId: String) {
+        self.session = session
+        self.userId = userId
+        _closet = StateObject(wrappedValue: PrototypeClosetStore(ownerId: userId))
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        _selectedTab = State(initialValue: arguments.contains("-showCamera") ? 2 :
+            (arguments.contains("-showCatalog") ? 1 : 0))
+        _discoverySection = State(initialValue: arguments.contains("-showCatalog") ? 1 : 0)
+        #else
+        _selectedTab = State(initialValue: 0)
+        #endif
+    }
 
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack {
                 ClothingItemsList(
-                    items: ClothingItem.previewSamples,
+                    items: closet.items,
                     outfits: studio.savedOutfits,
-                    onSelect: { _ in
-                        // open item detail later
-                    },
+                    image: { photo(for: $0) },
+                    onSelect: { selectedItemId = $0 },
                     onSelectOutfit: { id in
                         studio.wearOutfit(id: id)
                         selectedTab = 3  // jump to the Avatar tab wearing that outfit
@@ -49,6 +66,11 @@ private struct AppTabs: View {
                 )
                 .navigationTitle("My Closet")
                 .navigationBarTitleDisplayMode(.inline)
+                .navigationDestination(item: $selectedItemId) { id in
+                    PrototypeItemDetailView(closet: closet, itemID: id)
+                }
+                .toolbar { signOutToolbar }
+                .onAppear { closet.reload() }
             }
             .tabItem { Label("My Closet", systemImage: "hanger") }
             .tag(0)
@@ -94,7 +116,7 @@ private struct AppTabs: View {
             .tag(2)
 
             // OutfitStudioView has its own NavigationStack, so it is not wrapped in another one.
-            OutfitStudioView(items: ClothingItem.previewSamples, model: studio)  // swap for real items later
+            OutfitStudioView(items: closet.items, model: studio, image: { photo(for: $0) })
                 .tabItem { Label("Avatar", systemImage: "figure.stand") }
                 .tag(3)
         }
@@ -150,6 +172,10 @@ private struct AppTabs: View {
                 }
             }
         }
+    }
+
+    private func photo(for item: ClothingItem) -> Image {
+        closet.image(for: item).map { Image(uiImage: $0) } ?? Image(systemName: "photo")
     }
 
     private func presentNextSharedImage() {

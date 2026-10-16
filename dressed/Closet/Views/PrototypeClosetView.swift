@@ -107,7 +107,7 @@ struct PrototypeClosetView: View {
     }
 }
 
-private struct PrototypeItemDetailView: View {
+struct PrototypeItemDetailView: View {
     @ObservedObject var closet: PrototypeClosetStore
     let itemID: String
 
