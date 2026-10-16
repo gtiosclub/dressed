@@ -39,6 +39,7 @@ private struct AppTabs: View {
     @State private var pendingSharedLink: ReviewProductLink?
     @State private var presentedSharedLinkId: String?
     @State private var deferredSharedLinkId: String?
+    @State private var studio = OutfitStudioModel()
 
     init(session: SessionViewModel, userId: String) {
         self.session = session
@@ -107,6 +108,10 @@ private struct AppTabs: View {
             }
             .tabItem { Label("Camera", systemImage: "camera") }
             .tag(2)
+
+            OutfitStudioView(items: closet.items, model: studio, image: { photo(for: $0) })
+                .tabItem { Label("Avatar", systemImage: "figure.stand") }
+                .tag(3)
 
         }
         .alert("Could not sign out", isPresented: Binding(
@@ -241,6 +246,10 @@ private struct AppTabs: View {
         } catch {
             signOutError = error.localizedDescription
         }
+    }
+
+    private func photo(for item: ClothingItem) -> Image {
+        closet.image(for: item).map { Image(uiImage: $0) } ?? Image(systemName: "photo")
     }
 
     private func presentNextShare() {

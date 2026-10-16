@@ -104,25 +104,4 @@ struct ClothingItemsList: View {
         onSelect: { print("Tapped item \($0)") },
         onSelectOutfit: { print("Tapped outfit \($0)") }
     )
-    let samples: [ClothingItem] = [
-        ("item-1", "Blue shirt", ClothingCategory.tops),
-        ("item-2", "Black jeans", .pants),
-        ("item-3", "Pleated skirt", .skirts),
-        ("item-4", "Summer dress", .dresses),
-        ("item-5", "White sneakers", .shoes),
-        ("item-6", "Denim jacket", .outerwear)
-    ].map { id, name, category in
-        ClothingItem(
-            id: id,
-            ownerId: "preview-owner",
-            name: name,
-            category: category,
-            imagePath: "users/preview-owner/items/\(id).jpg",
-            createdAt: .now
-        )
-    }
-
-    return ClothingItemsList(items: samples) { id in
-        print("Tapped \(id)")
-    }
 }
