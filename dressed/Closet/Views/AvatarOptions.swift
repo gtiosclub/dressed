@@ -3,7 +3,7 @@ import SwiftUI
 // Choices on the avatar customization screen. The shapes behind them live in Mannequin.swift.
 
 enum AvatarPart: String, CaseIterable, Identifiable {
-    case gender, body, skin, face, eyes, eyeColor, nose, lips, lipColor, hair, bangs, color
+    case gender, body, skin, face, hair, bangs, color
     var id: String { rawValue }
 }
 
@@ -35,32 +35,7 @@ enum AvatarPalette {
         UIColor(red: 0.60, green: 0.60, blue: 0.62, alpha: 1)
     ]
 
-    // dark brown, brown, hazel, green, blue, gray, amber
-    static let eye: [UIColor] = [
-        UIColor(red: 0.18, green: 0.10, blue: 0.06, alpha: 1),
-        UIColor(red: 0.36, green: 0.21, blue: 0.10, alpha: 1),
-        UIColor(red: 0.52, green: 0.40, blue: 0.18, alpha: 1),
-        UIColor(red: 0.25, green: 0.50, blue: 0.30, alpha: 1),
-        UIColor(red: 0.25, green: 0.45, blue: 0.75, alpha: 1),
-        UIColor(red: 0.50, green: 0.55, blue: 0.60, alpha: 1),
-        UIColor(red: 0.70, green: 0.45, blue: 0.10, alpha: 1)
-    ]
 
-    // natural, rose, pink, coral, red, berry, mauve, brown, nude
-    static let lip: [UIColor] = [
-        UIColor(red: 0.72, green: 0.42, blue: 0.40, alpha: 1),
-        UIColor(red: 0.80, green: 0.45, blue: 0.50, alpha: 1),
-        UIColor(red: 0.90, green: 0.55, blue: 0.62, alpha: 1),
-        UIColor(red: 0.90, green: 0.42, blue: 0.38, alpha: 1),
-        UIColor(red: 0.75, green: 0.12, blue: 0.15, alpha: 1),
-        UIColor(red: 0.50, green: 0.15, blue: 0.28, alpha: 1),
-        UIColor(red: 0.58, green: 0.35, blue: 0.42, alpha: 1),
-        UIColor(red: 0.45, green: 0.25, blue: 0.20, alpha: 1),
-        UIColor(red: 0.78, green: 0.58, blue: 0.50, alpha: 1)
-    ]
-
-    static let sclera = UIColor(red: 0.97, green: 0.97, blue: 0.96, alpha: 1)
-    static let pupil = UIColor(red: 0.05, green: 0.05, blue: 0.06, alpha: 1)
 }
 
 extension AvatarGender {
@@ -74,14 +49,9 @@ struct AvatarLook {
     let gender: AvatarGender
     let body: BodyShape
     let face: FaceShape
-    let eye: EyeShape
-    let nose: NoseShape
-    let lips: LipShape
     let hair: HairStyle
     let bangs: BangsStyle
     let hairColor: UIColor
-    let eyeColor: UIColor
-    let lipColor: UIColor
     let skin: UIColor
 
     init(_ look: [AvatarPart: Int]) {
@@ -89,14 +59,9 @@ struct AvatarLook {
         self.gender = gender
         body = BodyShape.presets(for: gender)[AvatarPart.body.selection(in: look)]
         face = FaceShape.presets(for: gender)[AvatarPart.face.selection(in: look)]
-        eye = EyeShape.presets[AvatarPart.eyes.selection(in: look)]
-        nose = NoseShape.presets[AvatarPart.nose.selection(in: look)]
-        lips = LipShape.presets[AvatarPart.lips.selection(in: look)]
         hair = HairStyle(rawValue: AvatarPart.hair.selection(in: look)) ?? .short
         bangs = BangsStyle(rawValue: AvatarPart.bangs.selection(in: look)) ?? .open
         hairColor = AvatarPalette.hair[AvatarPart.color.selection(in: look)]
-        eyeColor = AvatarPalette.eye[AvatarPart.eyeColor.selection(in: look)]
-        lipColor = AvatarPalette.lip[AvatarPart.lipColor.selection(in: look)]
         skin = AvatarPalette.mannequin[AvatarPart.skin.selection(in: look)]
     }
 }
@@ -108,11 +73,6 @@ extension AvatarPart {
         case .body: return "Body"
         case .skin: return "Skin"
         case .face: return "Face"
-        case .eyes: return "Eyes"
-        case .eyeColor: return "Eye color"
-        case .nose: return "Nose"
-        case .lips: return "Lips"
-        case .lipColor: return "Lip color"
         case .hair: return "Hair"
         case .bangs: return "Bangs"
         case .color: return "Hair color"
@@ -125,11 +85,6 @@ extension AvatarPart {
         case .body: return BodyShape.presets(for: .female).count   // same count for every gender
         case .skin: return AvatarPalette.mannequin.count
         case .face: return FaceShape.presets(for: .female).count
-        case .eyes: return EyeShape.presets.count
-        case .eyeColor: return AvatarPalette.eye.count
-        case .nose: return NoseShape.presets.count
-        case .lips: return LipShape.presets.count
-        case .lipColor: return AvatarPalette.lip.count
         case .hair: return HairStyle.allCases.count
         case .bangs: return BangsStyle.allCases.count
         case .color: return AvatarPalette.hair.count
@@ -142,8 +97,7 @@ extension AvatarPart {
         case .hair: return HairStyle.short.rawValue
         case .color: return 2
         case .skin: return 3
-        case .eyeColor: return 1
-        case .gender, .body, .face, .eyes, .nose, .lips, .lipColor, .bangs: return 0
+        case .gender, .body, .face, .bangs: return 0
         }
     }
 
@@ -157,9 +111,7 @@ extension AvatarPart {
         switch self {
         case .color: return Color(uiColor: AvatarPalette.hair[index % AvatarPalette.hair.count])
         case .skin: return Color(uiColor: AvatarPalette.mannequin[index % AvatarPalette.mannequin.count])
-        case .eyeColor: return Color(uiColor: AvatarPalette.eye[index % AvatarPalette.eye.count])
-        case .lipColor: return Color(uiColor: AvatarPalette.lip[index % AvatarPalette.lip.count])
-        case .gender, .body, .face, .eyes, .nose, .lips, .hair, .bangs: return nil
+        case .gender, .body, .face, .hair, .bangs: return nil
         }
     }
 
@@ -176,10 +128,7 @@ extension AvatarPart {
         case .body:
             let presets = BodyShape.presets(for: gender)
             return presets[index % presets.count].name
-        case .eyes: return EyeShape.presets[index % EyeShape.presets.count].name
-        case .nose: return NoseShape.presets[index % NoseShape.presets.count].name
-        case .lips: return LipShape.presets[index % LipShape.presets.count].name
-        case .color, .skin, .eyeColor, .lipColor: return ""
+        case .color, .skin: return ""
         }
     }
 }
@@ -207,7 +156,7 @@ enum AvatarPreviews {
         static func head(yaw: Float) -> Shot {
             Shot(crop: CGRect(x: -0.1845, y: 0.64, width: 0.369, height: 0.41), yaw: yaw, fullBody: false, showsHair: true)
         }
-        /// Close-up of the face with no hair, so bangs never cover the features being compared.
+        /// Close-up of the head with no hair, for comparing face shapes.
         static func face(yaw: Float) -> Shot {
             Shot(crop: CGRect(x: -0.05625, y: 0.875, width: 0.1125, height: 0.125), yaw: yaw, fullBody: false, showsHair: false)
         }
@@ -228,11 +177,8 @@ enum AvatarPreviews {
         switch part {
         case .hair, .bangs: shot = .head(yaw: 1.1)   // side view so buns and ponytails show
         case .face: shot = .head(yaw: 0.5)
-        case .eyes: shot = .face(yaw: 0)
-        case .nose: shot = .face(yaw: 0.7)
-        case .lips: shot = .face(yaw: 0.35)
         case .body, .gender: shot = .full
-        case .color, .skin, .eyeColor, .lipColor: return nil
+        case .color, .skin: return nil
         }
 
         let others = AvatarPart.allCases.filter { $0 != part }
@@ -285,15 +231,10 @@ enum AvatarPreviews {
         }
 
         if shot.fullBody {
-            add(Mannequin.body(avatar.body, face: avatar.face, nose: avatar.nose), color: avatar.skin, bias: 0)
+            add(Mannequin.body(avatar.body, face: avatar.face, nose: NoseShape.presets[0]), color: avatar.skin, bias: 0)
         } else {
-            add(Mannequin.bust(avatar.body, face: avatar.face, nose: avatar.nose), color: avatar.skin, bias: 0)
+            add(Mannequin.bust(avatar.body, face: avatar.face, nose: NoseShape.presets[0]), color: avatar.skin, bias: 0)
         }
-        // Features stick out of the head a little; the biases keep them in front of the skin under them.
-        add(Mannequin.eyeWhites(face: avatar.face, eye: avatar.eye), color: AvatarPalette.sclera, bias: 0.003)
-        add(Mannequin.irises(face: avatar.face, eye: avatar.eye), color: avatar.eyeColor, bias: 0.0045)
-        add(Mannequin.pupils(face: avatar.face, eye: avatar.eye), color: AvatarPalette.pupil, bias: 0.006)
-        add(Mannequin.lips(face: avatar.face, shape: avatar.lips), color: avatar.lipColor, bias: 0.003)
         if shot.showsHair {
             add(Mannequin.hair(avatar.hair, bangs: avatar.bangs, face: avatar.face, body: avatar.body),
                 color: avatar.hairColor, bias: 0.008)
