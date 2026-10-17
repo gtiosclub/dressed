@@ -40,6 +40,8 @@ private struct AppTabs: View {
     // TODO: swap in the real display name once the session exposes one (e.g. session.username).
     private var username: String { userId }
 
+    @State private var showingAvatarStudio = false
+
     init(session: SessionViewModel, userId: String) {
         self.session = session
         self.userId = userId
@@ -61,14 +63,28 @@ private struct AppTabs: View {
                     items: closet.items,
                     outfits: studio.savedOutfits,
                     image: { photo(for: $0) },
-                    onSelect: { selectedItemId = $0 },
+                    onSelect: { id in
+                        if let item = closet.item(id: id) {
+                            studio.worn[item.category] = item
+                        }
+                        showingAvatarStudio = true
+                    },
                     onSelectOutfit: { id in
                         studio.wearOutfit(id: id)
-                        selectedTab = 3  // jump to the Profile tab wearing that outfit
+                        showingAvatarStudio = true
                     }
                 )
                 .navigationTitle("My Closet")
                 .navigationBarTitleDisplayMode(.inline)
+                .navigationDestination(isPresented: $showingAvatarStudio) {
+                    AvatarStudioView(
+                        model: studio,
+                        closet: closet,
+                        items: closet.items,
+                        image: { photo(for: $0) },
+                        uiImage: { closet.image(for: $0) }
+                    )
+                }
                 .navigationDestination(item: $selectedItemId) { id in
                     PrototypeItemDetailView(closet: closet, itemID: id)
                 }
@@ -125,7 +141,8 @@ private struct AppTabs: View {
                 items: closet.items,
                 model: studio,
                 onSignOut: signOut,
-                image: { photo(for: $0) }
+                image: { photo(for: $0) },
+                uiImage: { closet.image(for: $0) }
             )
             .tabItem { Label("Profile", systemImage: "person.crop.circle") }
             .tag(3)

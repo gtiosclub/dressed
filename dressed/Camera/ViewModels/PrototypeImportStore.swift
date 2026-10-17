@@ -64,8 +64,20 @@ final class PrototypeClosetStore: ObservableObject {
     }
 
     func image(for item: ClothingItem) -> UIImage? {
-        guard item.ownerId == ownerId, item.imagePath == "images/\(item.id).jpg" else { return nil }
-        return UIImage(contentsOfFile: directory.appendingPathComponent(item.imagePath).path)
+        guard item.ownerId == ownerId else { return nil }
+        let directURL = directory.appendingPathComponent(item.imagePath)
+        if FileManager.default.fileExists(atPath: directURL.path) {
+            return UIImage(contentsOfFile: directURL.path)
+        }
+        let pngURL = directory.appendingPathComponent("images/\(item.id).png")
+        if FileManager.default.fileExists(atPath: pngURL.path) {
+            return UIImage(contentsOfFile: pngURL.path)
+        }
+        let jpgURL = directory.appendingPathComponent("images/\(item.id).jpg")
+        if FileManager.default.fileExists(atPath: jpgURL.path) {
+            return UIImage(contentsOfFile: jpgURL.path)
+        }
+        return nil
     }
 
     func item(id: String) -> ClothingItem? {
@@ -77,14 +89,18 @@ final class PrototypeClosetStore: ObservableObject {
         guard UUID(uuidString: draftId) != nil else { throw PrototypeImportError.invalidIdentifier }
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else { throw PrototypeImportError.emptyName }
-        guard let image = UIImage(data: imageData), let jpeg = image.jpegData(compressionQuality: 0.85) else {
+        guard let image = UIImage(data: imageData) else {
             throw PrototypeImportError.invalidImage
         }
+
+        let isPNG = (imageData.count >= 8 && imageData.prefix(8) == Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]))
+        let imageExtension = isPNG ? "png" : "jpg"
+        let fileData = isPNG ? (image.pngData() ?? imageData) : (image.jpegData(compressionQuality: 0.85) ?? imageData)
 
         let fileManager = FileManager.default
         let imageDirectory = directory.appendingPathComponent("images", isDirectory: true)
         try fileManager.createDirectory(at: imageDirectory, withIntermediateDirectories: true)
-        let imagePath = "images/\(draftId).jpg"
+        let imagePath = "images/\(draftId).\(imageExtension)"
         let imageURL = directory.appendingPathComponent(imagePath)
         let record = ClothingItem(
             id: draftId,
@@ -99,7 +115,7 @@ final class PrototypeClosetStore: ObservableObject {
         // The stable draft ID makes a retry replace the same item rather than create another.
         let previousImage = fileManager.fileExists(atPath: imageURL.path)
             ? try Data(contentsOf: imageURL) : nil
-        try jpeg.write(to: imageURL, options: .atomic)
+        try fileData.write(to: imageURL, options: .atomic)
         do {
             try persist(updated)
             items = updated
@@ -130,7 +146,7 @@ final class PrototypeClosetStore: ObservableObject {
 
     func delete(id: String) throws {
         guard let item = item(id: id) else { throw PrototypeImportError.missingItem }
-        guard item.imagePath == "images/\(item.id).jpg" else {
+        guard item.imagePath == "images/\(item.id).jpg" || item.imagePath == "images/\(item.id).png" else {
             throw PrototypeImportError.invalidIdentifier
         }
         let imageURL = directory.appendingPathComponent(item.imagePath)

@@ -118,12 +118,53 @@ struct ImportReviewView: View {
     @State private var recognitionAttempt = 0
     @State private var isSaving = false
     @State private var saveError: String?
+    @State private var stylizedResult: GarmentStylizer.StylizedResult?
+    @State private var showAvatarStyle = true
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    if let uiImage = UIImage(data: image.data) {
+                    if let stylized = stylizedResult, showAvatarStyle {
+                        VStack(spacing: 8) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [Color(white: 0.95), Color(white: 0.88)],
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        )
+                                    )
+                                    .frame(height: 280)
+
+                                Image(uiImage: stylized.image)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(maxHeight: 250)
+                                    .padding(12)
+                                    .shadow(color: .black.opacity(0.12), radius: 6, y: 3)
+                            }
+
+                            HStack {
+                                Label("Avatar Style", systemImage: "sparkles")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(.tint)
+
+                                Spacer()
+
+                                HStack(spacing: 4) {
+                                    Circle()
+                                        .fill(Color(uiColor: stylized.dominantColor))
+                                        .frame(width: 14, height: 14)
+                                    Text("Dominant Color")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .padding(.horizontal, 4)
+                        }
+                    } else if let uiImage = UIImage(data: image.data) {
                         Image(uiImage: uiImage)
                             .resizable()
                             .scaledToFit()
@@ -131,6 +172,15 @@ struct ImportReviewView: View {
                             .frame(maxHeight: 300)
                             .accessibilityLabel("Image to import")
                     }
+
+                    if stylizedResult != nil {
+                        Picker("Preview Style", selection: $showAvatarStyle) {
+                            Text("Avatar Style (Cutout)").tag(true)
+                            Text("Original Photo").tag(false)
+                        }
+                        .pickerStyle(.segmented)
+                    }
+
                     Text(image.source)
                         .foregroundStyle(.secondary)
                 }
@@ -140,7 +190,7 @@ struct ImportReviewView: View {
                     case .analyzing:
                         HStack {
                             ProgressView()
-                            Text("Looking for clothing…")
+                            Text("Creating avatar-style piece…")
                         }
                         Button("Enter details manually") {
                             recognitionState = .manual
@@ -173,7 +223,7 @@ struct ImportReviewView: View {
                             Text(option.rawValue.capitalized).tag(option)
                         }
                     }
-                    Text("This checks the whole image for one garment. It cannot separate pieces or identify an exact product. Check the details before saving.")
+                    Text("The photo is converted into a replicable, 360° avatar piece with clean cutout and extracted color.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -207,9 +257,13 @@ struct ImportReviewView: View {
             .interactiveDismissDisabled(isSaving)
             .task(id: recognitionAttempt) {
                 guard recognitionState == .analyzing else { return }
+                async let suggestionTask = PrototypeGarmentRecognition.analyze(image.data)
+                async let stylizerTask = GarmentStylizer.convert(image.data)
+
                 do {
-                    let suggestion = try await PrototypeGarmentRecognition.analyze(image.data)
+                    let (suggestion, stylized) = try await (suggestionTask, stylizerTask)
                     guard !Task.isCancelled, recognitionState == .analyzing else { return }
+                    self.stylizedResult = stylized
                     if let suggestion {
                         if !hasEditedName { name = suggestion.name }
                         if !hasEditedCategory { category = suggestion.category }
@@ -236,7 +290,8 @@ struct ImportReviewView: View {
         guard !isSaving else { return }
         isSaving = true
         do {
-            try closet.save(imageData: image.data, draftId: image.id, name: name, category: category)
+            let dataToSave = (showAvatarStyle ? stylizedResult?.pngData : nil) ?? image.data
+            try closet.save(imageData: dataToSave, draftId: image.id, name: name, category: category)
             onSaved()
         } catch {
             saveError = error.localizedDescription

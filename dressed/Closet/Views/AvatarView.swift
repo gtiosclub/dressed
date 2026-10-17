@@ -30,6 +30,7 @@ struct AvatarView: View {
     let look: [AvatarPart: Int]
     let worn: [ClothingCategory: ClothingItem]
     let image: (ClothingItem) -> Image
+    var uiImage: ((ClothingItem) -> UIImage?)? = nil
     var zoom: Double = 1
     var use3D: Bool = true
 
@@ -41,7 +42,7 @@ struct AvatarView: View {
             ZStack {
                 AvatarBackdrop(size: size, zoom: zoom, showsFloorShadow: use3D)
                 if use3D {
-                    AvatarStage(look: look, zoom: zoom, orbit: orbit)
+                    AvatarStage(look: look, worn: worn, uiImage: uiImage, zoom: zoom, orbit: orbit)
                 } else {
                     Image(systemName: AvatarGender(look: look).symbol)
                         .resizable()
@@ -50,10 +51,11 @@ struct AvatarView: View {
                         .frame(height: size.height * 0.95)
                         .position(x: size.width / 2, y: size.height / 2)
                         .scaleEffect(zoom, anchor: .top)
+
+                    GarmentOverlay(worn: worn, image: image, size: size, orbit: orbit)
+                        .scaleEffect(zoom, anchor: .top)
+                        .allowsHitTesting(false)
                 }
-                GarmentOverlay(worn: worn, image: image, size: size, orbit: orbit)
-                    .scaleEffect(zoom, anchor: .top)
-                    .allowsHitTesting(false)
             }
             .contentShape(Rectangle())
             .gesture(turnGesture(viewWidth: size.width), including: use3D ? .all : .none)
@@ -85,6 +87,8 @@ struct AvatarView: View {
 /// The RealityKit scene. It reads the orbit itself, so spinning re-renders only this view.
 private struct AvatarStage: View {
     let look: [AvatarPart: Int]
+    let worn: [ClothingCategory: ClothingItem]
+    let uiImage: ((ClothingItem) -> UIImage?)?
     let zoom: Double
     let orbit: AvatarOrbit
 
@@ -92,10 +96,10 @@ private struct AvatarStage: View {
         let yaw = orbit.yaw
         RealityView { content in
             content.camera = .virtual
-            content.add(AvatarScene.makeRoot(look: look, zoom: zoom, yaw: yaw))
+            content.add(AvatarScene.makeRoot(look: look, worn: worn, uiImage: uiImage, zoom: zoom, yaw: yaw))
         } update: { content in
             guard let root = content.entities.first(where: { $0.name == AvatarScene.rootName }) else { return }
-            AvatarScene.update(root, look: look, zoom: zoom, yaw: yaw)
+            AvatarScene.update(root, look: look, worn: worn, uiImage: uiImage, zoom: zoom, yaw: yaw)
         }
         // Let the SwiftUI backdrop show through instead of the system background.
         .backgroundStyle(Color.clear)
@@ -198,7 +202,13 @@ private enum AvatarScene {
         "slot-\(category.rawValue)"
     }
 
-    static func makeRoot(look: [AvatarPart: Int], zoom: Double, yaw: Double) -> Entity {
+    static func makeRoot(
+        look: [AvatarPart: Int],
+        worn: [ClothingCategory: ClothingItem],
+        uiImage: ((ClothingItem) -> UIImage?)?,
+        zoom: Double,
+        yaw: Double
+    ) -> Entity {
         let root = Entity()
         root.name = rootName
 
@@ -219,12 +229,19 @@ private enum AvatarScene {
             turntable.addChild(slot)
         }
 
-        update(root, look: look, zoom: zoom, yaw: yaw)
+        update(root, look: look, worn: worn, uiImage: uiImage, zoom: zoom, yaw: yaw)
         return root
     }
 
     /// Cheap enough to run every frame while spinning: meshes rebuild only when the look changes.
-    static func update(_ root: Entity, look: [AvatarPart: Int], zoom: Double, yaw: Double) {
+    static func update(
+        _ root: Entity,
+        look: [AvatarPart: Int],
+        worn: [ClothingCategory: ClothingItem],
+        uiImage: ((ClothingItem) -> UIImage?)?,
+        zoom: Double,
+        yaw: Double
+    ) {
         root.findEntity(named: cameraName)?.position = cameraPosition(zoom: zoom)
         guard let turntable = root.findEntity(named: turntableName) else { return }
         turntable.orientation = simd_quatf(angle: Float(yaw), axis: [0, 1, 0])
@@ -269,6 +286,37 @@ private enum AvatarScene {
                 material: hairFinish(avatar.hairColor)
             )
         }
+
+        // 3D procedural clothing pieces turning 360 degrees on the turntable
+        for category in ClothingCategory.allCases {
+            let garmentPrefix = "garment-\(category.rawValue)-"
+            if let item = worn[category] {
+                let img = uiImage?(item)
+                let color = GarmentColorExtractor.dominantColor(from: img)
+                let proportions = GarmentMeasurement.calculateProportions(from: img, category: category)
+                let colorKey = "\(color.hashValue)"
+                let propKey = "\(Int(proportions.widthRatio * 100))-\(Int(proportions.lengthRatio * 100))"
+                let sig = "\(item.id)-\(colorKey)-\(propKey)-\(avatar.body.name)"
+
+                replaceChild(of: turntable, prefix: garmentPrefix, signature: sig) {
+                    let mesh = MannequinGarments.mesh(for: category, shape: avatar.body, proportions: proportions)
+                    return model(mesh, material: fabricFinish(color))
+                }
+            } else {
+                turntable.children.filter { $0.name.hasPrefix(garmentPrefix) }.forEach { $0.removeFromParent() }
+            }
+        }
+    }
+
+    private static func fabricFinish(_ color: UIColor) -> PhysicallyBasedMaterial {
+        var material = PhysicallyBasedMaterial()
+        material.baseColor = .init(tint: color)
+        material.roughness = .init(floatLiteral: 0.58)
+        material.metallic = .init(floatLiteral: 0.04)
+        material.clearcoat = .init(floatLiteral: 0.15)
+        material.clearcoatRoughness = .init(floatLiteral: 0.25)
+        material.faceCulling = .none
+        return material
     }
 
     private static func cameraPosition(zoom: Double) -> SIMD3<Float> {
