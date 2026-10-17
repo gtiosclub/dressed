@@ -188,17 +188,12 @@ enum MannequinGarments {
 
 
     static func tShirtMesh(shape: BodyShape) -> MannequinMesh {
-
-        var mesh = coveredTorso(shape: shape, dropY: 0.600, inflate: 1.07, collarY: 0.838)
-
+        // Hem drops below the pants waistband so the shirt covers the pants.
+        var mesh = coveredTorso(shape: shape, dropY: 0.520, inflate: 1.10, collarY: 0.838)
         for side: Float in [-1, 1] {
-
-            mesh.append(shoulderAndSleeve(shape: shape, side: side, sleeveEnd: 0.690, inflate: 1.09))
-
+            mesh.append(shoulderAndSleeve(shape: shape, side: side, sleeveEnd: 0.755, inflate: 1.08))
         }
-
         return mesh
-
     }
 
 
@@ -321,7 +316,7 @@ enum MannequinGarments {
 
         for side: Float in [-1, 1] {
 
-            mesh.append(shoulderAndSleeve(shape: shape, side: side, sleeveEnd: 0.675, inflate: 1.14))
+            mesh.append(shoulderAndSleeve(shape: shape, side: side, sleeveEnd: 0.720, inflate: 1.12))
 
         }
 
@@ -531,7 +526,7 @@ enum MannequinGarments {
 
     static func jeansMesh(shape: BodyShape) -> MannequinMesh {
 
-        return pantsBase(shape: shape, ankleY: 0.042, inflate: 1.09, waistbandY: 0.638)
+        return pantsBase(shape: shape, ankleY: 0.042, inflate: 1.12, waistbandY: 0.638)
 
     }
 
@@ -558,50 +553,31 @@ enum MannequinGarments {
 
 
     static func shortsMesh(shape: BodyShape) -> MannequinMesh {
-
         var mesh = MannequinMesh()
-
         let lowerWaist = (shape.hips + shape.waist) / 2
+        let thigh = (shape.hips + shape.limbs) / 2
+        let inflate: Float = 1.08
 
+        // Seat covering the hips and upper thighs
         let waistbandKeys = [
-
-            LoftRing([0, 0.50, -0.006], width: 0.096 * shape.hips * 1.06, depth: 0.060 * shape.hips * 1.06),
-
-            LoftRing([0, 0.54, -0.005], width: 0.098 * shape.hips * 1.06, depth: 0.062 * shape.hips * 1.06),
-
-            LoftRing([0, 0.59, -0.003], width: 0.081 * lowerWaist * 1.06, depth: 0.053 * lowerWaist * 1.06),
-
-            LoftRing([0, 0.64, 0], width: 0.069 * shape.waist * 1.06, depth: 0.048 * shape.waist * 1.06)
-
+            LoftRing([0, 0.44, -0.005], width: 0.112 * shape.hips * inflate, depth: 0.072 * shape.hips * inflate),
+            LoftRing([0, 0.50, -0.004], width: 0.108 * shape.hips * inflate, depth: 0.070 * shape.hips * inflate),
+            LoftRing([0, 0.55, -0.003], width: 0.090 * lowerWaist * inflate, depth: 0.056 * lowerWaist * inflate),
+            LoftRing([0, 0.60, 0], width: 0.068 * shape.waist * inflate, depth: 0.046 * shape.waist * inflate)
         ]
+        mesh.append(MannequinGeometry.loft(waistbandKeys, sides: 32, caps: (start: 0.008, end: 0.008)))
 
-        mesh.append(MannequinGeometry.loft(waistbandKeys, sides: 32, caps: (start: 0.01, end: 0.01)))
-
-
-
-
+        // Short legs that cover the upper thighs
         for side: Float in [-1, 1] {
-
-            let thigh = (shape.hips + shape.limbs) / 2
-
-            let hipX = max(0.042 * shape.hips, 0.040 * thigh + 0.002)
-
+            let hipX = max(0.046 * shape.hips, 0.042 * thigh + 0.002)
             let legKeys = [
-
-                LoftRing([side * hipX, 0.515, -0.004], width: 0.047 * thigh, depth: 0.050 * thigh),
-
-                LoftRing([side * hipX, 0.455, -0.003], width: 0.054 * thigh, depth: 0.056 * thigh),
-
-                LoftRing([side * hipX * 0.95, 0.375, 0], width: 0.046 * thigh, depth: 0.048 * thigh)
-
+                LoftRing([side * hipX, 0.520, -0.003], width: 0.075 * thigh, depth: 0.064 * thigh),
+                LoftRing([side * hipX, 0.440, -0.002], width: 0.064 * thigh, depth: 0.058 * thigh),
+                LoftRing([side * hipX * 0.95, 0.360, 0], width: 0.052 * thigh, depth: 0.048 * thigh)
             ]
-
-            mesh.append(MannequinGeometry.loft(legKeys, sides: 24, caps: (start: 0.015, end: 0.010)))
-
+            mesh.append(MannequinGeometry.loft(legKeys, sides: 24, caps: (start: 0.008, end: 0.006)))
         }
-
         return mesh
-
     }
 
 
@@ -1087,102 +1063,61 @@ enum MannequinGarments {
 
 
     /// Helper for trousers, jeans, capris, and leggings.
-
+    /// Seat and legs are sized to fully cover the body thighs with clearance on the outside.
     private static func pantsBase(shape: BodyShape, ankleY: Float, inflate: Float, waistbandY: Float) -> MannequinMesh {
-
         var mesh = MannequinMesh()
-
         let lowerWaist = (shape.hips + shape.waist) / 2
+        let thigh = (shape.hips + shape.limbs) / 2
+        let limbs = shape.limbs
+        let offset: Float = 0.008
 
-
-
-
-        // Waistband / seat
-
+        // Seat — wide and low enough to cover the upper hips and the start of the thighs.
         let waistbandKeys = [
-
-            LoftRing([0, 0.50, -0.006], width: 0.096 * shape.hips * inflate, depth: 0.060 * shape.hips * inflate),
-
-            LoftRing([0, 0.54, -0.005], width: 0.098 * shape.hips * inflate, depth: 0.062 * shape.hips * inflate),
-
-            LoftRing([0, 0.59, -0.003], width: 0.080 * lowerWaist * inflate, depth: 0.052 * lowerWaist * inflate),
-
-            LoftRing([0, waistbandY, 0], width: 0.068 * shape.waist * inflate, depth: 0.047 * shape.waist * inflate)
-
+            LoftRing([0, 0.44, -0.005], width: 0.112 * shape.hips * inflate, depth: 0.072 * shape.hips * inflate),
+            LoftRing([0, 0.50, -0.004], width: 0.108 * shape.hips * inflate, depth: 0.070 * shape.hips * inflate),
+            LoftRing([0, 0.55, -0.003], width: 0.092 * lowerWaist * inflate, depth: 0.058 * lowerWaist * inflate),
+            LoftRing([0, waistbandY, 0], width: 0.068 * shape.waist * inflate, depth: 0.046 * shape.waist * inflate)
         ]
+        mesh.append(MannequinGeometry.loft(waistbandKeys, sides: 32, caps: (start: 0.008, end: 0.008)))
 
-        mesh.append(MannequinGeometry.loft(waistbandKeys, sides: 32, caps: (start: 0.01, end: 0.01)))
-
-
-
-
-        // Keep the crotch clean and close-fitting: no added gusset or bridge panel.
-        // Bring the upper leg tubes closer together and let their top rings overlap
-        // just enough to cover the crotch without adding a bulky center volume.
-
+        // Legs sit over the body legs. hipX matches the body, widths are larger so the outer edge covers.
         for side: Float in [-1, 1] {
-
-            let thigh = (shape.hips + shape.limbs) / 2
-
-            let limbs = shape.limbs
-
-            // Pull inner thigh edges modestly toward center and widen lateral
-            // radii. Keep depth nearly unchanged to avoid adding bulky volume.
-            let hipX = max(0.040 * shape.hips, 0.038 * thigh + 0.002)
-            let offset: Float = 0.003
+            let hipX = max(0.046 * shape.hips, 0.042 * thigh + 0.002)
 
             var legKeys = [
-                LoftRing([side * hipX, 0.570, -0.005],
-                         width: (0.060 * thigh) * inflate + offset, depth: (0.048 * thigh) * inflate + offset),
-                LoftRing([side * hipX, 0.480, -0.003],
-                         width: (0.060 * thigh) * inflate + offset, depth: (0.056 * thigh) * inflate + offset),
-                LoftRing([side * hipX * 0.96, 0.38, 0],
-                         width: (0.046 * thigh) * inflate + offset, depth: (0.042 * thigh) * inflate + offset),
-
+                // Top ring high and wide — outer edge well past the body thigh
+                LoftRing([side * hipX, 0.530, -0.004],
+                         width: (0.078 * thigh) * inflate + offset,
+                         depth: (0.066 * thigh) * inflate + offset),
+                LoftRing([side * hipX, 0.470, -0.003],
+                         width: (0.072 * thigh) * inflate + offset,
+                         depth: (0.064 * thigh) * inflate + offset),
+                LoftRing([side * hipX * 0.96, 0.380, 0],
+                         width: (0.054 * thigh) * inflate + offset,
+                         depth: (0.048 * thigh) * inflate + offset),
                 LoftRing([side * 0.044, 0.285, 0.002],
-
-                         width: (0.026 * limbs) * inflate + offset, depth: (0.028 * limbs) * inflate + offset)
-
+                         width: (0.030 * limbs) * inflate + offset,
+                         depth: (0.032 * limbs) * inflate + offset)
             ]
 
-
-
-
             if ankleY < 0.25 {
-
                 legKeys.append(LoftRing([side * 0.044, max(ankleY, 0.21), -0.005],
-
-                                        width: (0.030 * limbs) * inflate + offset,
-
-                                        depth: (0.033 * limbs) * inflate + offset))
-
+                                        width: (0.032 * limbs) * inflate + offset,
+                                        depth: (0.034 * limbs) * inflate + offset))
             }
-
             if ankleY < 0.15 {
-
                 legKeys.append(LoftRing([side * 0.044, max(ankleY, 0.12), -0.002],
-
-                                        width: (0.021 * limbs) * inflate + offset,
-
-                                        depth: (0.022 * limbs) * inflate + offset))
-
+                                        width: (0.024 * limbs) * inflate + offset,
+                                        depth: (0.025 * limbs) * inflate + offset))
             }
-
             legKeys.append(LoftRing([side * 0.045, ankleY, -0.004],
+                                    width: (0.020 * limbs) * inflate + offset,
+                                    depth: (0.021 * limbs) * inflate + offset))
 
-                                    width: (0.018 * limbs) * inflate + offset,
-
-                                    depth: (0.019 * limbs) * inflate + offset))
-
-
-
-
-            mesh.append(MannequinGeometry.loft(legKeys, sides: 24, caps: (start: 0.02, end: 0.012)))
-
+            mesh.append(MannequinGeometry.loft(legKeys, sides: 24, caps: (start: 0.010, end: 0.008)))
         }
 
         return mesh
-
     }
 
 }
