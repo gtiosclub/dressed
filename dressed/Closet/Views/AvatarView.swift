@@ -43,7 +43,7 @@ struct AvatarView: View {
                 if use3D {
                     AvatarStage(look: look, zoom: zoom, orbit: orbit)
                 } else {
-                    Image(systemName: "figure.stand")
+                    Image(systemName: AvatarGender(look: look).symbol)
                         .resizable()
                         .scaledToFit()
                         .foregroundStyle(Color(uiColor: AvatarScene.tint(look)))
@@ -173,6 +173,10 @@ private enum AvatarScene {
     private static let turntableName = "avatarTurntable"
     private static let bodyPrefix = "body-"
     private static let hairPrefix = "hair-"
+    private static let scleraPrefix = "sclera-"
+    private static let irisPrefix = "iris-"
+    private static let pupilPrefix = "pupil-"
+    private static let lipsPrefix = "lips-"
 
     // Framing: the figure is 1 unit tall with feet at y = 0. At zoom 1 it fills 95% of the view height,
     // which the 2D overlay assumes. Zooming narrows the view but keeps its top edge fixed, matching the
@@ -225,18 +229,45 @@ private enum AvatarScene {
         guard let turntable = root.findEntity(named: turntableName) else { return }
         turntable.orientation = simd_quatf(angle: Float(yaw), axis: [0, 1, 0])
 
-        let body = BodyShape.presets[AvatarPart.body.selection(in: look)]
-        let face = FaceShape.presets[AvatarPart.face.selection(in: look)]
-        replaceChild(of: turntable, prefix: bodyPrefix, signature: signature(look, [.body, .face, .skin])) {
-            model(Mannequin.body(body, face: face), material: porcelain(tint(look)))
+        let avatar = AvatarLook(look)
+
+        // Gender is part of every signature: it changes which body and face presets the indices point to.
+        replaceChild(of: turntable, prefix: bodyPrefix, signature: signature(look, [.gender, .body, .face, .nose, .skin])) {
+            model(Mannequin.body(avatar.body, face: avatar.face, nose: avatar.nose), material: porcelain(avatar.skin))
         }
 
-        let hairStyle = HairStyle(rawValue: AvatarPart.hair.selection(in: look)) ?? .short
-        let bangs = BangsStyle(rawValue: AvatarPart.bangs.selection(in: look)) ?? .open
-        let hairColor = AvatarPalette.hair[AvatarPart.color.selection(in: look)]
-        let hairParts: [AvatarPart] = [.hair, .bangs, .color, .face, .body]
+        let eyeParts: [AvatarPart] = [.gender, .face, .eyes]
+        replaceChild(of: turntable, prefix: scleraPrefix, signature: signature(look, eyeParts)) {
+            model(
+                Mannequin.eyeWhites(face: avatar.face, eye: avatar.eye),
+                material: glossy(AvatarPalette.sclera, roughness: 0.25, clearcoat: 0.5)
+            )
+        }
+        replaceChild(of: turntable, prefix: irisPrefix, signature: signature(look, eyeParts + [.eyeColor])) {
+            model(
+                Mannequin.irises(face: avatar.face, eye: avatar.eye),
+                material: glossy(avatar.eyeColor, roughness: 0.2, clearcoat: 0.6)
+            )
+        }
+        replaceChild(of: turntable, prefix: pupilPrefix, signature: signature(look, eyeParts)) {
+            model(
+                Mannequin.pupils(face: avatar.face, eye: avatar.eye),
+                material: glossy(AvatarPalette.pupil, roughness: 0.2, clearcoat: 0.6)
+            )
+        }
+        replaceChild(of: turntable, prefix: lipsPrefix, signature: signature(look, [.gender, .face, .lips, .lipColor])) {
+            model(
+                Mannequin.lips(face: avatar.face, shape: avatar.lips),
+                material: glossy(avatar.lipColor, roughness: 0.4, clearcoat: 0.4)
+            )
+        }
+
+        let hairParts: [AvatarPart] = [.gender, .hair, .bangs, .color, .face, .body]
         replaceChild(of: turntable, prefix: hairPrefix, signature: signature(look, hairParts)) {
-            model(Mannequin.hair(hairStyle, bangs: bangs, face: face, body: body), material: hairFinish(hairColor))
+            model(
+                Mannequin.hair(avatar.hair, bangs: avatar.bangs, face: avatar.face, body: avatar.body),
+                material: hairFinish(avatar.hairColor)
+            )
         }
     }
 
@@ -292,6 +323,17 @@ private enum AvatarScene {
         material.metallic = .init(floatLiteral: 0)
         material.clearcoat = .init(floatLiteral: 0.3)
         material.clearcoatRoughness = .init(floatLiteral: 0.25)
+        return material
+    }
+
+    /// Shiny finish for eyes and lips.
+    private static func glossy(_ color: UIColor, roughness: Float, clearcoat: Float) -> PhysicallyBasedMaterial {
+        var material = PhysicallyBasedMaterial()
+        material.baseColor = .init(tint: color)
+        material.roughness = .init(floatLiteral: roughness)
+        material.metallic = .init(floatLiteral: 0)
+        material.clearcoat = .init(floatLiteral: clearcoat)
+        material.clearcoatRoughness = .init(floatLiteral: 0.15)
         return material
     }
 

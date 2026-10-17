@@ -34,8 +34,11 @@ private struct AppTabs: View {
     @State private var presentedSharedId: String?
     @State private var deferredSharedId: String?
     @State private var selectedItemId: String?
-    // Shared by the My Closet and Avatar tabs so saved outfits show up in both.
+    // Shared by the My Closet and Profile tabs so saved outfits show up in both.
     @State private var studio = OutfitStudioModel()
+
+    // TODO: swap in the real display name once the session exposes one (e.g. session.username).
+    private var username: String { userId }
 
     init(session: SessionViewModel, userId: String) {
         self.session = session
@@ -61,7 +64,7 @@ private struct AppTabs: View {
                     onSelect: { selectedItemId = $0 },
                     onSelectOutfit: { id in
                         studio.wearOutfit(id: id)
-                        selectedTab = 3  // jump to the Avatar tab wearing that outfit
+                        selectedTab = 3  // jump to the Profile tab wearing that outfit
                     }
                 )
                 .navigationTitle("My Closet")
@@ -115,10 +118,17 @@ private struct AppTabs: View {
             .tabItem { Label("Camera", systemImage: "camera") }
             .tag(2)
 
-            // OutfitStudioView has its own NavigationStack, so it is not wrapped in another one.
-            OutfitStudioView(items: closet.items, model: studio, image: { photo(for: $0) })
-                .tabItem { Label("Avatar", systemImage: "figure.stand") }
-                .tag(3)
+            // ProfileView has its own NavigationStack (it also hosts the avatar studio flow),
+            // so it is not wrapped in another one.
+            ProfileView(
+                username: username,
+                items: closet.items,
+                model: studio,
+                onSignOut: signOut,
+                image: { photo(for: $0) }
+            )
+            .tabItem { Label("Profile", systemImage: "person.crop.circle") }
+            .tag(3)
         }
         .alert("Could not sign out", isPresented: Binding(
             get: { signOutError != nil },
@@ -163,14 +173,16 @@ private struct AppTabs: View {
     @ToolbarContentBuilder
     private var signOutToolbar: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
-            Button("Sign Out") {
-                do {
-                    try session.signOut()
-                    SharedImageInbox.setActiveOwner(nil)
-                } catch {
-                    signOutError = error.localizedDescription
-                }
-            }
+            Button("Sign Out", action: signOut)
+        }
+    }
+
+    private func signOut() {
+        do {
+            try session.signOut()
+            SharedImageInbox.setActiveOwner(nil)
+        } catch {
+            signOutError = error.localizedDescription
         }
     }
 

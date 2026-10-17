@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A10100000000000000000001 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10200000000000000000001 /* ShareViewController.swift */; };
-		A10100000000000000000002 /* DressedShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A10200000000000000000004 /* DressedShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		360046AB307476B400F78859 /* .swiftlint.yml in Resources */ = {isa = PBXBuildFile; fileRef = 360046AA3074769B00F78859 /* .swiftlint.yml */; };
 		8B87D8B5305380D900F3CF9E /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8B4305380D900F3CF9E /* FirebaseCore */; };
 		8B87D8B7305380DD00F3CF9E /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8B6305380DD00F3CF9E /* FirebaseAuth */; };
@@ -17,16 +15,19 @@
 		8B87D8BD305380EC00F3CF9E /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8BC305380EC00F3CF9E /* FirebaseDatabase */; };
 		8B87D8BF305380F100F3CF9E /* FirebaseAI in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8BE305380F100F3CF9E /* FirebaseAI */; };
 		8B87D8C1305380F400F3CF9E /* FirebaseAILogic in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8C0305380F400F3CF9E /* FirebaseAILogic */; };
+		A10100000000000000000001 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10200000000000000000001 /* ShareViewController.swift */; };
+		A10100000000000000000002 /* DressedShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A10200000000000000000004 /* DressedShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
-/* Begin PBXFileReference section */
-		A10200000000000000000001 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
-		A10200000000000000000002 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		A10200000000000000000003 /* DressedShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DressedShareExtension.entitlements; sourceTree = "<group>"; };
-		A10200000000000000000004 /* DressedShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DressedShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		360046AA3074769B00F78859 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = .swiftlint.yml; sourceTree = "<group>"; };
-		8B87D86730537AB400F3CF9E /* dressed.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = dressed.app; sourceTree = BUILT_PRODUCTS_DIR; };
-/* End PBXFileReference section */
+/* Begin PBXContainerItemProxy section */
+		A10D00000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8B87D85F30537AB400F3CF9E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A10600000000000000000001;
+			remoteInfo = DressedShareExtension;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		A10300000000000000000001 /* Embed App Extensions */ = {
@@ -42,6 +43,15 @@
 		};
 /* End PBXCopyFilesBuildPhase section */
 
+/* Begin PBXFileReference section */
+		360046AA3074769B00F78859 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = .swiftlint.yml; sourceTree = "<group>"; };
+		8B87D86730537AB400F3CF9E /* dressed.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = dressed.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10200000000000000000001 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		A10200000000000000000002 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A10200000000000000000003 /* DressedShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DressedShareExtension.entitlements; sourceTree = "<group>"; };
+		A10200000000000000000004 /* DressedShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DressedShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		8B87D86930537AB400F3CF9E /* dressed */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -51,7 +61,6 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		A10400000000000000000001 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 		8B87D86430537AB400F3CF9E /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -66,19 +75,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A10400000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		A10500000000000000000001 /* DressedShareExtension */ = {
-			isa = PBXGroup;
-			children = (
-				A10200000000000000000001 /* ShareViewController.swift */,
-				A10200000000000000000002 /* Info.plist */,
-				A10200000000000000000003 /* DressedShareExtension.entitlements */,
-			);
-			path = DressedShareExtension;
-			sourceTree = "<group>";
-		};
 		8B87D85E30537AB400F3CF9E = {
 			isa = PBXGroup;
 			children = (
@@ -106,24 +112,19 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		A10500000000000000000001 /* DressedShareExtension */ = {
+			isa = PBXGroup;
+			children = (
+				A10200000000000000000001 /* ShareViewController.swift */,
+				A10200000000000000000002 /* Info.plist */,
+				A10200000000000000000003 /* DressedShareExtension.entitlements */,
+			);
+			path = DressedShareExtension;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		A10600000000000000000001 /* DressedShareExtension */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = A10A00000000000000000001 /* Build configuration list for PBXNativeTarget "DressedShareExtension" */;
-			buildPhases = (
-				A10800000000000000000001 /* Sources */,
-				A10400000000000000000001 /* Frameworks */,
-				A10900000000000000000001 /* Resources */,
-			);
-			buildRules = ();
-			dependencies = ();
-			name = DressedShareExtension;
-			productName = DressedShareExtension;
-			productReference = A10200000000000000000004 /* DressedShareExtension.appex */;
-			productType = "com.apple.product-type.app-extension";
-		};
 		8B87D86630537AB400F3CF9E /* dressed */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 8B87D87230537AB500F3CF9E /* Build configuration list for PBXNativeTarget "dressed" */;
@@ -155,6 +156,23 @@
 			productName = dressed;
 			productReference = 8B87D86730537AB400F3CF9E /* dressed.app */;
 			productType = "com.apple.product-type.application";
+		};
+		A10600000000000000000001 /* DressedShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10A00000000000000000001 /* Build configuration list for PBXNativeTarget "DressedShareExtension" */;
+			buildPhases = (
+				A10800000000000000000001 /* Sources */,
+				A10400000000000000000001 /* Frameworks */,
+				A10900000000000000000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = DressedShareExtension;
+			productName = DressedShareExtension;
+			productReference = A10200000000000000000004 /* DressedShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -198,12 +216,18 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		A10900000000000000000001 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 		8B87D86530537AB400F3CF9E /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				360046AB307476B400F78859 /* .swiftlint.yml in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A10900000000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -233,7 +257,6 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		A10800000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10100000000000000000001 /* ShareViewController.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
 		8B87D86330537AB400F3CF9E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -241,49 +264,25 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A10800000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10100000000000000000001 /* ShareViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		A10B00000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A10600000000000000000001 /* DressedShareExtension */;
+			targetProxy = A10D00000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
-		A10C00000000000000000001 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				APPLICATION_EXTENSION_API_ONLY = YES;
-				CODE_SIGN_ENTITLEMENTS = DressedShareExtension/DressedShareExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = WDRKBQFYRJ;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = DressedShareExtension/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressed.share;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		A10C00000000000000000002 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				APPLICATION_EXTENSION_API_ONLY = YES;
-				CODE_SIGN_ENTITLEMENTS = DressedShareExtension/DressedShareExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = WDRKBQFYRJ;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = DressedShareExtension/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressed.share;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
 		8B87D87030537AB500F3CF9E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -411,15 +410,15 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = dressed/Dressed.entitlements;
-				INFOPLIST_KEY_CatalogAPIBaseURL = "$(CATALOG_API_BASE_URL)";
-				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos of clothing to add to your closet.";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = dressed/Dressed.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = WDRKBQFYRJ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CatalogAPIBaseURL = "$(CATALOG_API_BASE_URL)";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos of clothing to add to your closet.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -446,15 +445,15 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = dressed/Dressed.entitlements;
-				INFOPLIST_KEY_CatalogAPIBaseURL = "$(CATALOG_API_BASE_URL)";
-				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos of clothing to add to your closet.";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = dressed/Dressed.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = WDRKBQFYRJ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CatalogAPIBaseURL = "$(CATALOG_API_BASE_URL)";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos of clothing to add to your closet.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -477,18 +476,49 @@
 			};
 			name = Release;
 		};
+		A10C00000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = DressedShareExtension/DressedShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = WDRKBQFYRJ;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = DressedShareExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressed.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A10C00000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = DressedShareExtension/DressedShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = WDRKBQFYRJ;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = DressedShareExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressed.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		A10A00000000000000000001 /* Build configuration list for PBXNativeTarget "DressedShareExtension" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				A10C00000000000000000001 /* Debug */,
-				A10C00000000000000000002 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		8B87D86230537AB400F3CF9E /* Build configuration list for PBXProject "dressed" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -507,25 +537,16 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		A10A00000000000000000001 /* Build configuration list for PBXNativeTarget "DressedShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10C00000000000000000001 /* Debug */,
+				A10C00000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
-
-/* Begin PBXContainerItemProxy section */
-		A10D00000000000000000001 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 8B87D85F30537AB400F3CF9E /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = A10600000000000000000001;
-			remoteInfo = DressedShareExtension;
-		};
-/* End PBXContainerItemProxy section */
-
-/* Begin PBXTargetDependency section */
-		A10B00000000000000000001 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = A10600000000000000000001 /* DressedShareExtension */;
-			targetProxy = A10D00000000000000000001 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCRemoteSwiftPackageReference section */
 		8B87D8AF30537E5200F3CF9E /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {

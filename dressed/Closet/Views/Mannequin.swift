@@ -1,8 +1,15 @@
 import Foundation
 
-// Procedural fashion mannequin: a faceless figure built from smooth lofts, standing in a relaxed A-pose.
+// Procedural fashion mannequin: a figure built from smooth lofts, standing in a relaxed A-pose.
 // It stands in until the team picks a licensed 3D model. A replacement must keep the same framing:
 // 1 unit tall, feet at y = 0, facing +z, because the camera and the 2D clothing overlay assume it.
+
+enum AvatarGender: Int, CaseIterable {
+    case female, male
+
+    var title: String { self == .female ? "Female" : "Male" }
+    var symbol: String { self == .female ? "figure.stand.dress" : "figure.stand" }
+}
 
 struct BodyShape {
     let name: String
@@ -11,13 +18,30 @@ struct BodyShape {
     var waist: Float = 1
     var hips: Float = 1
     var limbs: Float = 1
+    var neck: Float = 1
 
-    static let presets: [BodyShape] = [
+    static func presets(for gender: AvatarGender) -> [BodyShape] {
+        switch gender {
+        case .female: return female
+        case .male: return male
+        }
+    }
+
+    private static let female: [BodyShape] = [
         BodyShape(name: "Classic"),
         BodyShape(name: "Slim", shoulders: 0.95, bust: 0.92, waist: 0.88, hips: 0.92, limbs: 0.88),
         BodyShape(name: "Athletic", shoulders: 1.1, bust: 1.04, waist: 1.02, hips: 0.97, limbs: 1.1),
         BodyShape(name: "Curvy", shoulders: 0.98, bust: 1.12, waist: 0.96, hips: 1.16, limbs: 1.06),
         BodyShape(name: "Full", shoulders: 1.06, bust: 1.16, waist: 1.28, hips: 1.2, limbs: 1.2)
+    ]
+
+    // Broader shoulders, straighter waist, narrower hips, thicker neck and limbs.
+    private static let male: [BodyShape] = [
+        BodyShape(name: "Classic", shoulders: 1.16, bust: 1.02, waist: 1.12, hips: 0.90, limbs: 1.10, neck: 1.25),
+        BodyShape(name: "Lean", shoulders: 1.08, bust: 0.94, waist: 1.00, hips: 0.84, limbs: 0.98, neck: 1.15),
+        BodyShape(name: "Athletic", shoulders: 1.26, bust: 1.10, waist: 1.08, hips: 0.90, limbs: 1.22, neck: 1.35),
+        BodyShape(name: "Broad", shoulders: 1.24, bust: 1.14, waist: 1.26, hips: 0.98, limbs: 1.20, neck: 1.35),
+        BodyShape(name: "Heavy", shoulders: 1.20, bust: 1.20, waist: 1.50, hips: 1.10, limbs: 1.30, neck: 1.40)
     ]
 }
 
@@ -32,16 +56,84 @@ struct FaceShape {
     /// 0 is oval; higher is boxier.
     var squareness: Float = 0
 
-    static let presets: [FaceShape] = [
+    static func presets(for gender: AvatarGender) -> [FaceShape] {
+        switch gender {
+        case .female: return base
+        case .male: return base.map { $0.masculine() }
+        }
+    }
+
+    private static let base: [FaceShape] = [
         FaceShape(name: "Oval"),
         FaceShape(name: "Round", width: 0.047, depth: 0.054, jaw: 0.14, chin: 0.003, squareness: 0.1),
         FaceShape(name: "Heart", width: 0.046, jaw: 0.5, chin: 0.007),
         FaceShape(name: "Square", width: 0.045, jaw: 0.18, chin: 0.004, squareness: 0.45)
     ]
+
+    /// Wider, squarer, with a stronger jaw and chin.
+    private func masculine() -> FaceShape {
+        var face = self
+        face.width += 0.003
+        face.depth += 0.001
+        face.jaw *= 0.6
+        face.chin += 0.002
+        face.squareness = min(face.squareness + 0.15, 1)
+        return face
+    }
+}
+
+struct EyeShape {
+    let name: String
+    /// Half-width and half-height of the eye opening.
+    var width: Float = 0.0085
+    var height: Float = 0.0042
+    /// How far each eye sits from the centerline, as an angle around the head.
+    var spacing: Float = 0.47
+
+    static let presets: [EyeShape] = [
+        EyeShape(name: "Almond"),
+        EyeShape(name: "Round", width: 0.0075, height: 0.0060),
+        EyeShape(name: "Narrow", width: 0.0090, height: 0.0032, spacing: 0.46),
+        EyeShape(name: "Large", width: 0.0095, height: 0.0065, spacing: 0.49),
+        EyeShape(name: "Wide-set", width: 0.0080, height: 0.0045, spacing: 0.58)
+    ]
+}
+
+struct NoseShape {
+    let name: String
+    /// Half-width of the tip, half-length of the bridge, and how far the tip sticks out.
+    var width: Float = 0.0065
+    var length: Float = 0.0105
+    var projection: Float = 0.0095
+
+    static let presets: [NoseShape] = [
+        NoseShape(name: "Straight"),
+        NoseShape(name: "Small", width: 0.0055, length: 0.0090, projection: 0.0075),
+        NoseShape(name: "Button", width: 0.0060, length: 0.0075, projection: 0.0070),
+        NoseShape(name: "Wide", width: 0.0090, length: 0.0095, projection: 0.0090),
+        NoseShape(name: "Pointed", width: 0.0058, length: 0.0120, projection: 0.0125)
+    ]
+}
+
+struct LipShape {
+    let name: String
+    /// Half-width of the mouth and thickness of the upper and lower lip.
+    var width: Float = 0.0095
+    var upper: Float = 0.0025
+    var lower: Float = 0.0035
+
+    static let presets: [LipShape] = [
+        LipShape(name: "Medium"),
+        LipShape(name: "Thin", width: 0.0085, upper: 0.0017, lower: 0.0023),
+        LipShape(name: "Full", width: 0.0105, upper: 0.0035, lower: 0.0050),
+        LipShape(name: "Wide", width: 0.0125, upper: 0.0025, lower: 0.0038),
+        LipShape(name: "Bow", width: 0.0090, upper: 0.0036, lower: 0.0032)
+    ]
 }
 
 enum HairStyle: Int, CaseIterable {
-    case bald, short, long, bun, curly, ponytail
+    // New styles go at the end so existing rawValues stay the same.
+    case bald, short, long, bun, curly, ponytail, buzz, bob, pixie, afro, braid, pigtails, mohawk, wavy
 
     var title: String {
         switch self {
@@ -51,17 +143,32 @@ enum HairStyle: Int, CaseIterable {
         case .bun: return "Bun"
         case .curly: return "Curly"
         case .ponytail: return "Ponytail"
+        case .buzz: return "Buzz"
+        case .bob: return "Bob"
+        case .pixie: return "Pixie"
+        case .afro: return "Afro"
+        case .braid: return "Braid"
+        case .pigtails: return "Pigtails"
+        case .mohawk: return "Mohawk"
+        case .wavy: return "Wavy"
         }
     }
 
-    /// Where the hair stops, in half turns down from the crown: at the forehead and at the nape.
-    fileprivate var hairline: (front: Float, back: Float)? {
+    /// Where the hair stops, in half turns down from the crown: at the forehead, at the nape,
+    /// and how much further down (or up, if negative) it reaches over the ears.
+    /// Nil means no scalp cap at all.
+    fileprivate var hairline: (front: Float, back: Float, side: Float)? {
         switch self {
-        case .bald: return nil
-        case .short: return (0.30, 0.72)
-        case .long: return (0.30, 0.85)
-        case .bun, .ponytail: return (0.30, 0.70)
-        case .curly: return (0.27, 0.78)
+        case .bald, .mohawk: return nil
+        case .short: return (0.30, 0.72, 0)
+        case .long: return (0.30, 0.85, 0)
+        case .wavy: return (0.30, 0.84, 0.08)
+        case .bun, .ponytail, .braid, .pigtails: return (0.30, 0.70, 0)
+        case .curly: return (0.27, 0.78, 0)
+        case .buzz: return (0.32, 0.66, 0)
+        case .bob: return (0.30, 0.80, 0.16)
+        case .pixie: return (0.31, 0.64, -0.03)
+        case .afro: return (0.27, 0.78, 0.02)
         }
     }
 
@@ -70,6 +177,11 @@ enum HairStyle: Int, CaseIterable {
         switch self {
         case .bald: return 0
         case .curly: return 0.010
+        case .buzz: return 0.002
+        case .afro: return 0.028
+        case .bob: return 0.010
+        case .pixie: return 0.005
+        case .wavy: return 0.009
         default: return 0.006
         }
     }
@@ -102,11 +214,17 @@ enum Mannequin {
     static let headCenter: SIMD3<Float> = [0, 0.9375, -0.003]
     static let headHeight: Float = 0.0625
 
-    /// Body, neck and head as one mesh.
-    static func body(_ shape: BodyShape, face: FaceShape) -> MannequinMesh {
+    // Where the features sit on the face, as angles down from the crown.
+    private static let eyePhi: Float = 1.40
+    private static let nosePhi: Float = 1.671
+    private static let lipsPhi: Float = 2.004
+
+    /// Body, neck, head and nose as one skin mesh.
+    static func body(_ shape: BodyShape, face: FaceShape, nose: NoseShape) -> MannequinMesh {
         var mesh = torso(shape)
         mesh.append(neck(shape))
         mesh.append(head(face))
+        mesh.append(noseMesh(face, nose))
         for side: Float in [-1, 1] {
             mesh.append(leg(shape, side: side))
             mesh.append(foot(shape, side: side))
@@ -116,21 +234,62 @@ enum Mannequin {
         return mesh
     }
 
-    /// Hair and bangs as one mesh (empty when bald with no bangs).
+    /// Torso, neck, head, nose and arms only (used for option previews).
+    static func bust(_ shape: BodyShape, face: FaceShape, nose: NoseShape) -> MannequinMesh {
+        var mesh = torso(shape)
+        mesh.append(neck(shape))
+        mesh.append(head(face))
+        mesh.append(noseMesh(face, nose))
+        for side: Float in [-1, 1] { mesh.append(arm(shape, side: side)) }
+        return mesh
+    }
+
+    /// Hair and bangs as one mesh (empty when bald: bald means no hair at all, bangs included).
     static func hair(_ style: HairStyle, bangs: BangsStyle, face: FaceShape, body: BodyShape) -> MannequinMesh {
         var mesh = MannequinMesh()
+        if style == .bald { return mesh }
         if let hairline = style.hairline {
             mesh.append(hairCap(face, style: style, hairline: hairline))
         }
         switch style {
-        case .long: mesh.append(longHair(body))
+        case .long, .wavy: mesh.append(longHair(body))
         case .bun: mesh.append(bun())
         case .ponytail: mesh.append(ponytail())
-        case .bald, .short, .curly: break
+        case .braid: mesh.append(braid(body))
+        case .pigtails: mesh.append(pigtails())
+        case .mohawk: mesh.append(mohawk(face))
+        case .bald, .short, .curly, .buzz, .bob, .pixie, .afro: break
         }
-        if bangs != .open {
+        if bangs != .open && style != .mohawk {
             mesh.append(fringe(face, style: bangs, over: style))
         }
+        return mesh
+    }
+
+    // MARK: - Face features (separate meshes: each gets its own color)
+
+    static func eyeWhites(face: FaceShape, eye: EyeShape) -> MannequinMesh {
+        eyeLayer(face, eye, width: eye.width, height: eye.height, depth: 0.0022, push: -0.0004)
+    }
+
+    static func irises(face: FaceShape, eye: EyeShape) -> MannequinMesh {
+        eyeLayer(face, eye, width: eye.height * 0.92, height: eye.height * 0.92, depth: 0.0027, push: -0.0002)
+    }
+
+    static func pupils(face: FaceShape, eye: EyeShape) -> MannequinMesh {
+        eyeLayer(face, eye, width: eye.height * 0.45, height: eye.height * 0.45, depth: 0.0031, push: 0)
+    }
+
+    static func lips(face: FaceShape, shape: LipShape) -> MannequinMesh {
+        let base = headPoint(face, theta: 0, phi: lipsPhi)
+        var mesh = ellipsoid(
+            center: base + [0, shape.upper * 0.55, 0.0005],
+            radii: [shape.width, shape.upper, 0.0026]
+        )
+        mesh.append(ellipsoid(
+            center: base + [0, -shape.lower * 0.55, 0.0005],
+            radii: [shape.width * 0.94, shape.lower, 0.0030]
+        ))
         return mesh
     }
 
@@ -142,13 +301,11 @@ enum Mannequin {
         let forward = sin(phi) * cos(theta)
         let exponent = 1 - 0.4 * face.squareness
         let chinward = max(0, -upward) * max(0, -upward)
-        let frontAngle = theta.remainder(dividingBy: 2 * .pi)
-        let nose = 0.004 * exp(-pow(frontAngle / 0.2, 2)) * exp(-pow((upward + 0.12) / 0.2, 2)) * max(forward, 0)
 
         let sideways = (face.width + inflate) * curved(across, exponent) * (1 - face.jaw * chinward)
         let vertical = (headHeight + inflate) * upward
         let frontways = (face.depth + inflate) * curved(forward, exponent) * (1 - 0.5 * face.jaw * chinward)
-        return headCenter + SIMD3(sideways, vertical, frontways + face.chin * chinward + nose)
+        return headCenter + SIMD3(sideways, vertical, frontways + face.chin * chinward)
     }
 
     // MARK: - Body parts
@@ -171,7 +328,7 @@ enum Mannequin {
     }
 
     private static func neck(_ shape: BodyShape) -> MannequinMesh {
-        let scale = (1 + shape.limbs) / 2
+        let scale = (1 + shape.limbs) / 2 * shape.neck
         // The wide base slopes into the shoulders like a trapezius.
         let keys = [
             LoftRing([0, 0.8, -0.01], width: 0.046 * scale, depth: 0.034 * scale),
@@ -186,6 +343,34 @@ enum Mannequin {
         MannequinGeometry.surface(columns: 64, rows: 40, point: { theta, phi in
             headPoint(face, theta: theta, phi: phi)
         })
+    }
+
+    /// A bridge and a rounded tip, both half sunk into the face.
+    private static func noseMesh(_ face: FaceShape, _ shape: NoseShape) -> MannequinMesh {
+        let base = headPoint(face, theta: 0, phi: nosePhi)
+        var mesh = ellipsoid(
+            center: base + [0, shape.length * 0.35, shape.projection * 0.10],
+            radii: [shape.width * 0.55, shape.length, shape.projection * 0.5]
+        )
+        mesh.append(ellipsoid(
+            center: base + [0, -shape.length * 0.55, shape.projection * 0.35],
+            radii: [shape.width, shape.width * 0.85, shape.projection * 0.6]
+        ))
+        return mesh
+    }
+
+    /// One flat dome per eye, turned to face along the surface where it sits.
+    private static func eyeLayer(
+        _ face: FaceShape, _ eye: EyeShape, width: Float, height: Float, depth: Float, push: Float
+    ) -> MannequinMesh {
+        var mesh = MannequinMesh()
+        for side: Float in [-1, 1] {
+            let theta = side * eye.spacing
+            let anchor = headPoint(face, theta: theta, phi: eyePhi)
+            let outward = SIMD3<Float>(sin(theta), 0, cos(theta))
+            mesh.append(ellipsoid(center: anchor + outward * push, radii: [width, height, depth], yaw: theta))
+        }
+        return mesh
     }
 
     private static func leg(_ shape: BodyShape, side: Float) -> MannequinMesh {
@@ -255,15 +440,22 @@ enum Mannequin {
     /// How far the hair surface sits outside the head at the given angles, before the hairline taper.
     private static func hairHeight(_ style: HairStyle, theta: Float, phi: Float) -> Float {
         let crown = 0.004 * max(cos(phi), 0)
-        let curl: Float = style == .curly ? 0.002 * (1 + sin(theta * 9) * sin(phi * 11)) : 0
-        return style.volume + crown + curl
+        let texture: Float
+        switch style {
+        case .curly: texture = 0.002 * (1 + sin(theta * 9) * sin(phi * 11))
+        case .afro: texture = 0.003 * (1 + sin(theta * 12) * sin(phi * 14))
+        case .wavy: texture = 0.0025 * (1 + sin(phi * 16))
+        default: texture = 0
+        }
+        return style.volume + crown + texture
     }
 
     private static func hairCap(
-        _ face: FaceShape, style: HairStyle, hairline: (front: Float, back: Float)
+        _ face: FaceShape, style: HairStyle, hairline: (front: Float, back: Float, side: Float)
     ) -> MannequinMesh {
         let limit = { (theta: Float) -> Float in
-            .pi * (hairline.front + (hairline.back - hairline.front) * (1 - cos(theta)) / 2)
+            let blend = (1 - cos(theta)) / 2
+            return .pi * (hairline.front + (hairline.back - hairline.front) * blend + hairline.side * sin(theta) * sin(theta))
         }
         return MannequinGeometry.surface(
             columns: 64,
@@ -291,10 +483,15 @@ enum Mannequin {
         )
     }
 
+    /// Where the back of the torso sits, so hanging hair rests against it instead of floating or cutting in.
+    private static func backOfTorso(_ body: BodyShape) -> Float {
+        min(0.006 - 0.056 * body.bust, 0.002 - 0.050 * body.bust)
+    }
+
     /// A panel falling down the back. It rests against the torso: a slight overlap hides inside the body,
     /// while a gap would show from the side.
     private static func longHair(_ body: BodyShape) -> MannequinMesh {
-        let backZ = min(0.006 - 0.056 * body.bust, 0.002 - 0.050 * body.bust) - 0.009
+        let backZ = backOfTorso(body) - 0.009
         let keys = [
             LoftRing([0, 0.925, -0.038], width: 0.052, depth: 0.026),
             LoftRing([0, 0.875, -0.044], width: 0.056, depth: 0.02),
@@ -304,6 +501,53 @@ enum Mannequin {
             LoftRing([0, 0.675, backZ + 0.003], width: 0.046, depth: 0.008)
         ]
         return MannequinGeometry.loft(keys, sides: 28, caps: (start: 0.012, end: 0.012))
+    }
+
+    private static func braid(_ body: BodyShape) -> MannequinMesh {
+        let backZ = backOfTorso(body) - 0.012
+        let keys = [
+            LoftRing([0, 0.94, -0.048], width: 0.015, depth: 0.013),
+            LoftRing([0, 0.885, -0.064], width: 0.015, depth: 0.014),
+            LoftRing([0, 0.83, backZ - 0.004], width: 0.014, depth: 0.014),
+            LoftRing([0, 0.76, backZ - 0.004], width: 0.013, depth: 0.013),
+            LoftRing([0, 0.69, backZ - 0.003], width: 0.011, depth: 0.011),
+            LoftRing([0, 0.63, backZ - 0.002], width: 0.008, depth: 0.008)
+        ]
+        return MannequinGeometry.loft(keys, sides: 20, caps: (start: 0.01, end: 0.012))
+    }
+
+    private static func pigtails() -> MannequinMesh {
+        var mesh = MannequinMesh()
+        for side: Float in [-1, 1] {
+            mesh.append(ellipsoid(center: [side * 0.047, 0.955, -0.02], radii: [0.008, 0.008, 0.008]))
+            let keys = [
+                LoftRing([side * 0.050, 0.952, -0.022], width: 0.011, depth: 0.011),
+                LoftRing([side * 0.062, 0.915, -0.026], width: 0.014, depth: 0.013),
+                LoftRing([side * 0.066, 0.875, -0.028], width: 0.013, depth: 0.012),
+                LoftRing([side * 0.062, 0.842, -0.026], width: 0.009, depth: 0.009)
+            ]
+            mesh.append(MannequinGeometry.loft(keys, sides: 20, caps: (start: 0.008, end: 0.012)))
+        }
+        return mesh
+    }
+
+    /// A ridge of hair from forehead to nape. Nothing on the sides.
+    private static func mohawk(_ face: FaceShape) -> MannequinMesh {
+        var stations: [(theta: Float, phi: Float)] = []
+        for step in 0...4 {
+            stations.append((0, Float.pi * 0.30 * (1 - Float(step) / 4)))       // forehead -> crown
+        }
+        for step in 1...4 {
+            stations.append((Float.pi, Float.pi * 0.62 * Float(step) / 4))       // crown -> nape
+        }
+        let keys = stations.map { station in
+            LoftRing(
+                headPoint(face, theta: station.theta, phi: station.phi, inflate: 0.012),
+                width: 0.007,
+                depth: 0.012
+            )
+        }
+        return MannequinGeometry.loft(keys, sides: 20, caps: (start: 0.008, end: 0.008), reference: [0, 1, 0])
     }
 
     private static func bun() -> MannequinMesh {
@@ -323,9 +567,16 @@ enum Mannequin {
         return mesh
     }
 
-    private static func ellipsoid(center: SIMD3<Float>, radii: SIMD3<Float>) -> MannequinMesh {
-        MannequinGeometry.surface(columns: 24, rows: 16, point: { theta, phi in
-            center + radii * SIMD3(sin(phi) * sin(theta), cos(phi), sin(phi) * cos(theta))
+    /// An ellipsoid, optionally turned about the vertical axis (its local +z ends up pointing along `yaw`).
+    private static func ellipsoid(center: SIMD3<Float>, radii: SIMD3<Float>, yaw: Float = 0) -> MannequinMesh {
+        let cosYaw = cos(yaw), sinYaw = sin(yaw)
+        return MannequinGeometry.surface(columns: 24, rows: 16, point: { theta, phi in
+            let local = radii * SIMD3(sin(phi) * sin(theta), cos(phi), sin(phi) * cos(theta))
+            return center + SIMD3(
+                local.x * cosYaw + local.z * sinYaw,
+                local.y,
+                -local.x * sinYaw + local.z * cosYaw
+            )
         })
     }
 
