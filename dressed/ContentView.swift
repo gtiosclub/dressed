@@ -29,6 +29,7 @@ private struct AppTabs: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab: Int
     @State private var discoverySection = 0
+    @State private var dismissDiscoverySearchRequest = 0
     @State private var signOutError: String?
     @State private var pendingSharedImage: ReviewImage?
     @State private var presentedSharedId: String?
@@ -41,7 +42,7 @@ private struct AppTabs: View {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         _selectedTab = State(initialValue: arguments.contains("-showCamera") ? 2 :
-            (arguments.contains("-showCatalog") ? 1 : 0))
+            (arguments.contains("-showCatalog") || arguments.contains("-showDiscovery") ? 1 : 0))
         _discoverySection = State(initialValue: arguments.contains("-showCatalog") ? 1 : 0)
         #else
         _selectedTab = State(initialValue: 0)
@@ -67,16 +68,16 @@ private struct AppTabs: View {
                     .padding()
 
                     if discoverySection == 0 {
-                        ContentUnavailableView(
-                            "No posts yet",
-                            systemImage: "person.2",
-                            description: Text("Outfit posts will appear here.")
-                        )
+                        DiscoveryFeedView(dismissRequest: dismissDiscoverySearchRequest)
                     } else {
                         PrototypeCatalogView()
                     }
                 }
-                .navigationTitle("Discovery")
+                .background {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onTapGesture { dismissDiscoverySearchRequest &+= 1 }
+                }
             }
             .tabItem { Label("Discovery", systemImage: "safari") }
             .tag(1)
