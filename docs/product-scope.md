@@ -24,6 +24,8 @@ Use three top-level tabs, in this order. Names below are proposed UI copy.
 
 Discovery combines Social / Discover with a Feed / Search switch inside the tab. Profile and settings are child destinations, not extra tabs. Camera must offer a photo-library fallback if permission is denied or the device lacks a camera. Authentication gates the app shell; signing out clears user-specific state.
 
+For the midsemester prototype demo, Discovery keeps its Feed and Search sections. Feed opens to a grid of outfit posts and has a local post filter: focusing its field shows suggested styles, selecting a style adds a removable chip, and submitting shows matching posts. Tapping a post shows its caption; a button on the post image opens a sortable sheet with the separate published pieces and available product links. Search remains the catalog prototype. Synthetic posts support the Debug UI walkthrough while publication, public media loading, and saved-post access remain lead work. This does not add another top-level tab.
+
 ## First release: capture, closet, outfits, OOTD
 
 The first milestone lets a user sign in, select a garment photo from the library, manually enter its name/category, and save one item to My Closet. Camera capture and extraction follow later. They can then compose a saved outfit and publish it to a chronological Discovery feed. Another signed-in user can inspect the outfit's separate pieces and save the post.
