@@ -189,11 +189,11 @@ enum MannequinGarments {
 
     static func tShirtMesh(shape: BodyShape) -> MannequinMesh {
 
-        var mesh = coveredTorso(shape: shape, dropY: 0.605, inflate: 1.06, collarY: 0.835)
+        var mesh = coveredTorso(shape: shape, dropY: 0.600, inflate: 1.07, collarY: 0.838)
 
         for side: Float in [-1, 1] {
 
-            mesh.append(shoulderAndSleeve(shape: shape, side: side, sleeveEnd: 0.695, inflate: 1.08))
+            mesh.append(shoulderAndSleeve(shape: shape, side: side, sleeveEnd: 0.690, inflate: 1.09))
 
         }
 
@@ -211,11 +211,11 @@ enum MannequinGarments {
 
     static func hoodieMesh(shape: BodyShape) -> MannequinMesh {
 
-        var mesh = coveredTorso(shape: shape, dropY: 0.585, inflate: 1.14, collarY: 0.840)
+        var mesh = coveredTorso(shape: shape, dropY: 0.580, inflate: 1.15, collarY: 0.842)
 
         for side: Float in [-1, 1] {
 
-            mesh.append(shoulderAndSleeve(shape: shape, side: side, sleeveEnd: 0.515, inflate: 1.15))
+            mesh.append(shoulderAndSleeve(shape: shape, side: side, sleeveEnd: 0.510, inflate: 1.16))
 
         }
 
@@ -264,7 +264,7 @@ enum MannequinGarments {
 
     static func sweaterMesh(shape: BodyShape) -> MannequinMesh {
 
-        var mesh = coveredTorso(shape: shape, dropY: 0.595, inflate: 1.10, collarY: 0.845)
+        var mesh = coveredTorso(shape: shape, dropY: 0.590, inflate: 1.11, collarY: 0.840)
 
         for side: Float in [-1, 1] {
 
@@ -286,11 +286,11 @@ enum MannequinGarments {
 
     static func sweatshirtMesh(shape: BodyShape) -> MannequinMesh {
 
-        var mesh = coveredTorso(shape: shape, dropY: 0.590, inflate: 1.11, collarY: 0.835)
+        var mesh = coveredTorso(shape: shape, dropY: 0.585, inflate: 1.12, collarY: 0.838)
 
         for side: Float in [-1, 1] {
 
-            mesh.append(shoulderAndSleeve(shape: shape, side: side, sleeveEnd: 0.515, inflate: 1.12))
+            mesh.append(shoulderAndSleeve(shape: shape, side: side, sleeveEnd: 0.512, inflate: 1.13))
 
         }
 
@@ -339,7 +339,7 @@ enum MannequinGarments {
 
     static func blouseMesh(shape: BodyShape) -> MannequinMesh {
 
-        var mesh = coveredTorso(shape: shape, dropY: 0.595, inflate: 1.12, collarY: 0.838)
+        var mesh = coveredTorso(shape: shape, dropY: 0.590, inflate: 1.13, collarY: 0.840)
 
         for side: Float in [-1, 1] {
 
@@ -365,9 +365,9 @@ enum MannequinGarments {
 
         let upperWaist = (shape.waist + shape.bust) / 2
 
-        let inflate: Float = 1.08
+        let inflate: Float = 1.09
 
-        let offset: Float = 0.004
+        let offset: Float = 0.005
 
 
 
@@ -403,17 +403,17 @@ enum MannequinGarments {
 
         for side: Float in [-1, 1] {
 
-            let outerX = side * (0.060 * shape.bust) * inflate
+            let outerX = side * (0.058 * shape.bust) * inflate
 
-            let strapX = side * 0.040
+            let strapX = side * 0.042
 
             let panelKeys = [
 
-                LoftRing([outerX,      0.820, -0.000], width: 0.014, depth: 0.030),
+                LoftRing([outerX,      0.818, 0.002], width: 0.016, depth: 0.032),
 
-                LoftRing([outerX * 0.85, 0.834, 0.010], width: 0.013, depth: 0.024),
+                LoftRing([outerX * 0.82, 0.832, 0.012], width: 0.014, depth: 0.026),
 
-                LoftRing([strapX,      0.815, 0.038],  width: 0.020, depth: 0.016)
+                LoftRing([strapX,      0.812, 0.040],  width: 0.022, depth: 0.018)
 
             ]
 
@@ -430,15 +430,15 @@ enum MannequinGarments {
 
         for side: Float in [-1, 1] {
 
-            let strapX = side * 0.046
+            let strapX = side * 0.048
 
             let strapKeys = [
 
-                LoftRing([strapX, 0.820, 0.040],  width: 0.015, depth: 0.012),
+                LoftRing([strapX, 0.818, 0.042],  width: 0.016, depth: 0.013),
 
-                LoftRing([strapX, 0.840, 0.008],  width: 0.014, depth: 0.011),
+                LoftRing([strapX, 0.842, 0.010],  width: 0.015, depth: 0.012),
 
-                LoftRing([strapX, 0.828, -0.034], width: 0.015, depth: 0.012)
+                LoftRing([strapX, 0.826, -0.036], width: 0.016, depth: 0.013)
 
             ]
 
@@ -460,7 +460,7 @@ enum MannequinGarments {
 
     static func cropTopMesh(shape: BodyShape) -> MannequinMesh {
 
-        var mesh = coveredTorso(shape: shape, dropY: 0.685, inflate: 1.05, collarY: 0.832)
+        var mesh = coveredTorso(shape: shape, dropY: 0.680, inflate: 1.06, collarY: 0.835)
 
         for side: Float in [-1, 1] {
 
@@ -486,15 +486,15 @@ enum MannequinGarments {
 
         for side: Float in [-1, 1] {
 
-            let cupX = side * 0.042
+            let cupX = side * 0.044
 
             let cupKeys = [
 
-                LoftRing([cupX, 0.710, 0.048], width: 0.032, depth: 0.018),
+                LoftRing([cupX, 0.705, 0.050], width: 0.034, depth: 0.020),
 
-                LoftRing([cupX, 0.745, 0.045], width: 0.026, depth: 0.016),
+                LoftRing([cupX, 0.740, 0.046], width: 0.028, depth: 0.017),
 
-                LoftRing([cupX * 0.9, 0.780, 0.036], width: 0.016, depth: 0.012)
+                LoftRing([cupX * 0.88, 0.775, 0.038], width: 0.018, depth: 0.014)
 
             ]
 
@@ -507,9 +507,9 @@ enum MannequinGarments {
 
             let halterKeys = [
 
-                LoftRing([cupX * 0.85, 0.785, 0.034], width: 0.008, depth: 0.008),
+                LoftRing([cupX * 0.82, 0.780, 0.036], width: 0.009, depth: 0.009),
 
-                LoftRing([side * 0.030, 0.840, -0.005], width: 0.007, depth: 0.007)
+                LoftRing([side * 0.032, 0.845, -0.006], width: 0.008, depth: 0.008)
 
             ]
 
@@ -531,7 +531,7 @@ enum MannequinGarments {
 
     static func jeansMesh(shape: BodyShape) -> MannequinMesh {
 
-        return pantsBase(shape: shape, ankleY: 0.042, inflate: 1.08, waistbandY: 0.640)
+        return pantsBase(shape: shape, ankleY: 0.042, inflate: 1.09, waistbandY: 0.638)
 
     }
 
@@ -545,7 +545,7 @@ enum MannequinGarments {
 
     static func trousersMesh(shape: BodyShape) -> MannequinMesh {
 
-        return pantsBase(shape: shape, ankleY: 0.044, inflate: 1.06, waistbandY: 0.645)
+        return pantsBase(shape: shape, ankleY: 0.044, inflate: 1.07, waistbandY: 0.642)
 
     }
 
@@ -565,13 +565,13 @@ enum MannequinGarments {
 
         let waistbandKeys = [
 
-            LoftRing([0, 0.50, -0.006], width: 0.095 * shape.hips * 1.05, depth: 0.059 * shape.hips * 1.05),
+            LoftRing([0, 0.50, -0.006], width: 0.096 * shape.hips * 1.06, depth: 0.060 * shape.hips * 1.06),
 
-            LoftRing([0, 0.54, -0.005], width: 0.097 * shape.hips * 1.05, depth: 0.061 * shape.hips * 1.05),
+            LoftRing([0, 0.54, -0.005], width: 0.098 * shape.hips * 1.06, depth: 0.062 * shape.hips * 1.06),
 
-            LoftRing([0, 0.59, -0.003], width: 0.080 * lowerWaist * 1.05, depth: 0.052 * lowerWaist * 1.05),
+            LoftRing([0, 0.59, -0.003], width: 0.081 * lowerWaist * 1.06, depth: 0.053 * lowerWaist * 1.06),
 
-            LoftRing([0, 0.64, 0], width: 0.068 * shape.waist * 1.05, depth: 0.047 * shape.waist * 1.05)
+            LoftRing([0, 0.64, 0], width: 0.069 * shape.waist * 1.06, depth: 0.048 * shape.waist * 1.06)
 
         ]
 
@@ -584,15 +584,15 @@ enum MannequinGarments {
 
             let thigh = (shape.hips + shape.limbs) / 2
 
-            let hipX = max(0.041 * shape.hips, 0.039 * thigh + 0.002)
+            let hipX = max(0.042 * shape.hips, 0.040 * thigh + 0.002)
 
             let legKeys = [
 
-                LoftRing([side * hipX, 0.52, -0.004], width: 0.045 * thigh, depth: 0.048 * thigh),
+                LoftRing([side * hipX, 0.515, -0.004], width: 0.047 * thigh, depth: 0.050 * thigh),
 
-                LoftRing([side * hipX, 0.46, -0.003], width: 0.052 * thigh, depth: 0.054 * thigh),
+                LoftRing([side * hipX, 0.455, -0.003], width: 0.054 * thigh, depth: 0.056 * thigh),
 
-                LoftRing([side * hipX * 0.96, 0.38, 0], width: 0.044 * thigh, depth: 0.046 * thigh)
+                LoftRing([side * hipX * 0.95, 0.375, 0], width: 0.046 * thigh, depth: 0.048 * thigh)
 
             ]
 
@@ -614,7 +614,7 @@ enum MannequinGarments {
 
     static func caprisMesh(shape: BodyShape) -> MannequinMesh {
 
-        return pantsBase(shape: shape, ankleY: 0.170, inflate: 1.06, waistbandY: 0.640)
+        return pantsBase(shape: shape, ankleY: 0.170, inflate: 1.07, waistbandY: 0.638)
 
     }
 
@@ -628,7 +628,7 @@ enum MannequinGarments {
 
     static func leggingsMesh(shape: BodyShape) -> MannequinMesh {
 
-        return pantsBase(shape: shape, ankleY: 0.040, inflate: 1.03, waistbandY: 0.650)
+        return pantsBase(shape: shape, ankleY: 0.040, inflate: 1.04, waistbandY: 0.648)
 
     }
 
@@ -646,17 +646,17 @@ enum MannequinGarments {
 
         let keys = [
 
-            LoftRing([0, 0.35, 0.002], width: 0.138 * shape.hips, depth: 0.092 * shape.hips),
+            LoftRing([0, 0.36, 0.002], width: 0.135 * shape.hips, depth: 0.090 * shape.hips),
 
-            LoftRing([0, 0.42, 0.001], width: 0.122 * shape.hips, depth: 0.082 * shape.hips),
+            LoftRing([0, 0.43, 0.001], width: 0.118 * shape.hips, depth: 0.078 * shape.hips),
 
-            LoftRing([0, 0.49, -0.003], width: 0.108 * shape.hips, depth: 0.070 * shape.hips),
+            LoftRing([0, 0.50, -0.003], width: 0.105 * shape.hips, depth: 0.068 * shape.hips),
 
-            LoftRing([0, 0.55, -0.005], width: 0.099 * shape.hips, depth: 0.063 * shape.hips),
+            LoftRing([0, 0.56, -0.005], width: 0.095 * shape.hips, depth: 0.060 * shape.hips),
 
-            LoftRing([0, 0.59, -0.003], width: 0.082 * lowerWaist, depth: 0.054 * lowerWaist),
+            LoftRing([0, 0.60, -0.003], width: 0.080 * lowerWaist, depth: 0.052 * lowerWaist),
 
-            LoftRing([0, 0.64, 0], width: 0.069 * shape.waist, depth: 0.048 * shape.waist)
+            LoftRing([0, 0.645, 0], width: 0.070 * shape.waist, depth: 0.048 * shape.waist)
 
         ]
 
@@ -692,11 +692,11 @@ enum MannequinGarments {
 
             LoftRing([0, 0.69, 0.003], width: 0.080 * upperWaist, depth: 0.054 * upperWaist),
 
-            LoftRing([0, 0.735, 0.006], width: 0.090 * shape.bust, depth: 0.060 * shape.bust),
+            LoftRing([0, 0.735, 0.006], width: 0.092 * shape.bust, depth: 0.061 * shape.bust),
 
-            LoftRing([0, 0.78, 0.002], width: 0.108 * shape.shoulders, depth: 0.054 * shape.bust),
+            LoftRing([0, 0.78, 0.002], width: 0.106 * shape.shoulders, depth: 0.055 * shape.bust),
 
-            LoftRing([0, 0.835, -0.003], width: 0.124 * shape.shoulders, depth: 0.048 * shape.bust)
+            LoftRing([0, 0.838, -0.003], width: 0.120 * shape.shoulders, depth: 0.049 * shape.bust)
 
         ]
 
@@ -704,7 +704,7 @@ enum MannequinGarments {
 
         for side: Float in [-1, 1] {
 
-            mesh.append(shoulderAndSleeve(shape: shape, side: side, sleeveEnd: 0.710, inflate: 1.07))
+            mesh.append(shoulderAndSleeve(shape: shape, side: side, sleeveEnd: 0.705, inflate: 1.08))
 
         }
 
@@ -742,11 +742,11 @@ enum MannequinGarments {
 
             LoftRing([0, 0.69, 0.003], width: 0.080 * upperWaist, depth: 0.054 * upperWaist),
 
-            LoftRing([0, 0.735, 0.006], width: 0.090 * shape.bust, depth: 0.060 * shape.bust),
+            LoftRing([0, 0.735, 0.006], width: 0.092 * shape.bust, depth: 0.061 * shape.bust),
 
-            LoftRing([0, 0.78, 0.002], width: 0.108 * shape.shoulders, depth: 0.054 * shape.bust),
+            LoftRing([0, 0.78, 0.002], width: 0.106 * shape.shoulders, depth: 0.055 * shape.bust),
 
-            LoftRing([0, 0.835, -0.003], width: 0.124 * shape.shoulders, depth: 0.048 * shape.bust)
+            LoftRing([0, 0.838, -0.003], width: 0.120 * shape.shoulders, depth: 0.049 * shape.bust)
 
         ]
 
@@ -754,7 +754,7 @@ enum MannequinGarments {
 
         for side: Float in [-1, 1] {
 
-            mesh.append(shoulderAndSleeve(shape: shape, side: side, sleeveEnd: 0.680, inflate: 1.08))
+            mesh.append(shoulderAndSleeve(shape: shape, side: side, sleeveEnd: 0.675, inflate: 1.09))
 
         }
 
@@ -777,14 +777,14 @@ enum MannequinGarments {
 
         let keys = [
 
-            // Brim / fold
-            LoftRing([0, 0.965, -0.010], width: 0.056, depth: 0.061),
-            LoftRing([0, 0.980, -0.010], width: 0.054, depth: 0.059),
+            // Brim / fold - sits just above ears and forehead
+            LoftRing([0, 0.958, -0.008], width: 0.058, depth: 0.063),
+            LoftRing([0, 0.975, -0.009], width: 0.056, depth: 0.061),
 
-            // Compact crown
-            LoftRing([0, 0.998, -0.010], width: 0.049, depth: 0.054),
-            LoftRing([0, 1.015, -0.012], width: 0.040, depth: 0.045),
-            LoftRing([0, 1.025, -0.014], width: 0.022, depth: 0.026)
+            // Compact crown sitting on the head top
+            LoftRing([0, 0.992, -0.010], width: 0.050, depth: 0.055),
+            LoftRing([0, 1.008, -0.011], width: 0.038, depth: 0.043),
+            LoftRing([0, 1.018, -0.012], width: 0.020, depth: 0.024)
 
         ]
 
@@ -812,13 +812,13 @@ enum MannequinGarments {
 
             let keys = [
 
-                LoftRing([footX, 0.022, -0.024], width: 0.020 * size, depth: 0.022),
+                LoftRing([footX, 0.024, -0.026], width: 0.022 * size, depth: 0.024),
 
-                LoftRing([footX, 0.020, 0.012], width: 0.027 * size, depth: 0.019),
+                LoftRing([footX, 0.021, 0.014], width: 0.029 * size, depth: 0.020),
 
-                LoftRing([footX * 1.02, 0.014, 0.058], width: 0.030 * size, depth: 0.015),
+                LoftRing([footX * 1.02, 0.015, 0.060], width: 0.032 * size, depth: 0.016),
 
-                LoftRing([footX * 1.05, 0.010, 0.088], width: 0.025 * size, depth: 0.012)
+                LoftRing([footX * 1.05, 0.011, 0.090], width: 0.026 * size, depth: 0.013)
 
             ]
 
@@ -852,11 +852,11 @@ enum MannequinGarments {
 
             let shaftKeys = [
 
-                LoftRing([footX, 0.120, -0.002], width: 0.025 * shape.limbs, depth: 0.026 * shape.limbs),
+                LoftRing([footX, 0.125, -0.001], width: 0.026 * shape.limbs, depth: 0.027 * shape.limbs),
 
-                LoftRing([footX, 0.065, -0.004], width: 0.022 * shape.limbs, depth: 0.024 * shape.limbs),
+                LoftRing([footX, 0.068, -0.003], width: 0.023 * shape.limbs, depth: 0.025 * shape.limbs),
 
-                LoftRing([footX, 0.035, -0.006], width: 0.024 * shape.limbs, depth: 0.025 * shape.limbs)
+                LoftRing([footX, 0.036, -0.005], width: 0.025 * shape.limbs, depth: 0.026 * shape.limbs)
 
             ]
 
@@ -867,13 +867,13 @@ enum MannequinGarments {
 
             let footKeys = [
 
-                LoftRing([footX, 0.022, -0.024], width: 0.020 * size, depth: 0.022),
+                LoftRing([footX, 0.024, -0.026], width: 0.022 * size, depth: 0.024),
 
-                LoftRing([footX, 0.020, 0.012], width: 0.027 * size, depth: 0.019),
+                LoftRing([footX, 0.021, 0.014], width: 0.029 * size, depth: 0.020),
 
-                LoftRing([footX * 1.02, 0.014, 0.058], width: 0.030 * size, depth: 0.015),
+                LoftRing([footX * 1.02, 0.015, 0.060], width: 0.032 * size, depth: 0.016),
 
-                LoftRing([footX * 1.05, 0.010, 0.088], width: 0.025 * size, depth: 0.012)
+                LoftRing([footX * 1.05, 0.011, 0.090], width: 0.026 * size, depth: 0.013)
 
             ]
 
@@ -901,7 +901,7 @@ enum MannequinGarments {
 
         let upperWaist = (shape.waist + shape.bust) / 2
 
-        let offset: Float = 0.0035
+        let offset: Float = 0.0050
 
         // Clamp extremes so large body shapes don't blow the torso outside the mannequin
 
@@ -940,13 +940,13 @@ enum MannequinGarments {
 
             LoftRing([0, 0.780, 0.002],
 
-                     width: (0.104 * sh) * inflate + offset,
+                     width: (0.102 * sh) * inflate + offset,
 
                      depth: (0.052 * bu) * inflate + offset),
 
             LoftRing([0, collarY, -0.004],
 
-                     width: (0.120 * sh) * inflate + offset,
+                     width: (0.116 * sh) * inflate + offset,
 
                      depth: (0.046 * bu) * inflate + offset)
 
@@ -983,7 +983,7 @@ enum MannequinGarments {
 
         let wristLateral: Float = 0.10 * shape.shoulders + 0.025 + max(0, shape.hips - 1) * 0.06
 
-        let offset: Float = 0.0040
+        let offset: Float = 0.0055
 
 
 
@@ -1004,19 +1004,19 @@ enum MannequinGarments {
 
                      depth: (0.030 * limbs) * inflate + offset),
 
-            LoftRing([side * (shoulderX + 0.014), 0.806, -0.005],
+            LoftRing([side * (shoulderX + 0.012), 0.808, -0.005],
 
-                     width: (0.029 * limbs) * inflate + offset,
+                     width: (0.030 * limbs) * inflate + offset,
 
-                     depth: (0.031 * limbs) * inflate + offset),
+                     depth: (0.032 * limbs) * inflate + offset),
 
             // Upper bicep — mirrors Mannequin.arm y≈0.72
 
-            LoftRing([side * (shoulderX + 0.010), 0.726, -0.006],
+            LoftRing([side * (shoulderX + 0.009), 0.724, -0.006],
 
-                     width: (0.026 * limbs) * inflate + offset,
+                     width: (0.027 * limbs) * inflate + offset,
 
-                     depth: (0.028 * limbs) * inflate + offset),
+                     depth: (0.029 * limbs) * inflate + offset),
 
         ]
 
@@ -1027,11 +1027,11 @@ enum MannequinGarments {
 
         if sleeveEnd < 0.70 {
 
-            keys.append(LoftRing([side * (shoulderX + 0.017), 0.638, -0.010],
+            keys.append(LoftRing([side * (shoulderX + 0.016), 0.636, -0.010],
 
-                                 width: (0.024 * limbs) * inflate + offset,
+                                 width: (0.025 * limbs) * inflate + offset,
 
-                                 depth: (0.026 * limbs) * inflate + offset))
+                                 depth: (0.027 * limbs) * inflate + offset))
 
         }
 
@@ -1039,11 +1039,11 @@ enum MannequinGarments {
 
         if sleeveEnd < 0.60 {
 
-            keys.append(LoftRing([side * (shoulderX + 0.021), 0.590, -0.007],
+            keys.append(LoftRing([side * (shoulderX + 0.020), 0.588, -0.007],
 
-                                 width: (0.023 * limbs) * inflate + offset,
+                                 width: (0.024 * limbs) * inflate + offset,
 
-                                 depth: (0.025 * limbs) * inflate + offset))
+                                 depth: (0.026 * limbs) * inflate + offset))
 
         }
 
@@ -1051,11 +1051,11 @@ enum MannequinGarments {
 
         if sleeveEnd < 0.535 {
 
-            keys.append(LoftRing([side * (wristLateral + 0.002), 0.517, -0.004],
+            keys.append(LoftRing([side * (wristLateral + 0.001), 0.515, -0.004],
 
-                                 width: (0.021 * limbs) * inflate + offset,
+                                 width: (0.022 * limbs) * inflate + offset,
 
-                                 depth: (0.022 * limbs) * inflate + offset))
+                                 depth: (0.023 * limbs) * inflate + offset))
 
         }
 
@@ -1128,12 +1128,12 @@ enum MannequinGarments {
 
             // Pull inner thigh edges modestly toward center and widen lateral
             // radii. Keep depth nearly unchanged to avoid adding bulky volume.
-            let hipX = max(0.037 * shape.hips, 0.035 * thigh + 0.001)
-            let offset: Float = 0.002
+            let hipX = max(0.040 * shape.hips, 0.038 * thigh + 0.002)
+            let offset: Float = 0.003
 
             var legKeys = [
-                LoftRing([side * hipX, 0.575, -0.005],
-                         width: (0.062 * thigh) * inflate + offset, depth: (0.050 * thigh) * inflate + offset),
+                LoftRing([side * hipX, 0.570, -0.005],
+                         width: (0.060 * thigh) * inflate + offset, depth: (0.048 * thigh) * inflate + offset),
                 LoftRing([side * hipX, 0.480, -0.003],
                          width: (0.060 * thigh) * inflate + offset, depth: (0.056 * thigh) * inflate + offset),
                 LoftRing([side * hipX * 0.96, 0.38, 0],
