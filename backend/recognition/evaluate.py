@@ -1,4 +1,4 @@
-"""Compare localized Product Search candidates with manually annotated garments."""
+"""Compare recognition candidates with manually annotated garments."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from product_search import CatalogDatabase, parse_response
+from object_localization import parse_response as parse_object_response
 
 
 IOU_THRESHOLD = 0.5
@@ -41,7 +42,9 @@ def intersection_over_union(a: dict, b: dict) -> float:
     return intersection / union if union else 0
 
 
-def evaluate(manifest: object, manifest_directory: Path, catalog: CatalogDatabase) -> dict:
+def evaluate(manifest: object, manifest_directory: Path,
+             catalog: CatalogDatabase | None = None,
+             provider: str = "product-search") -> dict:
     if (not isinstance(manifest, dict)
             or not isinstance(manifest.get("samples"), list)
             or not manifest["samples"]):
@@ -58,7 +61,13 @@ def evaluate(manifest: object, manifest_directory: Path, catalog: CatalogDatabas
             raise ValueError("each sample needs importId, responseFile, and groundTruth")
         import_id = raw["importId"]
         response_path = manifest_directory / raw["responseFile"]
-        parsed = parse_response(json.loads(response_path.read_text()), import_id, catalog)
+        response = json.loads(response_path.read_text())
+        if provider == "object-localization":
+            parsed = parse_object_response(response, import_id)
+        elif provider == "product-search" and catalog is not None:
+            parsed = parse_response(response, import_id, catalog)
+        else:
+            raise ValueError("product-search evaluation requires a catalog database")
         predictions = parsed["candidates"]
         truth = []
         for item in raw["groundTruth"]:
@@ -115,19 +124,22 @@ def evaluate(manifest: object, manifest_directory: Path, catalog: CatalogDatabas
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--db", required=True, type=Path)
+    parser.add_argument("--provider", choices=("product-search", "object-localization"),
+                        default="product-search")
+    parser.add_argument("--db", type=Path)
     parser.add_argument("--manifest", required=True, type=Path)
     args = parser.parse_args()
-    if not args.db.is_file():
-        parser.error("catalog database does not exist")
-    catalog = CatalogDatabase(args.db)
+    if args.provider == "product-search" and (args.db is None or not args.db.is_file()):
+        parser.error("product-search requires an existing catalog database")
+    catalog = CatalogDatabase(args.db) if args.provider == "product-search" else None
     try:
         manifest = json.loads(args.manifest.read_text())
-        print(json.dumps(evaluate(manifest, args.manifest.parent, catalog), indent=2))
+        print(json.dumps(evaluate(manifest, args.manifest.parent, catalog, args.provider), indent=2))
     except (ValueError, OSError, json.JSONDecodeError) as error:
         parser.exit(1, f"evaluation error: {error}\n")
     finally:
-        catalog.close()
+        if catalog is not None:
+            catalog.close()
 
 
 if __name__ == "__main__":

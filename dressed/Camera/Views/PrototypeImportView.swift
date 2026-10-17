@@ -4,14 +4,19 @@ import UIKit
 
 struct PrototypeImportView: View {
     @ObservedObject var closet: PrototypeClosetStore
+    let ownerId: String
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var review: ReviewImage?
     @State private var showsCamera = false
     @State private var capturedImage: UIImage?
     @State private var importError: String?
+    @State private var productURLText = ""
+    @State private var productLink: ReviewProductLink?
+    @FocusState private var productURLFocused: Bool
 
     var body: some View {
-        VStack(spacing: 20) {
+        ScrollView {
+            VStack(spacing: 20) {
             Image(systemName: "camera.viewfinder")
                 .font(.system(size: 64))
                 .foregroundStyle(.tint)
@@ -43,10 +48,38 @@ struct PrototypeImportView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Save a product link").font(.headline)
+                TextField("https://store.example/product", text: $productURLText)
+                    .textContentType(.URL)
+                    .keyboardType(.URL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .textFieldStyle(.roundedBorder)
+                    .accessibilityIdentifier("productURLField")
+                    .focused($productURLFocused)
+                    .submitLabel(.done)
+                    .onSubmit { productURLFocused = false }
+                Button("Review Product Link") {
+                    productURLFocused = false
+                    guard let url = ProductLinkValidation.normalize(productURLText) else {
+                        importError = ProductLinkError.invalidURL.localizedDescription
+                        return
+                    }
+                    productLink = ReviewProductLink(id: UUID().uuidString, url: url, isShared: false)
+                }
+                .buttonStyle(.bordered)
+                Text("Product links go to Wishlist after review; they do not become owned closet pieces.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(24)
+            .frame(maxWidth: 480)
+            .frame(maxWidth: .infinity)
         }
-        .padding(24)
-        .frame(maxWidth: 480)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .navigationTitle("Camera")
         .onChange(of: selectedPhoto) { _, photo in
             guard let photo else { return }
@@ -85,6 +118,14 @@ struct PrototypeImportView: View {
                 onSaved: { review = nil }
             )
         }
+        .sheet(item: $productLink) { link in
+            ProductLinkReviewView(link: link, ownerId: ownerId,
+                                  onLater: { productLink = nil },
+                                  onSaved: {
+                                      productLink = nil
+                                      productURLText = ""
+                                  })
+        }
         .alert("Could not import image", isPresented: Binding(
             get: { importError != nil },
             set: { if !$0 { importError = nil } }
@@ -118,6 +159,11 @@ struct ImportReviewView: View {
     @State private var recognitionAttempt = 0
     @State private var isSaving = false
     @State private var saveError: String?
+    @State private var candidates: [ImportCandidate] = []
+    @State private var isDetectingPieces = false
+    @State private var detectionMessage: String?
+    @State private var editingCandidateID: String?
+    @State private var didStartPieceDetection = false
 
     var body: some View {
         NavigationStack {
@@ -135,7 +181,58 @@ struct ImportReviewView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Section("Review this piece") {
+                Section("Pieces in Photo") {
+                    Text("Suggestions appear automatically. Check each cutout and select the pieces you want to save.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Button(isDetectingPieces ? "Finding pieces…" : "Find Pieces Again", action: detectPieces)
+                        .disabled(isDetectingPieces || isSaving)
+                    if isDetectingPieces { ProgressView() }
+                    if let detectionMessage {
+                        Text(detectionMessage).foregroundStyle(.secondary)
+                    }
+                }
+
+                if !candidates.isEmpty {
+                    Section {
+                        Button("Add Missed Piece", action: addManualPiece)
+                        Button("Enter One Piece Manually Instead") {
+                            candidates = []
+                            recognitionState = .manual
+                        }
+                    }
+                    ForEach($candidates) { $candidate in
+                        Section("Suggested piece") {
+                            if let cropped = try? SharedImportDraftStore.imageData(for: candidate, in: image.data),
+                               let preview = UIImage(data: cropped) {
+                                Image(uiImage: preview)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(maxWidth: .infinity, maxHeight: 180)
+                                    .accessibilityLabel("Suggested \(candidate.name) crop")
+                            }
+                            Toggle("Select this piece", isOn: $candidate.selected)
+                            TextField("Piece name", text: $candidate.name)
+                            Picker("Category", selection: $candidate.category) {
+                                ForEach(ClothingCategory.allCases, id: \.self) { option in
+                                    Text(option.rawValue.capitalized).tag(option)
+                                }
+                            }
+                            Button("Adjust Image Region") { editingCandidateID = candidate.id }
+                            Button("Remove Piece", role: .destructive) {
+                                candidates.removeAll { $0.id == candidate.id }
+                            }
+                            Text("Visual suggestion only. Check the image region and details.")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        }
+                    }
+                    Section {
+                        Button(isSaving ? "Saving…" : "Save Selected Pieces", action: saveSelectedPieces)
+                            .disabled(isSaving || isDetectingPieces || !candidates.contains(where: \.selected))
+                    }
+                }
+
+                if candidates.isEmpty { Section("Review this piece") {
                     switch recognitionState {
                     case .analyzing:
                         HStack {
@@ -188,6 +285,7 @@ struct ImportReviewView: View {
                     }
                     .disabled(isSaving || recognitionState == .analyzing || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
+                }
 
                 if let saveError {
                     Section {
@@ -205,6 +303,24 @@ struct ImportReviewView: View {
                 }
             }
             .interactiveDismissDisabled(isSaving)
+            .sheet(isPresented: Binding(
+                get: { editingCandidateID != nil },
+                set: { if !$0 { editingCandidateID = nil } }
+            )) {
+                if let id = editingCandidateID,
+                   let candidate = candidates.first(where: { $0.id == id }) {
+                    SharedImageRegionEditor(imageData: image.data, initial: candidate.region,
+                                            initialOutline: candidate.outline) { region, outline in
+                        if let index = candidates.firstIndex(where: { $0.id == id }) {
+                            SharedImportDraftStore.removeAutomaticCutouts(for: [candidates[index]])
+                            candidates[index].region = region
+                            candidates[index].outline = outline
+                            candidates[index].temporaryCutoutPath = nil
+                        }
+                        editingCandidateID = nil
+                    }
+                }
+            }
             .task(id: recognitionAttempt) {
                 guard recognitionState == .analyzing else { return }
                 do {
@@ -224,12 +340,80 @@ struct ImportReviewView: View {
                     recognitionState = .failed
                 }
             }
+            .task {
+                guard !didStartPieceDetection else { return }
+                didStartPieceDetection = true
+                detectPieces()
+            }
+            .onDisappear {
+                SharedImportDraftStore.removeAutomaticCutouts(for: candidates)
+            }
         }
     }
 
     private func retryRecognition() {
         recognitionState = .analyzing
         recognitionAttempt += 1
+    }
+
+    private func detectPieces() {
+        guard !isDetectingPieces else { return }
+        isDetectingPieces = true
+        detectionMessage = nil
+        Task {
+            defer { isDetectingPieces = false }
+            do {
+                let found = try await AutomaticImportSuggestions.detect(imageData: image.data, importID: image.id)
+                guard !Task.isCancelled else { return }
+                let previous = Dictionary(uniqueKeysWithValues: candidates.map { ($0.id, $0) })
+                let manual = candidates.filter { $0.suggestionSource == nil }
+                candidates = found.map { previous[$0.id] ?? $0 } + manual
+                if found.isEmpty {
+                    detectionMessage = "No separate clothing pieces found. You can enter one piece manually below."
+                }
+            } catch {
+                detectionMessage = "Could not find pieces automatically. You can enter one manually below."
+            }
+        }
+    }
+
+    private func addManualPiece() {
+        let count = candidates.filter { $0.suggestionSource == nil }.count
+        let id = SharedImportDraftStore.stableID(importID: image.id, part: "manual-\(count)")
+        guard !candidates.contains(where: { $0.id == id }) else { return }
+        candidates.append(ImportCandidate(
+            id: id, name: "", category: .other, destination: .closet,
+            temporaryCutoutPath: nil, region: nil, suggestionSource: nil,
+            selected: false, tags: [], suggestedTags: []
+        ))
+        editingCandidateID = id
+    }
+
+    private func saveSelectedPieces() {
+        guard !isSaving else { return }
+        let selected = candidates.filter(\.selected)
+        guard !selected.isEmpty else { return }
+        isSaving = true
+        var newlySaved: [String] = []
+        do {
+            let crops = try selected.map { candidate -> Data in
+                guard !candidate.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    throw PrototypeImportError.emptyName
+                }
+                return try SharedImportDraftStore.imageData(for: candidate, in: image.data)
+            }
+            for (candidate, crop) in zip(selected, crops) {
+                let existed = closet.item(id: candidate.id) != nil
+                try closet.save(imageData: crop, draftId: candidate.id,
+                                name: candidate.name, category: candidate.category)
+                if !existed { newlySaved.append(candidate.id) }
+            }
+            onSaved()
+        } catch {
+            for id in newlySaved { try? closet.delete(id: id) }
+            saveError = error.localizedDescription
+        }
+        isSaving = false
     }
 
     private func saveToCloset() {

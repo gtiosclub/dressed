@@ -1,6 +1,8 @@
+import Inject
 import SwiftUI
 
 struct Authentication: View {
+    @ObserveInjection private var injection
     @ObservedObject var session: SessionViewModel
     @State private var email = ""
     @State private var password = ""
@@ -53,6 +55,7 @@ struct Authentication: View {
             }
         }
         .padding()
+        .enableInjection()
     }
 
     private func authenticate() {

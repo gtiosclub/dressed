@@ -1,0 +1,8 @@
+schemaVersion: 1
+enabledWorkflows: ["simulator", "ui-automation", "debugging"]
+sessionDefaults:
+  projectPath: "./dressed.xcodeproj"
+  scheme: "dressed"
+  configuration: "Debug"
+  simulatorName: "Dressed iPhone 17 Pro iOS 27"
+  bundleId: "gtiosclub.dressed"

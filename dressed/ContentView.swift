@@ -33,6 +33,10 @@ private struct AppTabs: View {
     @State private var pendingSharedImage: ReviewImage?
     @State private var presentedSharedId: String?
     @State private var deferredSharedId: String?
+    @State private var sharedImageError: String?
+    @State private var pendingSharedLink: ReviewProductLink?
+    @State private var presentedSharedLinkId: String?
+    @State private var deferredSharedLinkId: String?
 
     init(session: SessionViewModel, userId: String) {
         self.session = session
@@ -51,7 +55,7 @@ private struct AppTabs: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack {
-                PrototypeClosetView(closet: closet)
+                PrototypeClosetView(closet: closet, ownerId: userId)
                 .toolbar { signOutToolbar }
             }
             .tabItem { Label("My Closet", systemImage: "hanger") }
@@ -82,13 +86,14 @@ private struct AppTabs: View {
             .tag(1)
 
             NavigationStack {
-                PrototypeImportView(closet: closet)
+                PrototypeImportView(closet: closet, ownerId: userId)
                     .toolbar {
-                        if deferredSharedId != nil {
+                        if deferredSharedId != nil || deferredSharedLinkId != nil {
                             ToolbarItem(placement: .topBarTrailing) {
                                 Button("Review Share") {
                                     deferredSharedId = nil
-                                    presentNextSharedImage()
+                                    deferredSharedLinkId = nil
+                                    presentNextShare()
                                 }
                             }
                         }
@@ -105,19 +110,37 @@ private struct AppTabs: View {
         } message: {
             Text(signOutError ?? "Please try again.")
         }
+        .alert("Shared image unavailable", isPresented: Binding(
+            get: { sharedImageError != nil },
+            set: { if !$0 { sharedImageError = nil } }
+        )) {
+            Button("OK") {
+                sharedImageError = nil
+                presentNextShare()
+            }
+        } message: {
+            Text(sharedImageError ?? "Please share the image again.")
+        }
         .sheet(item: $pendingSharedImage, onDismiss: {
             if let presentedSharedId {
                 deferredSharedId = presentedSharedId
                 self.presentedSharedId = nil
             } else {
-                presentNextSharedImage()
+                presentNextShare()
             }
         }) { image in
-            ImportReviewView(
+            SharedImportReviewView(
                 image: image,
+                ownerId: userId,
                 closet: closet,
-                onCancel: {
+                onLater: {
                     deferredSharedId = image.id
+                    pendingSharedImage = nil
+                },
+                onDiscard: {
+                    SharedImageInbox.remove(id: image.id)
+                    presentedSharedId = nil
+                    deferredSharedId = nil
                     pendingSharedImage = nil
                 },
                 onSaved: {
@@ -128,12 +151,46 @@ private struct AppTabs: View {
                 }
             )
         }
+        .sheet(item: $pendingSharedLink, onDismiss: {
+            if let presentedSharedLinkId {
+                deferredSharedLinkId = presentedSharedLinkId
+                self.presentedSharedLinkId = nil
+            } else {
+                presentNextShare()
+            }
+        }) { link in
+            ProductLinkReviewView(link: link, ownerId: userId,
+                                  onLater: {
+                                      deferredSharedLinkId = link.id
+                                      pendingSharedLink = nil
+                                  },
+                                  onSaved: {
+                                      SharedProductLinkInbox.remove(id: link.id)
+                                      presentedSharedLinkId = nil
+                                      deferredSharedLinkId = nil
+                                      pendingSharedLink = nil
+                                  })
+        }
         .onAppear {
             SharedImageInbox.setActiveOwner(userId)
-            presentNextSharedImage()
+            #if DEBUG
+            let arguments = ProcessInfo.processInfo.arguments
+            if let marker = arguments.firstIndex(of: "-seedShareFixture"),
+               arguments.indices.contains(marker + 1) {
+                do {
+                    try SharedImageInbox.seedFixture(
+                        id: arguments[marker + 1], ownerId: userId,
+                        withCandidates: arguments.contains("-seedTwoCandidates")
+                    )
+                } catch {
+                    sharedImageError = error.localizedDescription
+                }
+            }
+            #endif
+            presentNextShare()
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { presentNextSharedImage() }
+            if phase == .active { presentNextShare() }
         }
     }
 
@@ -151,12 +208,32 @@ private struct AppTabs: View {
         }
     }
 
-    private func presentNextSharedImage() {
-        guard pendingSharedImage == nil, presentedSharedId == nil, deferredSharedId == nil,
-              let image = SharedImageInbox.next(for: userId) else { return }
-        presentedSharedId = image.id
-        selectedTab = 2
-        pendingSharedImage = image
+    private func presentNextShare() {
+        guard pendingSharedImage == nil, presentedSharedId == nil,
+              deferredSharedId == nil, sharedImageError == nil,
+              pendingSharedLink == nil, presentedSharedLinkId == nil,
+              deferredSharedLinkId == nil else { return }
+        switch SharedImageInbox.next(for: userId) {
+        case .image(let image):
+            presentedSharedId = image.id
+            selectedTab = 2
+            pendingSharedImage = image
+        case .discarded(let message):
+            selectedTab = 2
+            sharedImageError = message
+        case .none:
+            switch SharedProductLinkInbox.next(for: userId) {
+            case .link(let link):
+                presentedSharedLinkId = link.id
+                selectedTab = 2
+                pendingSharedLink = link
+            case .discarded(let message):
+                selectedTab = 2
+                sharedImageError = message
+            case .none:
+                break
+            }
+        }
     }
 }
 

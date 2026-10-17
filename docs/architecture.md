@@ -7,14 +7,25 @@ Search response into separate, unselected garment candidates with normalized
 boxes. It resolves similar product IDs only against active records in the local
 catalog and leaves an empty/manual result when no regions are found. A developer
 can make one live call using Application Default Credentials and an already
-indexed Google Product Search set. This is a backend experiment: no hosted
-endpoint, iOS connection, multi-item review UI, live catalog images, or actual
-recognition quality has been verified. A local evaluation harness now compares
+indexed Google Product Search set. `object_localization.py` separately parses
+generic Google Vision garment boxes. A Debug-only Camera action calls
+`local_service.py` over simulator loopback for reviewed multi-piece suggestions;
+that local service uses the developer's Google Cloud CLI identity. There is no
+hosted/authenticated endpoint, indexed product set, live catalog match, or
+measured recognition quality on user photos. A local evaluation harness compares
 saved responses with annotated garment boxes; its bundled example is synthetic
 and demonstrates scoring only. See
 [`backend/recognition/README.md`](../backend/recognition/README.md).
 
 ## Local catalog prototype
+
+The local product-link flow accepts pasted HTTPS links in Camera and URL shares in
+the Share Extension. Both reach review, where the user enters a name and
+category and explicitly confirms Wishlist. The separate owner-scoped
+`SavedProductLink` record persists on-device without a photo; it does not alter
+the six-field `ClothingItem`. Dressed does not fetch retailer page metadata or
+infer exact identity from a photo. Shared link drafts expire after 24 hours;
+Wishlist storage is not backend-enforced or synced across devices.
 
 `backend/catalog/catalog.py` ingests a synthetic fixture feed into local
 SQLite and serves a read-only API on loopback. It records stable product IDs,
@@ -43,13 +54,16 @@ to a bounded JPEG, writes a user-bound draft into `group.gtiosclub.dressed`, and
 user to open Dressed. Camera and photo-library images enter the same review
 screen. Apple's on-device Vision classifier may suggest a category for one
 garment in the whole image; no-match and failure states allow manual details.
-The user edits the name/category before confirming. Cancelling review keeps a
+The user edits the name/category before confirming. Camera review additionally
+tries a Debug-only Google Vision service through loopback automatically: each detected crop starts
+unselected, can be corrected, and only selected pieces save. A missed piece can
+be added manually. This Debug path has no credentials in the app. Cancelling review keeps a
 shared draft queued, with a Camera action to reopen it. Confirmed pieces are
-stored as private on-device JPEG and JSON files for the signed-in user. My
+stored as private on-device JPEG or PNG images and JSON files for the signed-in user. My
 Closet supports local search, category filtering, item details, edits, and deletion.
 
-This is a prototype path, not the proposed S1 release flow. It does not extract
-multiple separate garments, create an outfit, upload to Firebase Storage, sync
+This is a prototype path, not the proposed S1 release flow. The local Google
+test suggests boxes, not masks or product identities. It does not upload to Firebase Storage, sync
 between devices, or enforce cloud ownership. Device signing requires the App
 Group capability on both targets. On October 11, 2026, an iPhone 16 Pro iOS
 18.6 simulator build passed; a synthetic image shared from Photos appeared in
@@ -64,6 +78,60 @@ photo review, share cancellation, and closet deletion interactions have not yet
 been verified on a device or in a complete native UI walkthrough.
 The six-field `ClothingItem` contract is unchanged; the local image path is a
 prototype storage reference.
+
+On October 16, 2026, the loopback fixture returned two unselected suggestions
+in the iOS 18.6 simulator. One selected crop saved as a local closet record;
+the other was not saved. Separately, a live call through the same local service
+returned three Dress boxes for Google's public sample image. This does not
+verify live Google recognition from inside the app or accuracy on personal photos.
+
+The shared-image review now keeps an owner-bound, 24-hour review draft in the App
+Group. Recognition starts when a new review opens. In Debug the app first tries
+the local Google Vision service; otherwise it uses on-device body landmarks and
+whole-image classification as fallbacks.
+Each suggestion starts unselected. The user can adjust a rectangular region
+or trace a polygon around a garment. Each suggested region attempts a
+transparent cutout with Apple's foreground-instance mask, then a local edge
+flood fill for plain product-photo backgrounds; a hand-drawn outline
+overrides that attempt. Both cutouts save as PNG when selected and confirmed.
+They can edit names and categories, add a missed piece manually, and save
+selected pieces together with a local outfit. Stable IDs allow a retry to reuse
+the same records. The foreground mask can include skin or miss fabric, and the
+on-device heuristic does not reliably detect every piece or establish product identity; flat lays and overlapping items
+may need a manually drawn outline. The Google adapter merges two nearby,
+similarly sized shoe detections into one unselected pair candidate and suppresses
+highly overlapping same-category boxes. These rules do not guarantee every
+pair or duplicate is handled correctly. The Share Extension itself still only
+queues the image: Apple's [extension URL-opening API](https://developer.apple.com/documentation/foundation/nsextensioncontext/open%28_%3Acompletionhandler%3A%29) supports Today and iMessage extensions on iOS, not Share extensions, so this extension cannot directly launch the containing app. This path has
+no Firebase Storage or Firestore sync and no backend ownership enforcement.
+On October 16, signed iOS 18.6 simulator UI tests passed for a seeded shared
+image: two of three candidates were selected, edited, saved as one outfit, and
+found again after relaunch. A separate seeded image with no suggestions passed
+the manual-piece and save flow. These tests do not measure recognition quality
+on real photos or verify cloud access rules.
+
+On October 16, the iOS 27 simulator loaded a queued public shoe photo under
+the real test account without starting recognition. A manually traced shoe
+outline appeared in review, then saved as one local PNG with a 1638×787
+image size and an alpha channel. The local recognition adapter's 21 tests passed,
+including nearby and distant shoe cases. Those checks predate the automatic
+foreground mask; its accuracy and direct share-extension foregrounding still
+need broader image testing. A later iOS 27 simulator check selected a public
+shoe from Photos and automatically produced one unselected generic candidate
+with a 1620×785 transparent PNG. The classifier failed to create an Espresso
+context on that simulator, so category recognition was not verified.
+
+## Local saved-outfit prototype
+
+My Closet now has Pieces and Outfits sections. A signed-in user can select local
+closet pieces, name an outfit, arrange their photos on a 2D canvas, and save it
+to owner-scoped on-device JSON. Saved outfits reopen with their piece list and
+show a warning if a referenced piece was deleted. This uses the shared `Outfit`
+record and normalized placement coordinates. It does not sync through Firebase,
+provide outfit editing, or publish a post. On October 16, 2026, the iOS 18.6
+Simulator build passed. With two synthetic closet pieces, an outfit was saved,
+opened, and remained available after an app relaunch. The position controls and
+missing-piece state have not yet been exercised in a full native UI walkthrough.
 
 ## Observed baseline
 

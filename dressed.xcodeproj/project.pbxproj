@@ -9,6 +9,9 @@
 /* Begin PBXBuildFile section */
 		A10100000000000000000001 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10200000000000000000001 /* ShareViewController.swift */; };
 		A10100000000000000000002 /* DressedShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A10200000000000000000004 /* DressedShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B20100000000000000000001 /* ShareImportUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20200000000000000000001 /* ShareImportUITests.swift */; };
+		C10100000000000000000001 /* InjectionNext in Frameworks */ = {isa = PBXBuildFile; productRef = C10300000000000000000001 /* InjectionNext */; };
+		C10100000000000000000002 /* Inject in Frameworks */ = {isa = PBXBuildFile; productRef = C10300000000000000000002 /* Inject */; };
 		8B87D8B5305380D900F3CF9E /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8B4305380D900F3CF9E /* FirebaseCore */; };
 		8B87D8B7305380DD00F3CF9E /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8B6305380DD00F3CF9E /* FirebaseAuth */; };
 		8B87D8B9305380E200F3CF9E /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8B8305380E200F3CF9E /* FirebaseStorage */; };
@@ -23,6 +26,8 @@
 		A10200000000000000000002 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A10200000000000000000003 /* DressedShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DressedShareExtension.entitlements; sourceTree = "<group>"; };
 		A10200000000000000000004 /* DressedShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DressedShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B20200000000000000000001 /* ShareImportUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareImportUITests.swift; sourceTree = "<group>"; };
+		B20200000000000000000002 /* dressedUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = dressedUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B87D86730537AB400F3CF9E /* dressed.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = dressed.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -54,6 +59,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C10100000000000000000001 /* InjectionNext in Frameworks */,
+				C10100000000000000000002 /* Inject in Frameworks */,
 				8B87D8BD305380EC00F3CF9E /* FirebaseDatabase in Frameworks */,
 				8B87D8B5305380D900F3CF9E /* FirebaseCore in Frameworks */,
 				8B87D8BB305380E800F3CF9E /* FirebaseFirestore in Frameworks */,
@@ -77,11 +84,18 @@
 			path = DressedShareExtension;
 			sourceTree = "<group>";
 		};
+		B20500000000000000000001 /* dressedUITests */ = {
+			isa = PBXGroup;
+			children = (B20200000000000000000001 /* ShareImportUITests.swift */, );
+			path = dressedUITests;
+			sourceTree = "<group>";
+		};
 		8B87D85E30537AB400F3CF9E = {
 			isa = PBXGroup;
 			children = (
 				8B87D86930537AB400F3CF9E /* dressed */,
 				A10500000000000000000001 /* DressedShareExtension */,
+				B20500000000000000000001 /* dressedUITests */,
 				8B87D8B3305380D900F3CF9E /* Frameworks */,
 				8B87D86830537AB400F3CF9E /* Products */,
 			);
@@ -92,6 +106,7 @@
 			children = (
 				8B87D86730537AB400F3CF9E /* dressed.app */,
 				A10200000000000000000004 /* DressedShareExtension.appex */,
+				B20200000000000000000002 /* dressedUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -121,6 +136,17 @@
 			productReference = A10200000000000000000004 /* DressedShareExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		B20600000000000000000001 /* dressedUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B20A00000000000000000001 /* Build configuration list for PBXNativeTarget "dressedUITests" */;
+			buildPhases = (B20800000000000000000001 /* Sources */, );
+			buildRules = ();
+			dependencies = (B20B00000000000000000001 /* PBXTargetDependency */, );
+			name = dressedUITests;
+			productName = dressedUITests;
+			productReference = B20200000000000000000002 /* dressedUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		8B87D86630537AB400F3CF9E /* dressed */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 8B87D87230537AB500F3CF9E /* Build configuration list for PBXNativeTarget "dressed" */;
@@ -140,6 +166,8 @@
 			);
 			name = dressed;
 			packageProductDependencies = (
+				C10300000000000000000001 /* InjectionNext */,
+				C10300000000000000000002 /* Inject */,
 				8B87D8B4305380D900F3CF9E /* FirebaseCore */,
 				8B87D8B6305380DD00F3CF9E /* FirebaseAuth */,
 				8B87D8B8305380E200F3CF9E /* FirebaseStorage */,
@@ -180,6 +208,8 @@
 			mainGroup = 8B87D85E30537AB400F3CF9E;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				C10200000000000000000001 /* XCRemoteSwiftPackageReference "InjectionNext" */,
+				C10200000000000000000002 /* XCRemoteSwiftPackageReference "Inject" */,
 				8B87D8AF30537E5200F3CF9E /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -189,6 +219,7 @@
 			targets = (
 				8B87D86630537AB400F3CF9E /* dressed */,
 				A10600000000000000000001 /* DressedShareExtension */,
+				B20600000000000000000001 /* dressedUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -206,6 +237,7 @@
 
 /* Begin PBXSourcesBuildPhase section */
 		A10800000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10100000000000000000001 /* ShareViewController.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
+		B20800000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (B20100000000000000000001 /* ShareImportUITests.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
 		8B87D86330537AB400F3CF9E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -253,6 +285,36 @@
 				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		B20C00000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = WDRKBQFYRJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressedUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = dressed;
+			};
+			name = Debug;
+		};
+		B20C00000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = WDRKBQFYRJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressedUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = dressed;
 			};
 			name = Release;
 		};
@@ -384,6 +446,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = dressed/Dressed.entitlements;
+				INFOPLIST_FILE = config/DevelopmentInfo.plist;
 				INFOPLIST_KEY_CatalogAPIBaseURL = "$(CATALOG_API_BASE_URL)";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos of clothing to add to your closet.";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -402,6 +465,12 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				EMIT_FRONTEND_COMMAND_LINES = YES;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-Xlinker",
+					"-interposable",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressed;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -461,6 +530,12 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		B20A00000000000000000001 /* Build configuration list for PBXNativeTarget "dressedUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (B20C00000000000000000001 /* Debug */, B20C00000000000000000002 /* Release */, );
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		8B87D86230537AB400F3CF9E /* Build configuration list for PBXProject "dressed" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -489,6 +564,13 @@
 			remoteGlobalIDString = A10600000000000000000001;
 			remoteInfo = DressedShareExtension;
 		};
+		B20D00000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8B87D85F30537AB400F3CF9E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8B87D86630537AB400F3CF9E;
+			remoteInfo = dressed;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXTargetDependency section */
@@ -497,9 +579,24 @@
 			target = A10600000000000000000001 /* DressedShareExtension */;
 			targetProxy = A10D00000000000000000001 /* PBXContainerItemProxy */;
 		};
+		B20B00000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8B87D86630537AB400F3CF9E /* dressed */;
+			targetProxy = B20D00000000000000000001 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		C10200000000000000000001 /* XCRemoteSwiftPackageReference "InjectionNext" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/johnno1962/InjectionNext";
+			requirement = { kind = exactVersion; version = 2.0.1; };
+		};
+		C10200000000000000000002 /* XCRemoteSwiftPackageReference "Inject" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/krzysztofzablocki/Inject";
+			requirement = { kind = exactVersion; version = 1.6.0; };
+		};
 		8B87D8AF30537E5200F3CF9E /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
@@ -511,6 +608,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		C10300000000000000000001 /* InjectionNext */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C10200000000000000000001 /* XCRemoteSwiftPackageReference "InjectionNext" */;
+			productName = InjectionNext;
+		};
+		C10300000000000000000002 /* Inject */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C10200000000000000000002 /* XCRemoteSwiftPackageReference "Inject" */;
+			productName = Inject;
+		};
 		8B87D8B4305380D900F3CF9E /* FirebaseCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 8B87D8AF30537E5200F3CF9E /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;

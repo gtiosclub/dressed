@@ -8,6 +8,13 @@ private struct SharedImageEnvelope: Encodable {
     let createdAt: Date
 }
 
+private struct SharedLinkEnvelope: Encodable {
+    let id: String
+    let ownerId: String
+    let createdAt: Date
+    let productURL: URL
+}
+
 final class ShareViewController: UIViewController {
     private let groupId = "group.gtiosclub.dressed"
     private let maxInputBytes = 40 * 1024 * 1024
@@ -40,29 +47,65 @@ final class ShareViewController: UIViewController {
             stack.widthAnchor.constraint(lessThanOrEqualToConstant: 360)
         ])
 
-        receiveImage()
+        receiveShare()
     }
 
-    private func receiveImage() {
+    private func receiveShare() {
         guard let ownerId = activeOwnerId else {
             show("Open Dressed and sign in, then share the image again.")
             return
         }
         let providers = (extensionContext?.inputItems as? [NSExtensionItem] ?? [])
             .flatMap { $0.attachments ?? [] }
-        guard let provider = providers.first(where: {
+        if let provider = providers.first(where: {
             $0.hasItemConformingToTypeIdentifier(UTType.image.identifier)
-        }) else {
-            show("This share does not contain a supported image. Save the photo and share it to Dressed.")
+        }) {
+            let imageTypes = provider.registeredTypeIdentifiers.filter {
+                UTType($0)?.conforms(to: .image) == true
+            }
+            loadImage(from: provider, types: imageTypes, index: 0, ownerId: ownerId)
             return
         }
-
-        // Providers differ: Photos commonly offers a temporary file, while other apps
-        // offer data or a UIImage object. Try each without depending on a single UTI.
-        let imageTypes = provider.registeredTypeIdentifiers.filter {
-            UTType($0)?.conforms(to: .image) == true
+        if let provider = providers.first(where: {
+            $0.hasItemConformingToTypeIdentifier(UTType.url.identifier)
+        }) {
+            loadProductURL(from: provider, ownerId: ownerId)
+            return
         }
-        loadImage(from: provider, types: imageTypes, index: 0, ownerId: ownerId)
+        show("Share an image or a public HTTPS product link to Dressed.")
+    }
+
+    private func loadProductURL(from provider: NSItemProvider, ownerId: String) {
+        provider.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { [weak self] item, _ in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                let url = (item as? URL) ?? (item as? String).flatMap(URL.init(string:))
+                guard let url, self.activeOwnerId == ownerId,
+                      url.scheme?.lowercased() == "https", let host = url.host,
+                      !host.isEmpty, url.user == nil, url.password == nil,
+                      url.port == nil || url.port == 443 else {
+                    self.show("Could not read a public HTTPS product link. Paste it in Dressed instead.")
+                    return
+                }
+                do {
+                    try self.queue(url, ownerId: ownerId)
+                    self.show("Product link ready. Open Dressed to review it.")
+                } catch {
+                    self.show("Could not prepare this link. Paste it in Dressed instead.")
+                }
+            }
+        }
+    }
+
+    private func queue(_ url: URL, ownerId: String) throws {
+        guard let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId) else {
+            throw CocoaError(.fileNoSuchFile)
+        }
+        let links = root.appendingPathComponent("Links", isDirectory: true)
+        try FileManager.default.createDirectory(at: links, withIntermediateDirectories: true)
+        let id = UUID().uuidString
+        let record = SharedLinkEnvelope(id: id, ownerId: ownerId, createdAt: Date(), productURL: url)
+        try JSONEncoder().encode(record).write(to: links.appendingPathComponent("\(id).json"), options: .atomic)
     }
 
     private func loadImage(from provider: NSItemProvider, types: [String], index: Int, ownerId: String) {

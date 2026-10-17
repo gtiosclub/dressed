@@ -10,8 +10,8 @@ struct ImportCandidateRow: View {
         HStack(spacing: 12) {
             thumbnail
                 .resizable()
-                .scaledToFill()
-                .frame(width: 56, height: 56)
+                .scaledToFit()
+                .frame(width: 64, height: 72)
                 .background(Color(.secondarySystemBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .accessibilityHidden(true)

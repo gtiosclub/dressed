@@ -43,6 +43,10 @@ For debugging: reproduce, form a hypothesis, make the smallest fix, rerun the re
 
 For native UI changes, build and exercise the affected flow in an iOS simulator or device, preferably with XCUITest for repeatable coverage. Report observed behavior and any untested states. Playwright cannot verify this native SwiftUI UI. For any web UI added later, use Playwright MCP, explicitly checking widths 375, 768 and 1440 for responsive work. Never claim UI verification based only on a compiler pass.
 
+For routine SwiftUI view edits, follow [iOS development and agent testing](docs/IOS_DEVELOPMENT.md): read the view, make the smallest change, prefer InjectionNext hot reload after a successful Xcode IDE build, capture and compare a simulator screenshot, interact with affected controls, fix and repeat. Rebuild for structural edits or failed injection. Confirm a visible change without rebuilding before calling hot reload successful. MobileBuildMCP can build, run, snapshot, tap and test the native app; do not substitute Playwright for native UI verification.
+
+For interactive simulator testing, use the documented test account in [docs/IOS_DEVELOPMENT.md](docs/IOS_DEVELOPMENT.md#test-account-for-interactive-checks) through the normal sign-in screen. Do not use `-mockSignedIn` or `-mockSession` as a shortcut for manual or agent-driven acceptance checks. The existing fixture-backed XCUITests use a mock session to isolate import behavior; report them separately from real authentication verification.
+
 From the repository root, a simulator build is:
 
 ```sh
@@ -54,7 +58,7 @@ xcodebuild -project dressed.xcodeproj \
   CODE_SIGNING_ALLOWED=NO build
 ```
 
-The current deployment target is iOS 18.0; use a compatible runtime. Run relevant tests and SwiftLint if available, and report missing tooling instead of claiming it passed. No automated test target is documented in the initial baseline; inspect current targets before choosing test commands. Backend changes require authorized and unauthorized access checks in an emulator or designated development project. Do not use real-user data for smoke tests.
+The current deployment target is iOS 18.0; use a compatible runtime. Run relevant tests and SwiftLint if available, and report missing tooling instead of claiming it passed. The project has a `dressedUITests` target; inspect its current tests before choosing test commands. Backend changes require authorized and unauthorized access checks in an emulator or designated development project. Do not use real-user data for smoke tests.
 
 ## Git and collaboration
 
