@@ -6,11 +6,10 @@
 Search response into separate, unselected garment candidates with normalized
 boxes. It resolves similar product IDs only against active records in the local
 catalog and leaves an empty/manual result when no regions are found. A developer
-can make one live call using Application Default Credentials and an already
-indexed Google Product Search set. `object_localization.py` separately parses
+can run it against a saved response. `object_localization.py` separately parses
 generic Google Vision garment boxes. A Debug-only Camera action calls
 `local_service.py` over simulator loopback for reviewed multi-piece suggestions;
-that local service uses the developer's Google Cloud CLI identity. There is no
+that local service serves fixtures only and makes no cloud request. There is no
 hosted/authenticated endpoint, indexed product set, live catalog match, or
 measured recognition quality on user photos. A local evaluation harness compares
 saved responses with annotated garment boxes; its bundled example is synthetic

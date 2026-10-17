@@ -15,7 +15,7 @@ Working scope based on the team's feature notes and attached setup/backlog plan,
 - [Firebase testing for students](officers/firebase-testing.md): current project, safe emulator checks, and live setup limits.
 - [Backend schema templates](../backend/schemas/README.md): canonical types, examples and storage map.
 - [Local catalog prototype](../backend/catalog/README.md): fixture ingestion, SQLite state, read-only demo API, and test commands.
-- [Recognition experiment](../backend/recognition/README.md): fixture-backed Google Product Search response adapter and bounded live developer call.
+- [Recognition experiment](../backend/recognition/README.md): fixture-backed Google Product Search and Object Localization response adapters; paid calls are disabled.
 - [SwiftLint guide](linting.md): local lint command, CI behavior, and fix workflow.
 - [iOS development and agent testing](IOS_DEVELOPMENT.md): simulator automation, hot reload setup, verification and troubleshooting.
 - [Agent instructions](../AGENTS.md): repository-specific guidance for coding agents.
@@ -26,7 +26,7 @@ Start with the product scope, then choose an unblocked ticket. Update these docu
 
 Camera now accepts pasted public HTTPS product links, and the Share Extension can queue a shared web URL. Link review requires an editable name, category, and explicit Wishlist confirmation. Confirmed links are kept in a separate owner-scoped on-device Wishlist, not in the six-field owned `ClothingItem` record. Dressed does not fetch retailer metadata or claim that a photo matches the linked product.
 
-The current `main` working tree has a device-only Share to Dressed and Camera prototype. To try external sharing on a signed device, enable the `group.gtiosclub.dressed` App Group for both the app and Share Extension identifiers in the Apple Developer account, sign both targets, open Dressed and sign in once, then share a saved image to Dressed from another app. The extension queues it; return to Dressed to review it. Recognition now starts when review opens. In Debug it first tries the optional local Google Vision bridge, then on-device suggestions. Vision also attempts a transparent foreground cutout for each suggestion; an inaccurate mask can be replaced by an adjusted rectangle or hand-drawn outline. Suggestions stay unselected until confirmation. Data is saved only on that device; it is not a Firebase closet sync. See [architecture](architecture.md) for verified prototype behavior and remaining limits.
+The current `main` working tree has a device-only Share to Dressed and Camera prototype. To try external sharing on a signed device, enable the `group.gtiosclub.dressed` App Group for both the app and Share Extension identifiers in the Apple Developer account, sign both targets, open Dressed and sign in once, then share a saved image to Dressed from another app. The extension queues it; return to Dressed to review it. Recognition now starts when review opens. In Debug it first tries the optional local fixture bridge, then on-device suggestions. Vision also attempts a transparent foreground cutout for each suggestion; an inaccurate mask can be replaced by an adjusted rectangle or hand-drawn outline. Suggestions stay unselected until confirmation. Data is saved only on that device; it is not a Firebase closet sync. See [architecture](architecture.md) for verified prototype behavior and remaining limits.
 
 ## Planning assumptions
 

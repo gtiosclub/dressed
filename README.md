@@ -5,7 +5,7 @@ Native SwiftUI app for iPhone and iPad, using Firebase and Swift Package Manager
 
 ## Run locally
 
-1. Open `dressed.xcodeproj` in Xcode (local setup uses Xcode 26.6).
+1. Open `dressed.xcodeproj` in Xcode.
 2. Allow Xcode to resolve the Firebase Swift packages.
 3. Select the `dressed` scheme and an iOS 18.0 or newer simulator.
 4. Press **Command-R** to build and run.
@@ -16,7 +16,9 @@ The deployment target is iOS 18.0. Use an iOS 18.0 or newer simulator or device.
 
 The existing `dressed/GoogleService-Info.plist` matches the app bundle identifier, `gtiosclub.dressed`. Firebase is initialized in `DressedApp.swift`.
 
-Email/password sign-in and account creation require the Email/Password provider to be enabled in the matching Firebase project's Authentication settings. Local compilation does not verify that server-side setting. Successful authentication currently prints a message; the app does not yet navigate to another screen.
+The tracked plist is public Firebase client configuration, not an administrator credential. The app uses the unbilled `out-fitted` project for email/password sign-in and gated backend features. Normal sign-in requires an account in that project; the Debug UI tests use a mock session. Closet and Wishlist prototype data are stored on the device. Firebase rules and project permissions still control shared backend access; cloning the repo does not grant cloud administration.
+
+The separate `dressed-511821` recognition experiment also has billing disabled. The repo's recognition service and Product Search CLI read saved fixtures only, while the iOS app can make on-device suggestions. No paid Google Vision setup is needed to build or try the prototype. The offline eBay adapter needs a saved response file; it has no live API connection. See [recognition setup](backend/recognition/README.md) and [catalog setup](backend/catalog/README.md).
 
 To use a different Firebase project, register an iOS app with the matching bundle identifier and replace the configuration plist with that project's downloaded file.
 
@@ -34,6 +36,8 @@ xcodebuild -project dressed.xcodeproj \
 ```
 
 For a physical iPhone or iPad, select your development team under **Signing & Capabilities** in Xcode. Simulator builds do not require a signing account.
+
+The Share Extension's App Group needs both targets signed with an Apple team that has the `group.gtiosclub.dressed` entitlement. Contributors without that entitlement can still run the simulator app's photo-library, manual review, local closet, Wishlist, and fixture-backed tests. Optional MobileBuildMCP setup is in [iOS development](docs/IOS_DEVELOPMENT.md); its tracked Codex command uses the contributor's `PATH`.
 
 Keep the workspace's shared `Package.resolved` file in version control to preserve resolved dependency versions. Ignore generated build files and per-user Xcode settings using the included `.gitignore`.
 

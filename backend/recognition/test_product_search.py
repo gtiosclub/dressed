@@ -1,14 +1,14 @@
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "catalog"))
 from catalog import CatalogDatabase
-from product_search import parse_response, query_google, reserve_live_request
+from product_search import parse_response
 from object_localization import parse_response as parse_object_response
 
 
@@ -65,50 +65,6 @@ class ProductSearchTests(unittest.TestCase):
         result = parse_response(self.response, "draft-1", self.catalog)
         self.assertEqual(len(result["candidates"]), 1)
 
-    def test_live_query_is_one_bounded_product_search_request(self):
-        class FakeResponse:
-            def __enter__(self):
-                return self
-
-            def __exit__(self, *_):
-                pass
-
-            def read(self, *_):
-                return b'{"responses": [{}]}'
-
-        with patch("product_search.PAID_VISION_ENABLED", True), \
-                patch("product_search.urlopen", return_value=FakeResponse()) as send:
-            response = query_google(b"image", "projects/demo/locations/us-east1/productSets/clothes", "token")
-        self.assertEqual(response, {"responses": [{}]})
-        request = send.call_args.args[0]
-        body = json.loads(request.data)
-        self.assertEqual(len(body["requests"]), 1)
-        self.assertEqual(body["requests"][0]["features"], [{"type": "PRODUCT_SEARCH"}])
-        self.assertEqual(request.get_header("Authorization"), "Bearer token")
-        with patch("product_search.PAID_VISION_ENABLED", True):
-            with self.assertRaisesRegex(ValueError, "5 MB"):
-                query_google(b"a" * 5_000_001,
-                             "projects/demo/locations/us-east1/productSets/clothes", "token")
-
-    def test_comparison_requests_both_features_in_one_call(self):
-        class FakeResponse:
-            def __enter__(self):
-                return self
-
-            def __exit__(self, *_):
-                pass
-
-            def read(self, *_):
-                return b'{"responses": [{}]}'
-
-        with patch("product_search.PAID_VISION_ENABLED", True), \
-                patch("product_search.urlopen", return_value=FakeResponse()) as send:
-            query_google(b"image", "projects/demo/locations/us-east1/productSets/clothes",
-                         "token", include_object_localization=True)
-        features = json.loads(send.call_args.args[0].data)["requests"][0]["features"]
-        self.assertEqual(features, [{"type": "PRODUCT_SEARCH"},
-                                    {"type": "OBJECT_LOCALIZATION"}])
-
     def test_combined_fixture_has_two_review_only_results(self):
         response = json.loads(
             (Path(__file__).parent / "fixtures/combined-vision-response.json").read_text())
@@ -119,32 +75,15 @@ class ProductSearchTests(unittest.TestCase):
         self.assertTrue(all(not item["selected"] for item in
                             product["candidates"] + objects["candidates"]))
 
-    def test_paid_calls_are_paused_before_reservation(self):
-        ledger = Path(self.temp.name) / "usage.json"
-        with self.assertRaisesRegex(ValueError, "paid Google Vision requests are paused"):
-            reserve_live_request(ledger)
-        self.assertFalse(ledger.exists())
-        with patch("product_search.urlopen") as send:
-            with self.assertRaisesRegex(ValueError, "paid Google Vision requests are paused"):
-                query_google(b"image", "projects/demo/locations/us-east1/productSets/clothes", "token")
-            send.assert_not_called()
-
-    def test_local_cli_guard_stops_after_ten_reserved_calls(self):
-        ledger = Path(self.temp.name) / "usage.json"
-        with patch("product_search.PAID_VISION_ENABLED", True):
-            for remaining in range(9, -1, -1):
-                self.assertEqual(reserve_live_request(ledger), remaining)
-            self.assertEqual(json.loads(ledger.read_text()), {"reservedRequests": 10})
-            with self.assertRaisesRegex(ValueError, "local limit reached"):
-                reserve_live_request(ledger)
-            self.assertEqual(json.loads(ledger.read_text()), {"reservedRequests": 10})
-
-    def test_corrupt_ledger_fails_closed(self):
-        ledger = Path(self.temp.name) / "usage.json"
-        ledger.write_text("broken")
-        with patch("product_search.PAID_VISION_ENABLED", True):
-            with self.assertRaisesRegex(ValueError, "invalid live-request ledger"):
-                reserve_live_request(ledger)
+    def test_cli_rejects_removed_live_flags(self):
+        script = Path(__file__).parent / "product_search.py"
+        result = subprocess.run(
+            [sys.executable, str(script), "--db", str(Path(self.temp.name) / "catalog.sqlite"),
+             "--import-id", "draft-1", "--image", "photo.jpg"],
+            capture_output=True, text=True, check=False,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("--response-file", result.stderr)
 
 
 if __name__ == "__main__":

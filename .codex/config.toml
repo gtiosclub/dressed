@@ -1,9 +1,4 @@
 [mcp_servers.MobileBuildMCP]
-command = "/opt/homebrew/bin/mobilebuildmcp"
+command = "mobilebuildmcp"
 args = ["mcp"]
 tool_timeout_sec = 600
-
-[mcp_servers.InjectionNext]
-command = "/opt/homebrew/bin/node"
-args = ["/Users/nealkotval/.local/share/dressed/injectionnext-mcp/index.js"]
-tool_timeout_sec = 120

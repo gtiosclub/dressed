@@ -5,10 +5,10 @@ This project uses MobileBuildMCP (the current name of XcodeBuildMCP) for simulat
 ## Setup on a new Mac
 
 1. Install Xcode, select it with `xcode-select`, and install an iOS simulator runtime compatible with the project's iOS 18.0 deployment target. Open `dressed.xcodeproj` in Xcode once to resolve packages.
-2. Install MobileBuildMCP using the [official installation instructions](https://github.com/getsentry/MobileBuildMCP). This machine uses `npm install -g mobilebuildmcp@latest`. Check `mobilebuildmcp --version` and adjust the executable path in `.codex/config.toml` if it differs from `/opt/homebrew/bin/mobilebuildmcp`.
+2. Install MobileBuildMCP using the [official installation instructions](https://github.com/getsentry/MobileBuildMCP). Check `mobilebuildmcp --version`; the tracked `.codex/config.toml` resolves the executable from your `PATH`.
 3. Download the current signed [InjectionNext release](https://github.com/johnno1962/InjectionNext/releases) to `/Applications/InjectionNext.app`. This machine uses 2.0.1. The app and Swift package should be the same release. Run `xcodebuild -resolvePackageDependencies -project dressed.xcodeproj -scheme dressed`.
-4. For InjectionNext agent tools, enable its local control server with `defaults write com.johnholdsworth.InjectionNext mcpServer -bool true`, restart the app, copy `/Applications/InjectionNext.app/Contents/Resources/mcp-server` to a writable local directory, and run `npm ci` there. Point the `InjectionNext` entry in `.codex/config.toml` to that directory's `index.js` and to your Node executable. On this Mac the copy is at `~/.local/share/dressed/injectionnext-mcp`; its dependencies were updated with `npm audit fix` after installation. The control socket is local at `/tmp/InjectionNext-control.sock`.
-5. Trust this repository in Codex and start a new Codex session from the repository root so its project `.codex/config.toml` loads. `codex mcp get MobileBuildMCP` and `codex mcp get InjectionNext` confirm registration. Tool availability in the new session still needs a live check.
+4. For optional InjectionNext agent tools, enable its local control server with `defaults write com.johnholdsworth.InjectionNext mcpServer -bool true`, restart the app, copy `/Applications/InjectionNext.app/Contents/Resources/mcp-server` to a writable local directory, and run `npm ci` there. Register the copied `index.js` with your own Node executable in your user-level Codex configuration. Do not commit a machine-specific path to the project configuration. The control socket is local at `/tmp/InjectionNext-control.sock`.
+5. Trust this repository in Codex and start a new Codex session from the repository root so its project `.codex/config.toml` loads. `codex mcp get MobileBuildMCP` confirms registration. Optional InjectionNext registration needs a separate check on each machine.
 6. Create an iPhone 17 Pro simulator with the newest runtime installed in Xcode. This Mac has a `Dressed iPhone 17 Pro iOS 27` device on iOS 27.0. If your device name differs, update `.mobilebuildmcp/config.yaml` or pass its ID to each command.
 
 The project config in `.mobilebuildmcp/config.yaml` selects the `dressed` Debug scheme and the named iOS 27.0 iPhone 17 Pro simulator. Find its ID with `mobilebuildmcp simulator list`; use `--simulator-id` when multiple devices have similar names.
@@ -23,13 +23,7 @@ The iOS 27 simulator Photos library has three product photos for import checks: 
 
 ## Camera recognition test service
 
-The Camera and shared-image review screens look for pieces as soon as a new image opens. In Debug they first try a development service on this Mac at `127.0.0.1:8765`; if it is unavailable, they fall back to on-device Vision. Paid Google Vision requests are currently paused: `vision.googleapis.com` is disabled in `dressed-511821`, and the live command below exits before starting. Do not use it for simulator checks:
-
-```sh
-python3 backend/recognition/local_service.py --live --project dressed-511821
-```
-
-The previous live mode used a local ten-request allowance, which was not a billing cap. To check the UI without a Google call, start the fixture instead:
+The Camera and shared-image review screens look for pieces as soon as a new image opens. In Debug they first try a fixture service on this Mac at `127.0.0.1:8765`; if it is unavailable, they fall back to on-device Vision. The service has no paid or live provider mode. Billing is disabled on the separate `dressed-511821` recognition project; the app's `out-fitted` Firebase project is also unbilled. To check the UI, start the fixture service:
 
 ```sh
 python3 backend/recognition/local_service.py --fixture backend/recognition/fixtures/object-localization-response.json
@@ -75,7 +69,7 @@ Use the `ui-automation` tools to tap an element reference from a fresh `snapshot
 
 ## Disable or remove
 
-Quit InjectionNext and run `defaults delete com.johnholdsworth.InjectionNext mcpServer` to disable its control server. Remove the two entries from `.codex/config.toml` to stop agent connections. Remove the injection package references and Debug settings from `dressed.xcodeproj/project.pbxproj`, the Run scheme variable, and the `import Inject`/observation hooks in `AuthPage.swift` to remove hot reload from the project. Optionally uninstall the two local applications and the copied MCP server. MobileBuildMCP can be removed with the package manager used to install it.
+Quit InjectionNext and run `defaults delete com.johnholdsworth.InjectionNext mcpServer` to disable its control server. Remove its entry from your user-level Codex configuration; remove the MobileBuildMCP entry from `.codex/config.toml` only if the whole team no longer uses it. Remove the injection package references and Debug settings from `dressed.xcodeproj/project.pbxproj`, the Run scheme variable, and the `import Inject`/observation hooks in `AuthPage.swift` to remove hot reload from the project. Optionally uninstall the two local applications and the copied MCP server. MobileBuildMCP can be removed with the package manager used to install it.
 
 ## Verification record (2026-10-16)
 
