@@ -109,8 +109,14 @@ private struct AppTabs: View {
             .tabItem { Label("Camera", systemImage: "camera") }
             .tag(2)
 
-            OutfitStudioView(items: closet.items, model: studio, image: { photo(for: $0) })
-                .tabItem { Label("Avatar", systemImage: "figure.stand") }
+            ProfileView(
+                username: userId,
+                items: closet.items,
+                model: studio,
+                onSignOut: signOut,
+                image: { photo(for: $0) }
+            )
+                .tabItem { Label("Profile", systemImage: "person.crop.circle") }
                 .tag(3)
 
         }
