@@ -164,6 +164,7 @@ struct ImportReviewView: View {
     @State private var detectionMessage: String?
     @State private var editingCandidateID: String?
     @State private var didStartPieceDetection = false
+    @State private var detectionTask: Task<Void, Never>?
 
     var body: some View {
         NavigationStack {
@@ -220,6 +221,7 @@ struct ImportReviewView: View {
                             }
                             Button("Adjust Image Region") { editingCandidateID = candidate.id }
                             Button("Remove Piece", role: .destructive) {
+                                SharedImportDraftStore.removeAutomaticCutouts(for: [candidate])
                                 candidates.removeAll { $0.id == candidate.id }
                             }
                             Text("Visual suggestion only. Check the image region and details.")
@@ -346,6 +348,7 @@ struct ImportReviewView: View {
                 detectPieces()
             }
             .onDisappear {
+                detectionTask?.cancel()
                 SharedImportDraftStore.removeAutomaticCutouts(for: candidates)
             }
         }
@@ -360,11 +363,14 @@ struct ImportReviewView: View {
         guard !isDetectingPieces else { return }
         isDetectingPieces = true
         detectionMessage = nil
-        Task {
+        detectionTask = Task {
             defer { isDetectingPieces = false }
             do {
                 let found = try await AutomaticImportSuggestions.detect(imageData: image.data, importID: image.id)
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled else {
+                    SharedImportDraftStore.removeAutomaticCutouts(for: found)
+                    return
+                }
                 let previous = Dictionary(uniqueKeysWithValues: candidates.map { ($0.id, $0) })
                 let manual = candidates.filter { $0.suggestionSource == nil }
                 candidates = found.map { previous[$0.id] ?? $0 } + manual

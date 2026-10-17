@@ -21,23 +21,23 @@ enum AutomaticGarmentCutout {
     }
 
     nonisolated private static func visionMask(_ cgImage: CGImage) -> Data? {
-            let handler = VNImageRequestHandler(cgImage: cgImage)
-            let request = VNGenerateForegroundInstanceMaskRequest()
-            do {
-                try handler.perform([request])
-                guard let observation = request.results?.first,
-                      !observation.allInstances.isEmpty else { return nil }
-                let buffer = try observation.generateMaskedImage(
-                    ofInstances: observation.allInstances,
-                    from: handler,
-                    croppedToInstancesExtent: true
-                )
-                let ciImage = CIImage(cvPixelBuffer: buffer)
-                guard let output = CIContext().createCGImage(ciImage, from: ciImage.extent) else { return nil }
-                return UIImage(cgImage: output).pngData()
-            } catch {
-                return nil
-            }
+        let handler = VNImageRequestHandler(cgImage: cgImage)
+        let request = VNGenerateForegroundInstanceMaskRequest()
+        do {
+            try handler.perform([request])
+            guard let observation = request.results?.first,
+                  !observation.allInstances.isEmpty else { return nil }
+            let buffer = try observation.generateMaskedImage(
+                ofInstances: observation.allInstances,
+                from: handler,
+                croppedToInstancesExtent: true
+            )
+            let ciImage = CIImage(cvPixelBuffer: buffer)
+            guard let output = CIContext().createCGImage(ciImage, from: ciImage.extent) else { return nil }
+            return UIImage(cgImage: output).pngData()
+        } catch {
+            return nil
+        }
     }
 
     // A conservative local fallback for catalog-style photos with a nearly

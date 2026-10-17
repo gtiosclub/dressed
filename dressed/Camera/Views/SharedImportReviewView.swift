@@ -90,6 +90,7 @@ struct SharedImportReviewView: View {
                                 Button("Adjust Image Region") { cropCandidateID = candidate.id }
                                 Spacer()
                                 Button("Remove", role: .destructive) {
+                                    SharedImportDraftStore.removeAutomaticCutouts(for: [candidate])
                                     mutateDraft { $0.candidates.removeAll { $0.id == candidate.id } }
                                 }
                             }
@@ -173,7 +174,9 @@ struct SharedImportReviewView: View {
                 try SharedImportDraftStore.save(loaded)
             }
             draft = loaded
-            if loaded.status == .received { processImage() }
+            if loaded.status == .received || (loaded.status == .review && loaded.candidates.isEmpty) {
+                processImage()
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -192,7 +195,10 @@ struct SharedImportReviewView: View {
         detectionTask = Task {
             do {
                 let found = try await AutomaticImportSuggestions.detect(imageData: image.data, importID: image.id)
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled else {
+                    SharedImportDraftStore.removeAutomaticCutouts(for: found)
+                    return
+                }
                 mutateDraft { value in
                     // A retry retains manual pieces and prior user edits.
                     let existing = Dictionary(uniqueKeysWithValues: value.candidates.map { ($0.id, $0) })
