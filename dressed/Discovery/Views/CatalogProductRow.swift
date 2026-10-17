@@ -1,17 +1,7 @@
-//
-//  SavedPostGrid.swift
-//  dressed
-//
-//  Created by Tiana Prem  on 10/15/26.
-//
-
-
 import SwiftUI
 
-
-import SwiftUI
-
-struct CatalogProductView: View {
+/// A supplied catalog result. The parent decides what opening the product means.
+struct CatalogProductRow: View {
     let product: CatalogProduct
     let onTap: (String) -> Void
 
@@ -19,84 +9,84 @@ struct CatalogProductView: View {
         Button {
             onTap(product.id)
         } label: {
-            HStack(alignment: .center, spacing: 16) {
-
-                // Product image
-                if let image = product.image {
-                    image
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 120, height: 120)
-                        .clipped()
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                } else {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.gray.opacity(0.08))
-
-                        Image(systemName: "photo")
-                            .font(.system(size: 30))
-                            .foregroundStyle(.gray)
-                    }
-                    .frame(width: 120, height: 120)
-                }
-
-                // Product information
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(product.name)
+            CatalogProductRowLayout {
+                CatalogProductImage(product: product)
+            } details: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(product.title)
                         .font(.headline)
-                        .fontWeight(.semibold)
                         .foregroundStyle(.primary)
-
-                    Text(product.retailer)
+                    Text(product.brand ?? product.sourceName)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-
-                    Text(product.category.rawValue)
-                        .font(.subheadline)
+                    Text(product.category.rawValue.capitalized)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
-
-                    if let price = product.price {
-                        Text(price.formatted(.currency(code: "USD")))
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
+                    if let price = product.formattedPrice {
+                        Text(price)
+                            .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.primary)
                     }
-
-                    HStack(spacing: 4) {
-                        Text("View at retailer")
-                        Image(systemName: "arrow.up.right")
-                            .font(.caption)
-                    }
-                    .font(.subheadline)
-                    .foregroundStyle(.blue)
-                    .padding(.top, 4)
+                    Label("View at \(product.sourceName)", systemImage: "arrow.up.right")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
-
-                Spacer(minLength: 0)
             }
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(.secondarySystemBackground))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.gray.opacity(0.15), lineWidth: 1)
-            )
-            .contentShape(RoundedRectangle(cornerRadius: 16))
         }
         .buttonStyle(.plain)
-        .padding(.horizontal, 16)
     }
 }
-struct CatalogProduct{
-    var id: String
-    var name: String
-    var image : Image?
-    var retailer : String
-    var price : Decimal?
-    var link : URL?
-    var category : ClothingCategory
+
+/// Shared product-style row layout; a published post piece remains a snapshot, not a catalog result.
+struct CatalogProductRowLayout<Artwork: View, Details: View>: View {
+    let backgroundColor: Color
+    let artwork: Artwork
+    let details: Details
+
+    init(
+        backgroundColor: Color = Color(.secondarySystemBackground),
+        @ViewBuilder artwork: () -> Artwork,
+        @ViewBuilder details: () -> Details
+    ) {
+        self.backgroundColor = backgroundColor
+        self.artwork = artwork()
+        self.details = details()
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            artwork
+                .frame(width: 72, height: 72)
+            details
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .background(backgroundColor, in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+struct CatalogProductImage: View {
+    let product: CatalogProduct
+
+    var body: some View {
+        AsyncImage(url: product.imageURL) { phase in
+            if case .success(let image) = phase {
+                image.resizable().scaledToFill()
+            } else {
+                GarmentArtwork(category: product.category)
+                    .padding(10)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemGray5))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .accessibilityHidden(true)
+    }
+}
+
+extension CatalogProduct {
+    var formattedPrice: String? {
+        guard let priceCents, let currency else { return nil }
+        return (Double(priceCents) / 100).formatted(.currency(code: currency))
+    }
 }

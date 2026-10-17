@@ -32,6 +32,33 @@ returned one sneaker, and stopping the server displayed the retry state. This
 is still synthetic local data, not a hosted retailer integration. See
 [`backend/catalog/README.md`](../backend/catalog/README.md) for commands.
 
+## Midsemester Discovery post prototype
+
+The Discovery section now displays a two-column grid of public outfit-post
+previews, not clothing categories. A tap opens a post with its author, caption,
+and outfit artwork. A small button on the image opens the published pieces in a
+draggable sheet. The sheet sorts by original post order, piece name, or category;
+price and popularity sorting need data the published snapshot does not contain.
+Those rows share the catalog row layout without turning snapshots into catalog
+products. Product links appear only when a snapshot has a usable HTTPS URL.
+Focusing search replaces the post grid with suggested styles and the native
+keyboard. Selected styles appear as removable chips immediately below the
+search bar and wrap into new rows when needed. Tapping a suggested style adds
+its chip below the bar. Pressing the keyboard's Search key shows post results
+filtered by author, caption, outfit name, or published piece name. The clear
+button removes search text and all selected style chips. Tapping empty space
+outside the search field and suggested styles returns to the prior feed state
+and discards edits from the current search session. Selected styles filter
+locally against the demo style associations or visible post text.
+Style associations for synthetic posts live only in the demo view. A public
+style-tag contract is still TBD. Debug builds show synthetic post snapshots by
+default; `-livePosts` uses `FirebasePostFunctions` for development checks.
+Release builds also use `FirebasePostFunctions`, but public media loading,
+author profiles, publishing, and saved-post state are not connected. Live posts
+therefore show an explicit image fallback;
+the demo artwork does not resolve private clothing paths. The separate catalog
+prototype remains reachable in Debug with `-showCatalog` for its existing tests.
+
 ## Local import prototype in progress
 
 The current `main` working tree contains a local-only import prototype under
