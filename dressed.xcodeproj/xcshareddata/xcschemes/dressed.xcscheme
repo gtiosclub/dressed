@@ -1,26 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme LastUpgradeVersion="2700" version="1.7">
-   <BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES">
+   <BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES" buildArchitectures="Automatic">
       <BuildActionEntries>
          <BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES">
             <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="8B87D86630537AB400F3CF9E" BuildableName="dressed.app" BlueprintName="dressed" ReferencedContainer="container:dressed.xcodeproj"/>
          </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
-   <TestAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB">
+   <TestAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv="YES" shouldAutocreateTestPlan="YES">
       <Testables>
          <TestableReference skipped="NO">
             <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="B20600000000000000000001" BuildableName="dressedUITests.xctest" BlueprintName="dressedUITests" ReferencedContainer="container:dressed.xcodeproj"/>
          </TestableReference>
       </Testables>
    </TestAction>
-   <LaunchAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugDocumentVersioning="YES" debugServiceExtension="internal" allowLocationSimulation="YES">
+   <LaunchAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugDocumentVersioning="YES" debugServiceExtension="internal" allowLocationSimulation="YES" queueDebuggingEnabled="No">
       <EnvironmentVariables>
          <EnvironmentVariable key="INJECTION_PROJECT_ROOT" value="$(SRCROOT)" isEnabled="YES"/>
       </EnvironmentVariables>
       <BuildableProductRunnable runnableDebuggingMode="0">
          <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="8B87D86630537AB400F3CF9E" BuildableName="dressed.app" BlueprintName="dressed" ReferencedContainer="container:dressed.xcodeproj"/>
       </BuildableProductRunnable>
+      <CommandLineArguments>
+         <CommandLineArgument argument="-mockSession" isEnabled="NO"/>
+      </CommandLineArguments>
    </LaunchAction>
    <ProfileAction buildConfiguration="Release" shouldUseLaunchSchemeArgsEnv="YES" savedToolIdentifier="" useCustomWorkingDirectory="NO" debugDocumentVersioning="YES">
       <BuildableProductRunnable runnableDebuggingMode="0">
