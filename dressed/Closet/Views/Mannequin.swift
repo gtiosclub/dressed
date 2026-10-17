@@ -224,7 +224,7 @@ enum Mannequin {
         var mesh = torso(shape)
         mesh.append(neck(shape))
         mesh.append(head(face))
-        mesh.append(noseMesh(face, nose))
+        //mesh.append(noseMesh(face, nose))
         for side: Float in [-1, 1] {
             mesh.append(leg(shape, side: side))
             mesh.append(foot(shape, side: side))
@@ -239,7 +239,7 @@ enum Mannequin {
         var mesh = torso(shape)
         mesh.append(neck(shape))
         mesh.append(head(face))
-        mesh.append(noseMesh(face, nose))
+        //mesh.append(noseMesh(face, nose))
         for side: Float in [-1, 1] { mesh.append(arm(shape, side: side)) }
         return mesh
     }
@@ -269,28 +269,19 @@ enum Mannequin {
     // MARK: - Face features (separate meshes: each gets its own color)
 
     static func eyeWhites(face: FaceShape, eye: EyeShape) -> MannequinMesh {
-        eyeLayer(face, eye, width: eye.width, height: eye.height, depth: 0.0022, push: -0.0004)
+        MannequinMesh()
     }
 
     static func irises(face: FaceShape, eye: EyeShape) -> MannequinMesh {
-        eyeLayer(face, eye, width: eye.height * 0.92, height: eye.height * 0.92, depth: 0.0027, push: -0.0002)
+        MannequinMesh()
     }
 
     static func pupils(face: FaceShape, eye: EyeShape) -> MannequinMesh {
-        eyeLayer(face, eye, width: eye.height * 0.45, height: eye.height * 0.45, depth: 0.0031, push: 0)
+        MannequinMesh()
     }
 
     static func lips(face: FaceShape, shape: LipShape) -> MannequinMesh {
-        let base = headPoint(face, theta: 0, phi: lipsPhi)
-        var mesh = ellipsoid(
-            center: base + [0, shape.upper * 0.55, 0.0005],
-            radii: [shape.width, shape.upper, 0.0026]
-        )
-        mesh.append(ellipsoid(
-            center: base + [0, -shape.lower * 0.55, 0.0005],
-            radii: [shape.width * 0.94, shape.lower, 0.0030]
-        ))
-        return mesh
+        MannequinMesh()
     }
 
     /// A point on the head at the given angles, or with `inflate`, on a shell that far outside it.

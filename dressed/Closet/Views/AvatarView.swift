@@ -177,10 +177,6 @@ private enum AvatarScene {
     private static let turntableName = "avatarTurntable"
     private static let bodyPrefix = "body-"
     private static let hairPrefix = "hair-"
-    private static let scleraPrefix = "sclera-"
-    private static let irisPrefix = "iris-"
-    private static let pupilPrefix = "pupil-"
-    private static let lipsPrefix = "lips-"
 
     // Framing: the figure is 1 unit tall with feet at y = 0. At zoom 1 it fills 95% of the view height,
     // which the 2D overlay assumes. Zooming narrows the view but keeps its top edge fixed, matching the
@@ -249,34 +245,8 @@ private enum AvatarScene {
         let avatar = AvatarLook(look)
 
         // Gender is part of every signature: it changes which body and face presets the indices point to.
-        replaceChild(of: turntable, prefix: bodyPrefix, signature: signature(look, [.gender, .body, .face, .nose, .skin])) {
-            model(Mannequin.body(avatar.body, face: avatar.face, nose: avatar.nose), material: porcelain(avatar.skin))
-        }
-
-        let eyeParts: [AvatarPart] = [.gender, .face, .eyes]
-        replaceChild(of: turntable, prefix: scleraPrefix, signature: signature(look, eyeParts)) {
-            model(
-                Mannequin.eyeWhites(face: avatar.face, eye: avatar.eye),
-                material: glossy(AvatarPalette.sclera, roughness: 0.25, clearcoat: 0.5)
-            )
-        }
-        replaceChild(of: turntable, prefix: irisPrefix, signature: signature(look, eyeParts + [.eyeColor])) {
-            model(
-                Mannequin.irises(face: avatar.face, eye: avatar.eye),
-                material: glossy(avatar.eyeColor, roughness: 0.2, clearcoat: 0.6)
-            )
-        }
-        replaceChild(of: turntable, prefix: pupilPrefix, signature: signature(look, eyeParts)) {
-            model(
-                Mannequin.pupils(face: avatar.face, eye: avatar.eye),
-                material: glossy(AvatarPalette.pupil, roughness: 0.2, clearcoat: 0.6)
-            )
-        }
-        replaceChild(of: turntable, prefix: lipsPrefix, signature: signature(look, [.gender, .face, .lips, .lipColor])) {
-            model(
-                Mannequin.lips(face: avatar.face, shape: avatar.lips),
-                material: glossy(avatar.lipColor, roughness: 0.4, clearcoat: 0.4)
-            )
+        replaceChild(of: turntable, prefix: bodyPrefix, signature: signature(look, [.gender, .body, .face, .skin])) {
+            model(Mannequin.body(avatar.body, face: avatar.face, nose: NoseShape.presets[0]), material: porcelain(avatar.skin))
         }
 
         let hairParts: [AvatarPart] = [.gender, .hair, .bangs, .color, .face, .body]
@@ -373,7 +343,7 @@ private enum AvatarScene {
         return material
     }
 
-    /// Shiny finish for eyes and lips.
+    /// Glossy finish for reflective materials.
     private static func glossy(_ color: UIColor, roughness: Float, clearcoat: Float) -> PhysicallyBasedMaterial {
         var material = PhysicallyBasedMaterial()
         material.baseColor = .init(tint: color)
