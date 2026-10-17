@@ -88,7 +88,6 @@ private struct AppTabs: View {
                 .navigationDestination(item: $selectedItemId) { id in
                     PrototypeItemDetailView(closet: closet, itemID: id)
                 }
-                .toolbar { signOutToolbar }
                 .onAppear { closet.reload() }
             }
             .tabItem { Label("My Closet", systemImage: "hanger") }
@@ -184,13 +183,6 @@ private struct AppTabs: View {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { presentNextSharedImage() }
-        }
-    }
-
-    @ToolbarContentBuilder
-    private var signOutToolbar: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
-            Button("Sign Out", action: signOut)
         }
     }
 

@@ -287,19 +287,18 @@ private enum AvatarScene {
             )
         }
 
-        // 3D procedural clothing pieces turning 360 degrees on the turntable
+        // 3D procedural preset clothing pieces turning 360 degrees on the turntable
         for category in ClothingCategory.allCases {
             let garmentPrefix = "garment-\(category.rawValue)-"
             if let item = worn[category] {
                 let img = uiImage?(item)
                 let color = GarmentColorExtractor.dominantColor(from: img)
-                let proportions = GarmentMeasurement.calculateProportions(from: img, category: category)
+                let preset = GarmentPreset.detect(name: item.name, category: category, itemId: item.id)
                 let colorKey = "\(color.hashValue)"
-                let propKey = "\(Int(proportions.widthRatio * 100))-\(Int(proportions.lengthRatio * 100))"
-                let sig = "\(item.id)-\(colorKey)-\(propKey)-\(avatar.body.name)"
+                let sig = "\(item.id)-\(preset.rawValue)-\(colorKey)-\(avatar.body.name)"
 
                 replaceChild(of: turntable, prefix: garmentPrefix, signature: sig) {
-                    let mesh = MannequinGarments.mesh(for: category, shape: avatar.body, proportions: proportions)
+                    let mesh = MannequinGarments.mesh(for: preset, shape: avatar.body)
                     return model(mesh, material: fabricFinish(color))
                 }
             } else {
