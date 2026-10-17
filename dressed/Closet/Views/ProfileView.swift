@@ -45,6 +45,8 @@ struct ProfileView: View {
     let image: (ClothingItem) -> Image
     let onSignOut: () -> Void
 
+    let uiImage: ((ClothingItem) -> UIImage?)?
+
     @State private var path: [StudioStep] = []
 
     init(
@@ -52,32 +54,34 @@ struct ProfileView: View {
         items: [ClothingItem],
         model: OutfitStudioModel,
         onSignOut: @escaping () -> Void,
-        image: @escaping (ClothingItem) -> Image = { _ in Image(systemName: "photo") }
+        image: @escaping (ClothingItem) -> Image = { _ in Image(systemName: "photo") },
+        uiImage: ((ClothingItem) -> UIImage?)? = nil
     ) {
         self.username = username
         self.items = items
         self.model = model
         self.onSignOut = onSignOut
         self.image = image
+        self.uiImage = uiImage
     }
 
     var body: some View {
         NavigationStack(path: $path) {
-            ProfileHome(username: username, model: model, image: image, onSignOut: onSignOut) {
+            ProfileHome(username: username, model: model, image: image, uiImage: uiImage, onSignOut: onSignOut) {
                 path.append(.customize)
             }
             .navigationDestination(for: StudioStep.self) { step in
                 switch step {
                 case .customize:
-                    AvatarCustomizationScreen(model: model, image: image) { path.append(.tryOn) }
+                    AvatarCustomizationScreen(model: model, image: image, uiImage: uiImage) { path.append(.tryOn) }
                 case .tryOn:
-                    TryOnScreen(model: model, items: items, image: image) { path.append(.fullBody) }
+                    TryOnScreen(model: model, items: items, image: image, uiImage: uiImage) { path.append(.fullBody) }
                 case .fullBody:
-                    FullBodyScreen(model: model, image: image) { path.append(.fullScreen) }
+                    FullBodyScreen(model: model, image: image, uiImage: uiImage) { path.append(.fullScreen) }
                 case .fullScreen:
-                    FullScreenAvatar(model: model, image: image) { path.append(.takePic) }
+                    FullScreenAvatar(model: model, image: image, uiImage: uiImage) { path.append(.takePic) }
                 case .takePic:
-                    TakePicScreen(model: model, image: image)
+                    TakePicScreen(model: model, image: image, uiImage: uiImage)
                 }
             }
         }
@@ -90,6 +94,7 @@ private struct ProfileHome: View {
     let username: String
     let model: OutfitStudioModel
     let image: (ClothingItem) -> Image
+    var uiImage: ((ClothingItem) -> UIImage?)? = nil
     let onSignOut: () -> Void
     let onEditAvatar: () -> Void
 
@@ -98,7 +103,7 @@ private struct ProfileHome: View {
             VStack(spacing: 16) {
                 Button(action: onEditAvatar) {
                     // Fixed zoom so the profile picture doesn't inherit the studio's zoom slider.
-                    AvatarView(look: model.look, worn: model.worn, image: image, zoom: 1)
+                    AvatarView(look: model.look, worn: model.worn, image: image, uiImage: uiImage, zoom: 1)
                         .allowsHitTesting(false)   // the button handles taps, not the spin gesture
                         .frame(width: 140, height: 210)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -150,6 +155,7 @@ private struct ZoomSlider: View {
 private struct AvatarCustomizationScreen: View {
     @Bindable var model: OutfitStudioModel
     let image: (ClothingItem) -> Image
+    var uiImage: ((ClothingItem) -> UIImage?)? = nil
     let onDone: () -> Void
 
     @State private var part: AvatarPart = .gender
@@ -157,7 +163,7 @@ private struct AvatarCustomizationScreen: View {
     var body: some View {
         VStack(spacing: 0) {
             ZStack(alignment: .trailing) {
-                AvatarView(look: model.look, worn: model.worn, image: image, zoom: model.zoom)
+                AvatarView(look: model.look, worn: model.worn, image: image, uiImage: uiImage, zoom: model.zoom)
                 ZoomSlider(zoom: $model.zoom).padding(.trailing, 8)
             }
 
@@ -243,6 +249,7 @@ private struct TryOnScreen: View {
     @Bindable var model: OutfitStudioModel
     let items: [ClothingItem]
     let image: (ClothingItem) -> Image
+    var uiImage: ((ClothingItem) -> UIImage?)? = nil
     let onDone: () -> Void
 
     @State private var tab = 0  // 0 = Clothing, 1 = Saved fits
@@ -256,7 +263,7 @@ private struct TryOnScreen: View {
     var body: some View {
         VStack(spacing: 8) {
             ZStack(alignment: .trailing) {
-                AvatarView(look: model.look, worn: model.worn, image: image, zoom: model.zoom)
+                AvatarView(look: model.look, worn: model.worn, image: image, uiImage: uiImage, zoom: model.zoom)
                 ZoomSlider(zoom: $model.zoom).padding(.trailing, 8)
             }
 
@@ -326,11 +333,12 @@ private struct TryOnScreen: View {
 private struct FullBodyScreen: View {
     @Bindable var model: OutfitStudioModel
     let image: (ClothingItem) -> Image
+    var uiImage: ((ClothingItem) -> UIImage?)? = nil
     let onFullScreen: () -> Void
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            AvatarView(look: model.look, worn: model.worn, image: image, zoom: model.zoom)
+            AvatarView(look: model.look, worn: model.worn, image: image, uiImage: uiImage, zoom: model.zoom)
             wornList.padding(8)
         }
         .navigationTitle("User avatar")
@@ -375,11 +383,12 @@ private struct FullScreenAvatar: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var model: OutfitStudioModel
     let image: (ClothingItem) -> Image
+    var uiImage: ((ClothingItem) -> UIImage?)? = nil
     let onTakePic: () -> Void
 
     var body: some View {
         ZStack {
-            AvatarView(look: model.look, worn: model.worn, image: image, zoom: model.zoom)
+            AvatarView(look: model.look, worn: model.worn, image: image, uiImage: uiImage, zoom: model.zoom)
                 .ignoresSafeArea()
 
             HStack {
@@ -410,6 +419,7 @@ private struct TakePicScreen: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var model: OutfitStudioModel
     let image: (ClothingItem) -> Image
+    var uiImage: ((ClothingItem) -> UIImage?)? = nil
 
     @State private var snapshot: UIImage?
 
@@ -422,7 +432,7 @@ private struct TakePicScreen: View {
                 }
             }
 
-            AvatarView(look: model.look, worn: model.worn, image: image, zoom: model.zoom)
+            AvatarView(look: model.look, worn: model.worn, image: image, uiImage: uiImage, zoom: model.zoom)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
 
             HStack(spacing: 16) {
@@ -449,7 +459,7 @@ private struct TakePicScreen: View {
 
     private func render() -> UIImage? {
         let renderer = ImageRenderer(
-            content: AvatarView(look: model.look, worn: model.worn, image: image, zoom: model.zoom, use3D: false)
+            content: AvatarView(look: model.look, worn: model.worn, image: image, uiImage: uiImage, zoom: model.zoom, use3D: false)
                 .frame(width: 300, height: 450)
         )
         renderer.scale = 3

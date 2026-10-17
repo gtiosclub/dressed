@@ -114,7 +114,8 @@ private struct AppTabs: View {
                 items: closet.items,
                 model: studio,
                 onSignOut: signOut,
-                image: { photo(for: $0) }
+                image: { photo(for: $0) },
+                uiImage: { closet.image(for: $0) }
             )
                 .tabItem { Label("Profile", systemImage: "person.crop.circle") }
                 .tag(3)
