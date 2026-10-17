@@ -30,6 +30,7 @@ struct AvatarView: View {
     let look: [AvatarPart: Int]
     let worn: [ClothingCategory: ClothingItem]
     let image: (ClothingItem) -> Image
+    var uiImage: ((ClothingItem) -> UIImage?)? = nil
     var zoom: Double = 1
     var use3D: Bool = true
 
@@ -41,19 +42,20 @@ struct AvatarView: View {
             ZStack {
                 AvatarBackdrop(size: size, zoom: zoom, showsFloorShadow: use3D)
                 if use3D {
-                    AvatarStage(look: look, zoom: zoom, orbit: orbit)
+                    AvatarStage(look: look, worn: worn, uiImage: uiImage, zoom: zoom, orbit: orbit)
                 } else {
-                    Image(systemName: "figure.stand")
+                    Image(systemName: AvatarGender(look: look).symbol)
                         .resizable()
                         .scaledToFit()
                         .foregroundStyle(Color(uiColor: AvatarScene.tint(look)))
                         .frame(height: size.height * 0.95)
                         .position(x: size.width / 2, y: size.height / 2)
                         .scaleEffect(zoom, anchor: .top)
+
+                    GarmentOverlay(worn: worn, image: image, size: size, orbit: orbit)
+                        .scaleEffect(zoom, anchor: .top)
+                        .allowsHitTesting(false)
                 }
-                GarmentOverlay(worn: worn, image: image, size: size, orbit: orbit)
-                    .scaleEffect(zoom, anchor: .top)
-                    .allowsHitTesting(false)
             }
             .contentShape(Rectangle())
             .gesture(turnGesture(viewWidth: size.width), including: use3D ? .all : .none)
@@ -85,6 +87,8 @@ struct AvatarView: View {
 /// The RealityKit scene. It reads the orbit itself, so spinning re-renders only this view.
 private struct AvatarStage: View {
     let look: [AvatarPart: Int]
+    let worn: [ClothingCategory: ClothingItem]
+    let uiImage: ((ClothingItem) -> UIImage?)?
     let zoom: Double
     let orbit: AvatarOrbit
 
@@ -92,10 +96,10 @@ private struct AvatarStage: View {
         let yaw = orbit.yaw
         RealityView { content in
             content.camera = .virtual
-            content.add(AvatarScene.makeRoot(look: look, zoom: zoom, yaw: yaw))
+            content.add(AvatarScene.makeRoot(look: look, worn: worn, uiImage: uiImage, zoom: zoom, yaw: yaw))
         } update: { content in
             guard let root = content.entities.first(where: { $0.name == AvatarScene.rootName }) else { return }
-            AvatarScene.update(root, look: look, zoom: zoom, yaw: yaw)
+            AvatarScene.update(root, look: look, worn: worn, uiImage: uiImage, zoom: zoom, yaw: yaw)
         }
         // Let the SwiftUI backdrop show through instead of the system background.
         .backgroundStyle(Color.clear)
@@ -194,7 +198,13 @@ private enum AvatarScene {
         "slot-\(category.rawValue)"
     }
 
-    static func makeRoot(look: [AvatarPart: Int], zoom: Double, yaw: Double) -> Entity {
+    static func makeRoot(
+        look: [AvatarPart: Int],
+        worn: [ClothingCategory: ClothingItem],
+        uiImage: ((ClothingItem) -> UIImage?)?,
+        zoom: Double,
+        yaw: Double
+    ) -> Entity {
         let root = Entity()
         root.name = rootName
 
@@ -215,29 +225,67 @@ private enum AvatarScene {
             turntable.addChild(slot)
         }
 
-        update(root, look: look, zoom: zoom, yaw: yaw)
+        update(root, look: look, worn: worn, uiImage: uiImage, zoom: zoom, yaw: yaw)
         return root
     }
 
     /// Cheap enough to run every frame while spinning: meshes rebuild only when the look changes.
-    static func update(_ root: Entity, look: [AvatarPart: Int], zoom: Double, yaw: Double) {
+    static func update(
+        _ root: Entity,
+        look: [AvatarPart: Int],
+        worn: [ClothingCategory: ClothingItem],
+        uiImage: ((ClothingItem) -> UIImage?)?,
+        zoom: Double,
+        yaw: Double
+    ) {
         root.findEntity(named: cameraName)?.position = cameraPosition(zoom: zoom)
         guard let turntable = root.findEntity(named: turntableName) else { return }
         turntable.orientation = simd_quatf(angle: Float(yaw), axis: [0, 1, 0])
 
-        let body = BodyShape.presets[AvatarPart.body.selection(in: look)]
-        let face = FaceShape.presets[AvatarPart.face.selection(in: look)]
-        replaceChild(of: turntable, prefix: bodyPrefix, signature: signature(look, [.body, .face, .skin])) {
-            model(Mannequin.body(body, face: face), material: porcelain(tint(look)))
+        let avatar = AvatarLook(look)
+
+        // Gender is part of every signature: it changes which body and face presets the indices point to.
+        replaceChild(of: turntable, prefix: bodyPrefix, signature: signature(look, [.gender, .body, .face, .skin])) {
+            model(Mannequin.body(avatar.body, face: avatar.face, nose: NoseShape.presets[0]), material: porcelain(avatar.skin))
         }
 
-        let hairStyle = HairStyle(rawValue: AvatarPart.hair.selection(in: look)) ?? .short
-        let bangs = BangsStyle(rawValue: AvatarPart.bangs.selection(in: look)) ?? .open
-        let hairColor = AvatarPalette.hair[AvatarPart.color.selection(in: look)]
-        let hairParts: [AvatarPart] = [.hair, .bangs, .color, .face, .body]
+        let hairParts: [AvatarPart] = [.gender, .hair, .bangs, .color, .face, .body]
         replaceChild(of: turntable, prefix: hairPrefix, signature: signature(look, hairParts)) {
-            model(Mannequin.hair(hairStyle, bangs: bangs, face: face, body: body), material: hairFinish(hairColor))
+            model(
+                Mannequin.hair(avatar.hair, bangs: avatar.bangs, face: avatar.face, body: avatar.body),
+                material: hairFinish(avatar.hairColor)
+            )
         }
+
+        // 3D procedural preset clothing pieces turning 360 degrees on the turntable
+        for category in ClothingCategory.allCases {
+            let garmentPrefix = "garment-\(category.rawValue)-"
+            if let item = worn[category] {
+                let img = uiImage?(item)
+                let color = GarmentColorExtractor.dominantColor(from: img)
+                let preset = GarmentPreset.detect(name: item.name, category: category, itemId: item.id)
+                let colorKey = "\(color.hashValue)"
+                let sig = "\(item.id)-\(preset.rawValue)-\(colorKey)-\(avatar.body.name)"
+
+                replaceChild(of: turntable, prefix: garmentPrefix, signature: sig) {
+                    let mesh = MannequinGarments.mesh(for: preset, shape: avatar.body)
+                    return model(mesh, material: fabricFinish(color))
+                }
+            } else {
+                turntable.children.filter { $0.name.hasPrefix(garmentPrefix) }.forEach { $0.removeFromParent() }
+            }
+        }
+    }
+
+    private static func fabricFinish(_ color: UIColor) -> PhysicallyBasedMaterial {
+        var material = PhysicallyBasedMaterial()
+        material.baseColor = .init(tint: color)
+        material.roughness = .init(floatLiteral: 0.58)
+        material.metallic = .init(floatLiteral: 0.04)
+        material.clearcoat = .init(floatLiteral: 0.15)
+        material.clearcoatRoughness = .init(floatLiteral: 0.25)
+        material.faceCulling = .none
+        return material
     }
 
     private static func cameraPosition(zoom: Double) -> SIMD3<Float> {
@@ -292,6 +340,17 @@ private enum AvatarScene {
         material.metallic = .init(floatLiteral: 0)
         material.clearcoat = .init(floatLiteral: 0.3)
         material.clearcoatRoughness = .init(floatLiteral: 0.25)
+        return material
+    }
+
+    /// Glossy finish for reflective materials.
+    private static func glossy(_ color: UIColor, roughness: Float, clearcoat: Float) -> PhysicallyBasedMaterial {
+        var material = PhysicallyBasedMaterial()
+        material.baseColor = .init(tint: color)
+        material.roughness = .init(floatLiteral: roughness)
+        material.metallic = .init(floatLiteral: 0)
+        material.clearcoat = .init(floatLiteral: clearcoat)
+        material.clearcoatRoughness = .init(floatLiteral: 0.15)
         return material
     }
 

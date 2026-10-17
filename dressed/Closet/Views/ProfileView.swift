@@ -33,42 +33,106 @@ final class OutfitStudioModel {
     }
 }
 
-enum StudioStep: Hashable { case tryOn, fullBody, fullScreen, takePic }
+enum StudioStep: Hashable { case customize, tryOn, fullBody, fullScreen, takePic }
 
-// Wireflow: customize -> try on -> full body -> full screen -> take pic
+// Profile tab: username + a small avatar. Tapping the avatar opens the studio:
+// customize -> try on -> full body -> full screen -> take pic
 // The model is owned by the parent so saved outfits can also show up in the closet's Outfits tab.
-struct OutfitStudioView: View {
+struct ProfileView: View {
+    let username: String
     let items: [ClothingItem]
     let model: OutfitStudioModel
     let image: (ClothingItem) -> Image
+    let onSignOut: () -> Void
+
+    let uiImage: ((ClothingItem) -> UIImage?)?
 
     @State private var path: [StudioStep] = []
 
     init(
+        username: String,
         items: [ClothingItem],
         model: OutfitStudioModel,
-        image: @escaping (ClothingItem) -> Image = { _ in Image(systemName: "photo") }
+        onSignOut: @escaping () -> Void,
+        image: @escaping (ClothingItem) -> Image = { _ in Image(systemName: "photo") },
+        uiImage: ((ClothingItem) -> UIImage?)? = nil
     ) {
+        self.username = username
         self.items = items
         self.model = model
+        self.onSignOut = onSignOut
         self.image = image
+        self.uiImage = uiImage
     }
 
     var body: some View {
         NavigationStack(path: $path) {
-            AvatarCustomizationScreen(model: model, image: image) { path.append(.tryOn) }
-                .navigationDestination(for: StudioStep.self) { step in
-                    switch step {
-                    case .tryOn:
-                        TryOnScreen(model: model, items: items, image: image) { path.append(.fullBody) }
-                    case .fullBody:
-                        FullBodyScreen(model: model, image: image) { path.append(.fullScreen) }
-                    case .fullScreen:
-                        FullScreenAvatar(model: model, image: image) { path.append(.takePic) }
-                    case .takePic:
-                        TakePicScreen(model: model, image: image)
-                    }
+            ProfileHome(username: username, model: model, image: image, uiImage: uiImage, onSignOut: onSignOut) {
+                path.append(.customize)
+            }
+            .navigationDestination(for: StudioStep.self) { step in
+                switch step {
+                case .customize:
+                    AvatarCustomizationScreen(model: model, image: image, uiImage: uiImage) { path.append(.tryOn) }
+                case .tryOn:
+                    TryOnScreen(model: model, items: items, image: image, uiImage: uiImage) { path.append(.fullBody) }
+                case .fullBody:
+                    FullBodyScreen(model: model, image: image, uiImage: uiImage) { path.append(.fullScreen) }
+                case .fullScreen:
+                    FullScreenAvatar(model: model, image: image, uiImage: uiImage) { path.append(.takePic) }
+                case .takePic:
+                    TakePicScreen(model: model, image: image, uiImage: uiImage)
                 }
+            }
+        }
+    }
+}
+
+// MARK: - Profile home
+
+private struct ProfileHome: View {
+    let username: String
+    let model: OutfitStudioModel
+    let image: (ClothingItem) -> Image
+    var uiImage: ((ClothingItem) -> UIImage?)? = nil
+    let onSignOut: () -> Void
+    let onEditAvatar: () -> Void
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                Button(action: onEditAvatar) {
+                    // Fixed zoom so the profile picture doesn't inherit the studio's zoom slider.
+                    AvatarView(look: model.look, worn: model.worn, image: image, uiImage: uiImage, zoom: 1)
+                        .allowsHitTesting(false)   // the button handles taps, not the spin gesture
+                        .frame(width: 140, height: 210)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .contentShape(RoundedRectangle(cornerRadius: 16))   // keeps the whole avatar tappable
+                        .overlay(alignment: .bottomTrailing) {
+                            Image(systemName: "pencil.circle.fill")
+                                .font(.title2)
+                                .symbolRenderingMode(.palette)
+                                .foregroundStyle(.white, Color.accentColor)
+                                .padding(8)
+                        }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Edit avatar")
+
+                Text(username).font(.title2.bold())
+
+                Button("Edit avatar", action: onEditAvatar)
+                    .buttonStyle(.bordered)
+            }
+            .frame(maxWidth: .infinity)
+            .padding()
+        }
+        .navigationTitle("Profile")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Sign Out", action: onSignOut)
+            }
         }
     }
 }
@@ -91,22 +155,20 @@ private struct ZoomSlider: View {
 private struct AvatarCustomizationScreen: View {
     @Bindable var model: OutfitStudioModel
     let image: (ClothingItem) -> Image
+    var uiImage: ((ClothingItem) -> UIImage?)? = nil
     let onDone: () -> Void
 
-    @State private var part: AvatarPart = .bangs
+    @State private var part: AvatarPart = .gender
 
     var body: some View {
         VStack(spacing: 0) {
             ZStack(alignment: .trailing) {
-                AvatarView(look: model.look, worn: model.worn, image: image, zoom: model.zoom)
+                AvatarView(look: model.look, worn: model.worn, image: image, uiImage: uiImage, zoom: model.zoom)
                 ZoomSlider(zoom: $model.zoom).padding(.trailing, 8)
             }
 
             VStack(spacing: 12) {
-                Picker("Part", selection: $part) {
-                    ForEach(AvatarPart.allCases) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.segmented)
+                partChips
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
@@ -114,6 +176,7 @@ private struct AvatarCustomizationScreen: View {
                             optionTile(index)
                         }
                     }
+                    .padding(.horizontal, 2)
                 }
             }
             .padding()
@@ -126,24 +189,55 @@ private struct AvatarCustomizationScreen: View {
         }
     }
 
+    // Seven parts don't fit a segmented control, so these scroll.
+    private var partChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(AvatarPart.allCases) { candidate in
+                    Button { part = candidate } label: {
+                        Text(candidate.title)
+                            .font(.subheadline.weight(.medium))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .foregroundStyle(part == candidate ? Color.white : Color.primary)
+                            .background(part == candidate ? Color.accentColor : Color.gray.opacity(0.15), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
     private func optionTile(_ index: Int) -> some View {
         let isSelected = part.selection(in: model.look) == index
         let swatch = part.swatch(index)
-        let fill: Color = swatch ?? Color.gray.opacity(0.25)
+        let preview = AvatarPreviews.image(for: part, index: index, in: model.look)
 
         return Button {
             model.look[part] = index
         } label: {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(fill)
-                .frame(width: 90, height: 90)
-                .overlay {
-                    if swatch == nil { Text(part.label(index)).font(.caption).foregroundStyle(.secondary) }
+            ZStack {
+                RoundedRectangle(cornerRadius: 12).fill(swatch ?? Color.gray.opacity(0.15))
+                if let preview {
+                    VStack(spacing: 0) {
+                        Image(uiImage: preview)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 92)
+                        Text(part.label(index, in: model.look))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                } else if swatch == nil {
+                    Text(part.label(index, in: model.look)).font(.caption).foregroundStyle(.secondary)
                 }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(isSelected ? Color.accentColor : .clear, lineWidth: 3)
-                }
+            }
+            .frame(width: 90, height: 118)
+            .overlay {
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isSelected ? Color.accentColor : .clear, lineWidth: 3)
+            }
         }
         .buttonStyle(.plain)
     }
@@ -155,6 +249,7 @@ private struct TryOnScreen: View {
     @Bindable var model: OutfitStudioModel
     let items: [ClothingItem]
     let image: (ClothingItem) -> Image
+    var uiImage: ((ClothingItem) -> UIImage?)? = nil
     let onDone: () -> Void
 
     @State private var tab = 0  // 0 = Clothing, 1 = Saved fits
@@ -168,7 +263,7 @@ private struct TryOnScreen: View {
     var body: some View {
         VStack(spacing: 8) {
             ZStack(alignment: .trailing) {
-                AvatarView(look: model.look, worn: model.worn, image: image, zoom: model.zoom)
+                AvatarView(look: model.look, worn: model.worn, image: image, uiImage: uiImage, zoom: model.zoom)
                 ZoomSlider(zoom: $model.zoom).padding(.trailing, 8)
             }
 
@@ -238,11 +333,12 @@ private struct TryOnScreen: View {
 private struct FullBodyScreen: View {
     @Bindable var model: OutfitStudioModel
     let image: (ClothingItem) -> Image
+    var uiImage: ((ClothingItem) -> UIImage?)? = nil
     let onFullScreen: () -> Void
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            AvatarView(look: model.look, worn: model.worn, image: image, zoom: model.zoom)
+            AvatarView(look: model.look, worn: model.worn, image: image, uiImage: uiImage, zoom: model.zoom)
             wornList.padding(8)
         }
         .navigationTitle("User avatar")
@@ -287,11 +383,12 @@ private struct FullScreenAvatar: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var model: OutfitStudioModel
     let image: (ClothingItem) -> Image
+    var uiImage: ((ClothingItem) -> UIImage?)? = nil
     let onTakePic: () -> Void
 
     var body: some View {
         ZStack {
-            AvatarView(look: model.look, worn: model.worn, image: image, zoom: model.zoom)
+            AvatarView(look: model.look, worn: model.worn, image: image, uiImage: uiImage, zoom: model.zoom)
                 .ignoresSafeArea()
 
             HStack {
@@ -322,6 +419,7 @@ private struct TakePicScreen: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var model: OutfitStudioModel
     let image: (ClothingItem) -> Image
+    var uiImage: ((ClothingItem) -> UIImage?)? = nil
 
     @State private var snapshot: UIImage?
 
@@ -334,7 +432,7 @@ private struct TakePicScreen: View {
                 }
             }
 
-            AvatarView(look: model.look, worn: model.worn, image: image, zoom: model.zoom)
+            AvatarView(look: model.look, worn: model.worn, image: image, uiImage: uiImage, zoom: model.zoom)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
 
             HStack(spacing: 16) {
@@ -361,7 +459,7 @@ private struct TakePicScreen: View {
 
     private func render() -> UIImage? {
         let renderer = ImageRenderer(
-            content: AvatarView(look: model.look, worn: model.worn, image: image, zoom: model.zoom, use3D: false)
+            content: AvatarView(look: model.look, worn: model.worn, image: image, uiImage: uiImage, zoom: model.zoom, use3D: false)
                 .frame(width: 300, height: 450)
         )
         renderer.scale = 3
@@ -370,5 +468,5 @@ private struct TakePicScreen: View {
 }
 
 #Preview {
-    OutfitStudioView(items: ClothingItem.previewSamples, model: OutfitStudioModel())
+    ProfileView(username: "aditya", items: ClothingItem.previewSamples, model: OutfitStudioModel(), onSignOut: {})
 }

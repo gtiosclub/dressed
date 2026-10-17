@@ -33,6 +33,17 @@ struct OutfitItemTray: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, minHeight: 100)
+        } else if items.count == 1 {
+            let item = items[0]
+            ClothingItemCard(
+                image: item.image,
+                name: item.name,
+                category: item.category,
+                subtitle: item.subtitle,
+                onTap: { onSelect(item.id) }
+            )
+            .frame(height: 240)
+            .frame(maxWidth: .infinity, alignment: .center)
         } else {
             GeometryReader { geo in
                 ScrollView(.horizontal, showsIndicators: false) {

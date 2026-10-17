@@ -110,79 +110,219 @@ struct ImportReviewView: View {
         case manual
     }
 
+    enum ImportPreviewMode: String, CaseIterable, Identifiable {
+        case avatar3D = "3D Try-On"
+        case avatar2D = "Avatar Style"
+        case original = "Original Photo"
+
+        var id: String { rawValue }
+    }
+
     @State private var name = ""
-    @State private var category: ClothingCategory = .other
+    @State private var category: ClothingCategory = .tops
+    @State private var selectedPreset: GarmentPreset = .tShirt
+    @State private var activeFilter: PresetFilterCategory = .all
+    @State private var previewMode: ImportPreviewMode = .avatar3D
     @State private var hasEditedName = false
     @State private var hasEditedCategory = false
     @State private var recognitionState: RecognitionState = .analyzing
     @State private var recognitionAttempt = 0
     @State private var isSaving = false
     @State private var saveError: String?
+    @State private var stylizedResult: GarmentStylizer.StylizedResult?
+
+    private var filteredPresets: [GarmentPreset] {
+        if activeFilter == .all {
+            return GarmentPreset.allCases
+        }
+        return GarmentPreset.allCases.filter { $0.filterCategory == activeFilter }
+    }
 
     var body: some View {
         NavigationStack {
             Form {
+                // MARK: - Preview Section
                 Section {
-                    if let uiImage = UIImage(data: image.data) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxWidth: .infinity)
-                            .frame(maxHeight: 300)
-                            .accessibilityLabel("Image to import")
+                    previewContent
+                        .frame(maxWidth: .infinity)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
+
+                    Picker("Preview Mode", selection: $previewMode) {
+                        ForEach(ImportPreviewMode.allCases) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
                     }
+                    .pickerStyle(.segmented)
+
+                    // Extracted colors & details info bar
+                    if let stylized = stylizedResult {
+                        HStack(spacing: 12) {
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(Color(uiColor: stylized.dominantColor))
+                                    .frame(width: 18, height: 18)
+                                    .overlay(Circle().stroke(Color.black.opacity(0.15), lineWidth: 1))
+                                Text("Dominant Color")
+                                    .font(.caption2.weight(.medium))
+                            }
+
+                            if let accent = stylized.accentColor {
+                                HStack(spacing: 6) {
+                                    Circle()
+                                        .fill(Color(uiColor: accent))
+                                        .frame(width: 18, height: 18)
+                                        .overlay(Circle().stroke(Color.black.opacity(0.15), lineWidth: 1))
+                                    Text("Accent")
+                                        .font(.caption2.weight(.medium))
+                                }
+                            }
+
+                            Spacer()
+
+                            if stylized.graphicEmblem != nil {
+                                Label("Design Extracted", systemImage: "sparkles")
+                                    .font(.caption2.bold())
+                                    .foregroundStyle(.purple)
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+
                     Text(image.source)
                         .foregroundStyle(.secondary)
+                        .font(.caption2)
                 }
 
-                Section("Review this piece") {
+                // MARK: - Preset Selection Section
+                Section {
+                    // Category filter tabs
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(PresetFilterCategory.allCases) { filter in
+                                Button {
+                                    activeFilter = filter
+                                } label: {
+                                    Text(filter.rawValue)
+                                        .font(.caption.weight(activeFilter == filter ? .bold : .medium))
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            activeFilter == filter ? Color.accentColor : Color(.secondarySystemBackground),
+                                            in: Capsule()
+                                        )
+                                        .foregroundStyle(activeFilter == filter ? Color.white : Color.primary)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+
+                    // Horizontal Preset Cards
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(filteredPresets) { preset in
+                                Button {
+                                    selectPreset(preset)
+                                } label: {
+                                    VStack(spacing: 6) {
+                                        Image(systemName: preset.icon)
+                                            .font(.system(size: 22))
+                                            .foregroundStyle(selectedPreset == preset ? Color.white : Color.accentColor)
+                                            .frame(height: 26)
+
+                                        Text(preset.rawValue)
+                                            .font(.caption2.weight(selectedPreset == preset ? .bold : .medium))
+                                            .foregroundStyle(selectedPreset == preset ? Color.white : Color.primary)
+                                            .lineLimit(1)
+                                    }
+                                    .frame(width: 84, height: 72)
+                                    .background(
+                                        selectedPreset == preset ? Color.accentColor : Color(.secondarySystemGroupedBackground),
+                                        in: RoundedRectangle(cornerRadius: 12)
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(selectedPreset == preset ? Color.accentColor : Color.black.opacity(0.08), lineWidth: selectedPreset == preset ? 2 : 1)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+
+                    // Shoulder coverage & avatar fit badge
+                    HStack(spacing: 6) {
+                        Image(systemName: selectedPreset.coversShoulders ? "shield.fill" : "sparkles")
+                            .foregroundStyle(selectedPreset.coversShoulders ? .blue : .purple)
+                        Text(selectedPreset.coverageDescription)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.top, 2)
+                } header: {
+                    Text("Avatar Preset & 3D Fit")
+                } footer: {
+                    Text("Tap a preset to fill it with your photo's colors and graphics, fitted perfectly to your avatar in 360°.")
+                }
+
+                // MARK: - Review & Name Section
+                Section("Piece details") {
                     switch recognitionState {
                     case .analyzing:
                         HStack {
                             ProgressView()
-                            Text("Looking for clothing…")
+                            Text("Filling preset with details from photo…")
                         }
                         Button("Enter details manually") {
                             recognitionState = .manual
                             recognitionAttempt += 1
                         }
                     case .suggested:
-                        Label("Suggested from this photo", systemImage: "sparkles")
+                        Label("Suggested preset: \(selectedPreset.rawValue)", systemImage: "sparkles")
                             .foregroundStyle(.secondary)
                     case .noMatch:
-                        Text("No clothing suggestion found. Enter the details yourself.")
+                        Text("Choose a preset above and name your piece.")
                             .foregroundStyle(.secondary)
                         Button("Try Recognition Again") { retryRecognition() }
                     case .failed:
-                        Text("Could not analyze this photo. You can still enter the details yourself.")
+                        Text("Could not analyze photo automatically. Select a preset above.")
                             .foregroundStyle(.secondary)
                         Button("Try Recognition Again") { retryRecognition() }
                     case .manual:
-                        Text("Enter the details for this photo.")
+                        Text("Preset filled with photo colors. Review details below.")
                             .foregroundStyle(.secondary)
                     }
-                    TextField("Name (for example, Blue shirt)", text: Binding(
+
+                    TextField("Name (for example, Blue \(selectedPreset.rawValue))", text: Binding(
                         get: { name },
                         set: { name = $0; hasEditedName = true }
                     ))
+
                     Picker("Category", selection: Binding(
                         get: { category },
-                        set: { category = $0; hasEditedCategory = true }
+                        set: { newCat in
+                            category = newCat
+                            hasEditedCategory = true
+                            if selectedPreset.category != newCat {
+                                selectPreset(GarmentPreset.detect(name: name, category: newCat))
+                            }
+                        }
                     )) {
                         ForEach(ClothingCategory.allCases, id: \.self) { option in
                             Text(option.rawValue.capitalized).tag(option)
                         }
                     }
-                    Text("This checks the whole image for one garment. It cannot separate pieces or identify an exact product. Check the details before saving.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
                 }
 
+                // MARK: - Save Section
                 Section {
                     Button(action: saveToCloset) {
                         HStack {
                             Spacer()
-                            Text(isSaving ? "Saving…" : "Save to Closet")
+                            Text(isSaving ? "Saving to Closet…" : "Save to Closet")
+                                .bold()
                             Spacer()
                         }
                     }
@@ -207,22 +347,118 @@ struct ImportReviewView: View {
             .interactiveDismissDisabled(isSaving)
             .task(id: recognitionAttempt) {
                 guard recognitionState == .analyzing else { return }
+                async let suggestionTask = PrototypeGarmentRecognition.analyze(image.data)
+                async let stylizerTask = GarmentStylizer.convert(image.data)
+
                 do {
-                    let suggestion = try await PrototypeGarmentRecognition.analyze(image.data)
+                    let (suggestion, stylized) = try await (suggestionTask, stylizerTask)
                     guard !Task.isCancelled, recognitionState == .analyzing else { return }
+                    self.stylizedResult = stylized
+                    self.selectedPreset = stylized.detectedPreset
+                    self.category = stylized.detectedPreset.category
+
                     if let suggestion {
                         if !hasEditedName { name = suggestion.name }
                         if !hasEditedCategory { category = suggestion.category }
                         recognitionState = .suggested
                     } else {
+                        if !hasEditedName { name = stylized.detectedPreset.rawValue }
                         recognitionState = .noMatch
                     }
                 } catch is CancellationError {
-                    // Dismissing or choosing manual entry must not update a stale review.
                 } catch {
                     guard !Task.isCancelled, recognitionState == .analyzing else { return }
                     recognitionState = .failed
                 }
+            }
+        }
+    }
+
+    // MARK: - Preview ViewBuilder
+
+    @ViewBuilder
+    private var previewContent: some View {
+        switch previewMode {
+        case .avatar3D:
+            let previewItem = ClothingItem(
+                id: image.id,
+                ownerId: "current",
+                name: selectedPreset.rawValue,
+                category: category,
+                imagePath: "",
+                createdAt: Date()
+            )
+            ZStack(alignment: .bottom) {
+                AvatarView(
+                    look: [:],
+                    worn: [category: previewItem],
+                    image: { _ in Image(uiImage: stylizedResult?.image ?? UIImage()) },
+                    uiImage: { _ in stylizedResult?.image },
+                    zoom: 1.0,
+                    use3D: true
+                )
+                .frame(height: 280)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                    Text("Drag to rotate 360°")
+                }
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(.ultraThinMaterial, in: Capsule())
+                .padding(.bottom, 8)
+            }
+
+        case .avatar2D:
+            ZStack {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(white: 0.96), Color(white: 0.88)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(height: 280)
+
+                if let stylized = stylizedResult {
+                    Image(uiImage: stylized.image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxHeight: 250)
+                        .padding(12)
+                        .shadow(color: .black.opacity(0.12), radius: 6, y: 3)
+                } else {
+                    ProgressView()
+                }
+            }
+
+        case .original:
+            if let uiImage = UIImage(data: image.data) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity)
+                    .frame(maxHeight: 280)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
+        }
+    }
+
+    private func selectPreset(_ preset: GarmentPreset) {
+        selectedPreset = preset
+        category = preset.category
+        if !hasEditedName {
+            name = preset.rawValue
+        }
+        // Re-fill the preset with the photo's extracted details
+        Task {
+            let result = await GarmentStylizer.convert(image.data, preferredCategory: preset.category, presetHint: preset)
+            await MainActor.run {
+                self.stylizedResult = result
             }
         }
     }
@@ -236,7 +472,12 @@ struct ImportReviewView: View {
         guard !isSaving else { return }
         isSaving = true
         do {
-            try closet.save(imageData: image.data, draftId: image.id, name: name, category: category)
+            // Save the user's chosen preset choice for this item
+            GarmentPresetStore.set(selectedPreset, for: image.id)
+
+            // Save the filled avatar-style replicable piece (clean PNG)
+            let dataToSave = stylizedResult?.pngData ?? image.data
+            try closet.save(imageData: dataToSave, draftId: image.id, name: name, category: category)
             onSaved()
         } catch {
             saveError = error.localizedDescription
