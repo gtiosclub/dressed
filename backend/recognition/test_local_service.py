@@ -5,6 +5,7 @@ import threading
 import unittest
 from http.server import ThreadingHTTPServer
 from pathlib import Path
+from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -14,6 +15,9 @@ from local_service import Handler
 class LocalServiceTests(unittest.TestCase):
     def setUp(self):
         Handler.fixture = json.loads((Path(__file__).parent / "fixtures/object-localization-response.json").read_text())
+        Handler.live_project = None
+        Handler.request_count = 0
+        Handler.request_limit = 20
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
@@ -41,13 +45,27 @@ class LocalServiceTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, 400)
         caught.exception.close()
 
-    def test_cli_rejects_removed_live_mode(self):
+    def test_live_mode_requires_project(self):
         result = subprocess.run(
             [sys.executable, str(Path(__file__).parent / "local_service.py"), "--live"],
             capture_output=True, text=True, check=False,
         )
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("--fixture", result.stderr)
+        self.assertIn("expected one argument", result.stderr)
+
+    def test_live_request_limit_blocks_second_paid_call(self):
+        Handler.fixture = None
+        Handler.live_project = "dressed-511821"
+        Handler.request_limit = 1
+        response = json.loads((Path(__file__).parent / "fixtures/object-localization-response.json").read_text())
+        with patch("local_service.recognize", return_value=response) as provider:
+            with urlopen(self.request()) as first:
+                self.assertEqual(json.load(first)["status"], "review")
+            with self.assertRaises(HTTPError) as caught:
+                urlopen(self.request(import_id="draft-2"))
+            self.assertEqual(caught.exception.code, 400)
+            caught.exception.close()
+        provider.assert_called_once_with(b"sample", "dressed-511821")
 
 
 if __name__ == "__main__":

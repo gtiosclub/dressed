@@ -33,13 +33,15 @@ The iOS 27 simulator Photos library has three product photos for import checks: 
 
 ## Camera recognition test service
 
-The Camera and shared-image review screens look for pieces as soon as a new image opens. In Debug they first try a fixture service on this Mac at `127.0.0.1:8765`; if it is unavailable, they fall back to on-device Vision. The service has no paid or live provider mode. Billing is disabled on the separate `dressed-511821` recognition project; the app's `out-fitted` Firebase project is also unbilled. To check the UI, start the fixture service:
+The Camera and shared-image review screens look for pieces as soon as a new image opens. In Debug they first try a local service on this Mac at `127.0.0.1:8765`; if it is unavailable, they fall back to on-device Vision. Use fixture mode for repeatable UI checks:
 
 ```sh
 python3 backend/recognition/local_service.py --fixture backend/recognition/fixtures/object-localization-response.json
 ```
 
 Fixture labels are predetermined and may not match the photo. Only run one service on port 8765 at a time. Confirm it is listening with `lsof -nP -iTCP:8765 -sTCP:LISTEN`; then open a new photo review or tap **Find Pieces Again**. A suggestion should appear unselected. On a physical iPhone, `127.0.0.1` points at the phone, so the Debug bridge will be unavailable and on-device suggestions will run. See [the recognition prototype guide](../backend/recognition/README.md) for limits and troubleshooting.
+
+For live Google Object Localization checks, use `--live-project dressed-511821` instead of `--fixture` after your Google account has project access and you run `gcloud auth login`. This mode is metered and limited to 20 calls per service process by default; the shared project also has a one-request-per-minute quota and a $5 monthly alert, neither of which is a hard dollar cap. It suggests garment regions, not exact products. See [recognition setup](../backend/recognition/README.md).
 
 For a shared image, return to Dressed after finishing the iOS share sheet. The extension cannot force the app to open; Dressed presents the queued review when it becomes active. Recognition begins automatically. The app tries Apple's foreground-instance mask on each suggested crop, then a local edge flood fill for plain product-photo backgrounds. A mask can include skin, miss fabric or retain a shadow, so inspect it before selecting. **Add Piece Manually** opens the region editor. Choose **Draw Outline**, trace with a finger or tap several points and **Close Outline**, then **Use Outline** to replace an inaccurate cutout. A transparent cutout saves as PNG; a rectangle keeps JPEG. Release builds use only on-device suggestions.
 
