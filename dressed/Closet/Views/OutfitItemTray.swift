@@ -18,6 +18,9 @@ struct OutfitItemTray: View {
     let onSelect: (UUID) -> Void
 
     private let laps = 100  // was 10_000; huge ranges made the tray very slow
+    private let loopThreshold = 6 //minimum items to have an infinite scroll
+    private var isLooping: Bool {items.count >= loopThreshold}
+    private var lapCount: Int {isLooping ? laps : 1}
     private let cardWidth: CGFloat = 180 //this needs to match what's in clothingitemcard
     @State private var position: Int?
 
@@ -48,7 +51,7 @@ struct OutfitItemTray: View {
             GeometryReader { geo in
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: 0) {
-                        ForEach(0..<(items.count * laps), id: \.self) { index in
+                        ForEach(0..<(items.count * lapCount), id: \.self) { index in
                             let item = items[index % items.count]
                             ClothingItemCard(
                                 image: item.image,
@@ -79,7 +82,7 @@ struct OutfitItemTray: View {
     }
 
     private func recenter() {
-        position = items.count * (laps / 2)
+        position = isLooping ? items.count * (laps / 2) : 0
     }
 }
 @Observable
@@ -127,6 +130,8 @@ private struct OutfitTrayPreview: View {
                 .font(.caption)
 
             HStack {
+                Button("Load 5") { viewModel.loadMany(count: 5) }
+                Button("Load 6") { viewModel.loadMany(count: 6)}
                 Button("Load 50") { viewModel.loadMany() }
                 Button("Clear") { viewModel.items = [] }
             }
