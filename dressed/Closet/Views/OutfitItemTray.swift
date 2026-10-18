@@ -34,10 +34,11 @@ struct OutfitItemTray: View {
     let onSelect: (UUID) -> Void
 
     private let laps = 100  // was 10_000; huge ranges made the tray very slow
-    private let loopThreshold = 6 //minimum items to have an infinite scroll
-        private var isLooping: Bool {items.count >= loopThreshold}
-        private var lapCount: Int {isLooping ? laps : 1}
-    private let cardWidth: CGFloat = 180 //this needs to match what's in clothingitemcard
+    private let loopThreshold = 6  // minimum items to have an infinite scroll
+    private var isLooping: Bool { items.count >= loopThreshold }
+    // Fewer than loopThreshold items scroll once, with no repeats. More than that repeat `laps` times.
+    private var lapCount: Int { isLooping ? laps : 1 }
+    private let cardWidth: CGFloat = 180  // this needs to match what's in clothingitemcard
     @State private var position: Int?
 
     // Explicit init: the automatic one is private to this file because of the private properties above.
@@ -45,7 +46,7 @@ struct OutfitItemTray: View {
         self.items = items
         self.onSelect = onSelect
     }
-    
+
     var body: some View {
         if items.isEmpty {
             Text("No items available")
@@ -67,7 +68,7 @@ struct OutfitItemTray: View {
             GeometryReader { geo in
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: 0) {
-                        ForEach(0..<(items.count * laps), id: \.self) { index in
+                        ForEach(0..<(items.count * lapCount), id: \.self) { index in
                             let item = items[index % items.count]
                             ClothingItemCard(
                                 thumbnail: item.thumbnail,
@@ -97,9 +98,13 @@ struct OutfitItemTray: View {
         }
     }
 
+    // Looping trays start in the middle lap so there is room to scroll both ways.
+    // Short trays start on the first card.
     private func recenter() {
-        position = isLooping ? items.count * (laps / 2) : 0    }
+        position = isLooping ? items.count * (laps / 2) : 0
+    }
 }
+
 @Observable
 final class OutfitTrayViewModel {
     var items: [OutfitItem] = []
@@ -111,7 +116,8 @@ final class OutfitTrayViewModel {
             OutfitItem(id: UUID(), image: Image(systemName: "photo"), name: "Black pants", category: .tops),
             OutfitItem(id: UUID(), image: Image(systemName: "shoe"), name: "White sneakers", category: .shoes),
         ]
-    }    
+    }
+
     func loadMany(count: Int = 50) {
         let symbols = ["tshirt", "photo", "shoe", "hanger", "bag"]
         items = (1...count).map { i in
@@ -135,7 +141,7 @@ final class OutfitTrayViewModel {
 
 private struct OutfitTrayPreview: View {
     @State private var viewModel = OutfitTrayViewModel()
-    
+
     var body: some View {
         VStack(spacing: 16) {
             OutfitItemTray(items: viewModel.items, onSelect: viewModel.select)
@@ -145,7 +151,7 @@ private struct OutfitTrayPreview: View {
 
             HStack {
                 Button("Load 5") { viewModel.loadMany(count: 5) }
-                Button("Load 6") { viewModel.loadMany(count: 6)}
+                Button("Load 6") { viewModel.loadMany(count: 6) }
                 Button("Load 50") { viewModel.loadMany() }
                 Button("Clear") { viewModel.items = [] }
             }

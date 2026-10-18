@@ -13,7 +13,8 @@ final class OutfitStudioModel {
     var savedOutfits: [SavedOutfit] = []
     var zoom: Double = 1
 
-    // Tapping the worn item again takes it off.
+    // Tapping the worn item again takes it off. Tapping another item in the same category
+    // (another top, say) replaces it.
     func toggle(_ item: ClothingItem) {
         if worn[item.category]?.id == item.id {
             worn[item.category] = nil
@@ -89,30 +90,25 @@ private struct ProfileHome: View {
     let onSignOut: () -> Void
     let onOpenStudio: () -> Void
 
+    // The live 3D avatar only exists while this screen is on screen. A pushed screen or another tab
+    // keeps this view alive, and a hidden 3D scene still holds a GPU drawable.
+    @State private var isVisible = true
+
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
                 Button(action: onOpenStudio) {
-                    // Fixed zoom so the small avatar doesn't inherit the studio's zoom slider.
-                    AvatarView(
-                        look: model.look,
-                        worn: model.worn,
-                        image: image,
-                        uiImage: uiImage,
-                        zoom: 1,
-                        allowsInteraction: false
-                    )
-                    .allowsHitTesting(false)   // the button handles taps, not the spin gesture
-                    .frame(width: 140, height: 210)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .contentShape(RoundedRectangle(cornerRadius: 16))   // keeps the whole avatar tappable
-                    .overlay(alignment: .bottomTrailing) {
-                        Image(systemName: "pencil.circle.fill")
-                            .font(.title2)
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(.white, Color.accentColor)
-                            .padding(8)
-                    }
+                    avatarCard
+                        .frame(width: 140, height: 210)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .contentShape(RoundedRectangle(cornerRadius: 16))   // keeps the whole avatar tappable
+                        .overlay(alignment: .bottomTrailing) {
+                            Image(systemName: "pencil.circle.fill")
+                                .font(.title2)
+                                .symbolRenderingMode(.palette)
+                                .foregroundStyle(.white, Color.accentColor)
+                                .padding(8)
+                        }
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Open avatar studio")
@@ -130,6 +126,33 @@ private struct ProfileHome: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Sign Out", action: onSignOut)
+            }
+        }
+        .onAppear { isVisible = true }
+        .onDisappear { isVisible = false }
+    }
+
+    @ViewBuilder
+    private var avatarCard: some View {
+        if isVisible {
+            // Fixed zoom so the small avatar doesn't inherit the studio's zoom slider.
+            AvatarView(
+                look: model.look,
+                worn: model.worn,
+                image: image,
+                uiImage: uiImage,
+                zoom: 1,
+                allowsInteraction: false
+            )
+            .allowsHitTesting(false)   // the button handles taps, not the spin gesture
+        } else {
+            ZStack {
+                LinearGradient(colors: [Color(white: 0.97), Color(white: 0.88)], startPoint: .top, endPoint: .bottom)
+                Image(systemName: AvatarGender(look: model.look).symbol)
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(Color(white: 0.75))
+                    .padding(28)
             }
         }
     }

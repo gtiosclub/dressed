@@ -182,6 +182,8 @@ private enum AvatarScene {
     private static let irisPrefix = "iris-"
     private static let pupilPrefix = "pupil-"
     private static let lipsPrefix = "lips-"
+    private static let defaultTopPrefix = "default-top-"
+    private static let defaultBottomPrefix = "default-bottom-"
 
     /// Fabric color per closet item. Reading the photo and averaging it is too slow to repeat every frame.
     private static let garmentColors = NSCache<NSString, UIColor>()
@@ -254,34 +256,9 @@ private enum AvatarScene {
 
         // Gender is part of every signature: it changes which body and face presets the indices point to.
         replaceChild(of: turntable, prefix: bodyPrefix, signature: signature(look, [.gender, .body, .face, .nose, .skin])) {
-            model(Mannequin.body(avatar.body, face: avatar.face, nose: avatar.nose), material: porcelain(avatar.skin))
+            model(Mannequin.body(avatar.body, face: avatar.face), material: porcelain(avatar.skin))
         }
 
-        let eyeParts: [AvatarPart] = [.gender, .face, .eyes]
-        replaceChild(of: turntable, prefix: scleraPrefix, signature: signature(look, eyeParts)) {
-            model(
-                Mannequin.eyeWhites(face: avatar.face, eye: avatar.eye),
-                material: glossy(AvatarPalette.sclera, roughness: 0.25, clearcoat: 0.5)
-            )
-        }
-        replaceChild(of: turntable, prefix: irisPrefix, signature: signature(look, eyeParts + [.eyeColor])) {
-            model(
-                Mannequin.irises(face: avatar.face, eye: avatar.eye),
-                material: glossy(avatar.eyeColor, roughness: 0.2, clearcoat: 0.6)
-            )
-        }
-        replaceChild(of: turntable, prefix: pupilPrefix, signature: signature(look, eyeParts)) {
-            model(
-                Mannequin.pupils(face: avatar.face, eye: avatar.eye),
-                material: glossy(AvatarPalette.pupil, roughness: 0.2, clearcoat: 0.6)
-            )
-        }
-        replaceChild(of: turntable, prefix: lipsPrefix, signature: signature(look, [.gender, .face, .lips, .lipColor])) {
-            model(
-                Mannequin.lips(face: avatar.face, shape: avatar.lips),
-                material: glossy(avatar.lipColor, roughness: 0.4, clearcoat: 0.4)
-            )
-        }
 
         let hairParts: [AvatarPart] = [.gender, .hair, .bangs, .color, .face, .body]
         replaceChild(of: turntable, prefix: hairPrefix, signature: signature(look, hairParts)) {
@@ -299,16 +276,67 @@ private enum AvatarScene {
             if let item = worn[category] {
                 let preset = GarmentPreset.detect(name: item.name, category: category, itemId: item.id)
                 let fabric = garmentColor(for: item, uiImage: uiImage)
-                let sig = "\(item.id)-\(preset.rawValue)-\(bodySignature)-\(fabric.resolved)"
-
+                let sig = "\(item.id)-\(item.name)-\(preset.rawValue)-\(bodySignature)-\(fabric.resolved)"
+                
                 replaceChild(of: turntable, prefix: garmentPrefix, signature: sig) {
                     let mesh = MannequinGarments.mesh(for: preset, shape: avatar.body)
-                    return model(mesh, material: fabricFinish(fabric.color))
+                    let garment = model(mesh, material: fabricFinish(fabric.color))
+                    garment.scale = layerScale(for: category)
+                    return garment
                 }
             } else {
                 turntable.children.filter { $0.name.hasPrefix(garmentPrefix) }.forEach { $0.removeFromParent() }
             }
         }
+
+        // Default outfit: a plain tee and pants wherever nothing else covers the body, so the avatar is
+        // never bare. A dress covers both, and a skirt takes the place of the pants.
+        let wearsDress = worn[.dresses] != nil
+        syncDefaultGarment(
+            on: turntable,
+            prefix: defaultTopPrefix,
+            isShown: worn[.tops] == nil && !wearsDress,
+            signature: bodySignature,
+            category: .tops,
+            color: AvatarPalette.defaultTop
+        ) { Mannequin.defaultTop(avatar.body) }
+        syncDefaultGarment(
+            on: turntable,
+            prefix: defaultBottomPrefix,
+            isShown: worn[.pants] == nil && worn[.skirts] == nil && !wearsDress,
+            signature: bodySignature,
+            category: .pants,
+            color: AvatarPalette.defaultBottom
+        ) { Mannequin.defaultBottom(avatar.body) }
+    }
+
+    /// Shows or removes one default garment. It is rebuilt only when the body shape changes.
+    private static func syncDefaultGarment(
+        on turntable: Entity,
+        prefix: String,
+        isShown: Bool,
+        signature: String,
+        category: ClothingCategory,
+        color: UIColor,
+        mesh: () -> MannequinMesh
+    ) {
+        guard isShown else {
+            turntable.children.filter { $0.name.hasPrefix(prefix) }.forEach { $0.removeFromParent() }
+            return
+        }
+        replaceChild(of: turntable, prefix: prefix, signature: signature) {
+            let garment = model(mesh(), material: fabricFinish(color))
+            garment.scale = layerScale(for: category)
+            return garment
+        }
+    }
+
+    /// Each garment layer sits a hair further out from the body than the one beneath it, so surfaces
+    /// never share a depth. Without this, clothes and body shimmer ("z-fight") as the avatar turns.
+    private static func layerScale(for category: ClothingCategory) -> SIMD3<Float> {
+        let layer = Float(ClothingCategory.layerOrder.firstIndex(of: category) ?? 0)
+        let spread = 1.015 + 0.006 * layer
+        return [spread, 1, spread]
     }
 
     /// The item's fabric color, cached once its photo has been read. `resolved` is false while the photo
@@ -349,7 +377,9 @@ private enum AvatarScene {
     private static func addLights(to root: Entity) {
         let key = DirectionalLight()
         key.light.intensity = 2600
-        key.shadow = DirectionalLightComponent.Shadow(maximumDistance: 5, depthBias: 2)
+        // The figure is about 1.5 units from the camera, so a short shadow range keeps the shadow map sharp.
+        // A wide range blurs it, and clothes (which render both sides) then shadow themselves and shimmer.
+        key.shadow = DirectionalLightComponent.Shadow(maximumDistance: 2.5, depthBias: 4)
         root.addChild(key)
         key.look(at: [0, 0.55, 0], from: [0.9, 1.8, 2.2], relativeTo: nil)
 

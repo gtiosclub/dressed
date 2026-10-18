@@ -61,6 +61,9 @@ enum AvatarPalette {
 
     static let sclera = UIColor(red: 0.97, green: 0.97, blue: 0.96, alpha: 1)
     static let pupil = UIColor(red: 0.05, green: 0.05, blue: 0.06, alpha: 1)
+    // Plain tee and pants the avatar wears when nothing else covers those areas.
+    static let defaultTop = UIColor(red: 0.93, green: 0.93, blue: 0.91, alpha: 1)
+    static let defaultBottom = UIColor(red: 0.22, green: 0.28, blue: 0.38, alpha: 1)
 }
 
 extension AvatarGender {
@@ -285,15 +288,17 @@ enum AvatarPreviews {
         }
 
         if shot.fullBody {
-            add(Mannequin.body(avatar.body, face: avatar.face, nose: avatar.nose), color: avatar.skin, bias: 0)
+            add(Mannequin.body(avatar.body, face: avatar.face), color: avatar.skin, bias: 0)
+            add(Mannequin.defaultBottom(avatar.body), color: AvatarPalette.defaultBottom, bias: 0.004)
+            add(Mannequin.defaultTop(avatar.body), color: AvatarPalette.defaultTop, bias: 0.006)
         } else {
-            add(Mannequin.bust(avatar.body, face: avatar.face, nose: avatar.nose), color: avatar.skin, bias: 0)
+            add(Mannequin.bust(avatar.body, face: avatar.face), color: avatar.skin, bias: 0)
         }
         // Features stick out of the head a little; the biases keep them in front of the skin under them.
-        add(Mannequin.eyeWhites(face: avatar.face, eye: avatar.eye), color: AvatarPalette.sclera, bias: 0.003)
-        add(Mannequin.irises(face: avatar.face, eye: avatar.eye), color: avatar.eyeColor, bias: 0.0045)
-        add(Mannequin.pupils(face: avatar.face, eye: avatar.eye), color: AvatarPalette.pupil, bias: 0.006)
-        add(Mannequin.lips(face: avatar.face, shape: avatar.lips), color: avatar.lipColor, bias: 0.003)
+//        add(Mannequin.eyeWhites(face: avatar.face, eye: avatar.eye), color: AvatarPalette.sclera, bias: 0.003)
+//        add(Mannequin.irises(face: avatar.face, eye: avatar.eye), color: avatar.eyeColor, bias: 0.0045)
+//        add(Mannequin.pupils(face: avatar.face, eye: avatar.eye), color: AvatarPalette.pupil, bias: 0.006)
+//        add(Mannequin.lips(face: avatar.face, shape: avatar.lips), color: avatar.lipColor, bias: 0.003)
         if shot.showsHair {
             add(Mannequin.hair(avatar.hair, bangs: avatar.bangs, face: avatar.face, body: avatar.body),
                 color: avatar.hairColor, bias: 0.008)

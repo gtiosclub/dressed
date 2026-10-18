@@ -172,20 +172,22 @@ struct AvatarStudioView: View {
         }
     }
 
+    // The tray thumbnails are flat pictures on purpose. Each live 3D avatar holds a GPU drawable, and
+    // one per closet item ran the device out of them ("nextDrawable returning nil"), which froze the
+    // main avatar so outfit changes seemed not to work.
     private var clothingTray: some View {
         let entries = filteredItems.map { clothing in
             (
                 clothing: clothing,
                 tray: OutfitItem(
-                    id: UUID(),
-                    thumbnail: AnyView(AvatarView(
-                        look: model.look,
-                        worn: [clothing.category: clothing],
-                        image: image,
-                        uiImage: uiImage,
-                        zoom: 0.78,
-                        allowsInteraction: false
-                    )),
+                    // Stable per closet item so SwiftUI keeps each tray cell between renders.
+                    id: Self.stableID(for: clothing.id),
+                    thumbnail: AnyView(
+                        image(clothing)
+                            .resizable()
+                            .scaledToFit()
+                            .padding(6)
+                    ),
                     name: clothing.name,
                     category: clothing.category
                 )
@@ -193,10 +195,37 @@ struct AvatarStudioView: View {
         }
 
         return OutfitItemTray(items: entries.map { $0.tray }) { id in
-            if let entry = entries.first(where: { $0.tray.id == id }) {
-                model.toggle(entry.clothing)
+            guard let entry = entries.first(where: { $0.tray.id == id }) else {
+                return
+            }
+
+            let item = entry.clothing
+            let category = item.category
+
+            // Tapping the item that's already worn removes it.
+            if model.worn[category]?.id == item.id {
+                model.worn[category] = nil
+            } else {
+                // Replace whatever is currently worn in this category.
+                model.worn[category] = item
             }
         }
+    }
+
+    /// A UUID that is the same every time for the same closet item id.
+    private static func stableID(for string: String) -> UUID {
+        if let uuid = UUID(uuidString: string) { return uuid }
+        var first: UInt64 = 14695981039346656037   // FNV-1a
+        var second: UInt64 = 5381                  // djb2
+        for byte in string.utf8 {
+            first = (first ^ UInt64(byte)) &* 1099511628211
+            second = (second &* 33) &+ UInt64(byte)
+        }
+        let digits = Array(String(format: "%016llX%016llX", first, second))
+        let formatted = [0..<8, 8..<12, 12..<16, 16..<20, 20..<32]
+            .map { String(digits[$0]) }
+            .joined(separator: "-")
+        return UUID(uuidString: formatted) ?? UUID()
     }
 
     private var savedFitsTray: some View {
@@ -204,14 +233,7 @@ struct AvatarStudioView: View {
             items: model.savedOutfits.map { outfit in
                 OutfitItem(
                     id: outfit.id,
-                    thumbnail: AnyView(AvatarView(
-                        look: model.look,
-                        worn: outfit.worn,
-                        image: image,
-                        uiImage: uiImage,
-                        zoom: 0.78,
-                        allowsInteraction: false
-                    )),
+                    thumbnail: AnyView(SavedFitThumbnail(worn: outfit.worn, image: image)),
                     name: outfit.name,
                     category: .tops,
                     subtitle: "\(outfit.worn.count) pieces"
@@ -339,6 +361,33 @@ struct AvatarStudioView: View {
                 }
             }
             .padding(12)
+        }
+    }
+}
+
+// MARK: - Saved fit thumbnail
+
+/// A flat, lightweight picture of a saved outfit: its pieces laid out where they sit on the body.
+/// Plain SwiftUI images, so it costs nothing next to a live 3D scene.
+private struct SavedFitThumbnail: View {
+    let worn: [ClothingCategory: ClothingItem]
+    let image: (ClothingItem) -> Image
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                Color.gray.opacity(0.12)
+                ForEach(ClothingCategory.layerOrder, id: \.self) { category in
+                    if let item = worn[category] {
+                        let slot = category.avatarSlot
+                        image(item)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: geo.size.width * 0.6, height: geo.size.height * slot.size)
+                            .position(x: geo.size.width / 2, y: geo.size.height * slot.y)
+                    }
+                }
+            }
         }
     }
 }
