@@ -58,7 +58,7 @@ private struct AppTabs: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack {
-                PrototypeClosetView(closet: closet, ownerId: userId)
+                PrototypeClosetView(closet: closet)
                 .toolbar { profileToolbar }
             }
             .tabItem { Label("My Closet", systemImage: "hanger") }
