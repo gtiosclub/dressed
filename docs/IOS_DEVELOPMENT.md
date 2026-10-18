@@ -49,6 +49,27 @@ On October 16, a real public shoe photo selected from Photos on the iOS 27 simul
 
 ## Build, run, inspect, test
 
+### Install on a physical iPhone
+
+1. Connect the iPhone to the Mac, unlock it, tap **Trust** if prompted, and enable **Developer Mode** in iPhone Settings if Xcode asks. Confirm it appears as a *physical* device with `xcrun devicectl list devices`.
+2. In Xcode, open **Xcode → Settings… → Apple Accounts**. Sign in again if the account shows **Authentication Expired**. Complete the password and two-factor prompts yourself. Open `dressed.xcodeproj` and select the connected iPhone as the run destination.
+3. Under **Signing & Capabilities**, keep **Automatically manage signing** and select the team configured for both `dressed` and `DressedShareExtension`. Both identifiers (`gtiosclub.dressed` and `gtiosclub.dressed.share`) need development provisioning profiles and the `group.gtiosclub.dressed` App Group entitlement. If automatic signing cannot create profiles, ask the Apple Developer account owner to register the device and enable those capabilities for both identifiers.
+4. Build and run from Xcode once. For a command-line build after signing works, substitute the phone's device ID:
+
+   ```sh
+   xcodebuild -project dressed.xcodeproj -scheme dressed -configuration Debug \
+     -destination 'platform=iOS,id=<DEVICE_UDID>' \
+     -derivedDataPath /private/tmp/dressed-device-build \
+     -allowProvisioningUpdates build
+   xcrun devicectl device install app --device <DEVICE_UDID> \
+     /private/tmp/dressed-device-build/Build/Products/Debug-iphoneos/dressed.app
+   xcrun devicectl device process launch --device <DEVICE_UDID> gtiosclub.dressed
+   ```
+
+Use the normal signed build for Firebase login; do not install output from `CODE_SIGNING_ALLOWED=NO`. The Debug recognition bridge at `127.0.0.1:8765` is reachable from a simulator on the Mac, not from a physical iPhone. On the phone, Camera review falls back to on-device suggestions until an authenticated remote recognition service is built.
+
+On October 18, `Neal’s iPhone` (iPhone 15 Pro Max, iOS 26.7.1) was connected, paired, and had Developer Mode enabled. The device build stopped before compilation because Xcode showed the Apple account as **Authentication Expired** and had no development profiles for either app identifier. Refresh that account before retrying; this record does not claim a successful device installation.
+
 From the repository root, substitute your simulator ID for `<UDID>`:
 
 ```sh
