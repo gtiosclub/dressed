@@ -33,6 +33,7 @@ struct AvatarView: View {
     var uiImage: ((ClothingItem) -> UIImage?)? = nil
     var zoom: Double = 1
     var use3D: Bool = true
+    var allowsInteraction: Bool = true
 
     @State private var orbit = AvatarOrbit()
 
@@ -58,15 +59,15 @@ struct AvatarView: View {
                 }
             }
             .contentShape(Rectangle())
-            .gesture(turnGesture(viewWidth: size.width), including: use3D ? .all : .none)
+            .gesture(turnGesture(viewWidth: size.width), including: use3D && allowsInteraction ? .all : .none)
             .onTapGesture(count: 2) {
-                if use3D { orbit.resetToFront() }
+                if use3D && allowsInteraction { orbit.resetToFront() }
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Avatar")
-            .accessibilityHint(use3D ? "Swipe up or down to turn the avatar." : "")
+            .accessibilityHint(use3D && allowsInteraction ? "Swipe up or down to turn the avatar." : "")
             .accessibilityAdjustableAction { direction in
-                guard use3D else { return }
+                guard use3D && allowsInteraction else { return }
                 switch direction {
                 case .increment: orbit.turn(by: .pi / 4)
                 case .decrement: orbit.turn(by: -.pi / 4)

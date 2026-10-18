@@ -297,7 +297,14 @@ private struct TryOnScreen: View {
                 clothing: clothing,
                 tray: OutfitItem(
                     id: UUID(),
-                    image: image(clothing),
+                    thumbnail: AnyView(AvatarView(
+                        look: model.look,
+                        worn: [clothing.category: clothing],
+                        image: image,
+                        uiImage: uiImage,
+                        zoom: 0.78,
+                        allowsInteraction: false
+                    )),
                     name: clothing.name,
                     category: clothing.category
                 )
@@ -317,7 +324,14 @@ private struct TryOnScreen: View {
             items: model.savedOutfits.map { outfit in
                 OutfitItem(
                     id: outfit.id,
-                    image: Image(systemName: "figure.stand"),
+                    thumbnail: AnyView(AvatarView(
+                        look: model.look,
+                        worn: outfit.worn,
+                        image: image,
+                        uiImage: uiImage,
+                        zoom: 0.78,
+                        allowsInteraction: false
+                    )),
                     name: outfit.name,
                     category: .tops,  // not shown; subtitle replaces the category label
                     subtitle: "\(outfit.worn.count) pieces"
