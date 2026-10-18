@@ -46,6 +46,10 @@ is still synthetic local data, not a hosted retailer integration. See
 
 The Discovery Feed section now displays a two-column grid of outfit-post
 previews. The separate Search section still opens the catalog prototype.
+Both sections keep an inline search field below the Feed/Search switch, so
+switching sections does not move the search entry. The signed-in tab shell
+shows a profile icon in each tab's navigation bar; its account sheet contains
+Sign Out. A public profile editor is not connected.
 A tap opens a post with its author, caption,
 and outfit artwork. A small button on the image opens the published pieces in a
 draggable sheet. The sheet sorts by original post order, piece name, or category;

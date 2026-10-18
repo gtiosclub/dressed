@@ -31,6 +31,7 @@ private struct AppTabs: View {
     @State private var discoverySection = 0
     @State private var dismissDiscoverySearchRequest = 0
     @State private var signOutError: String?
+    @State private var showingProfile = false
     @State private var pendingSharedImage: ReviewImage?
     @State private var presentedSharedId: String?
     @State private var deferredSharedId: String?
@@ -57,7 +58,7 @@ private struct AppTabs: View {
         TabView(selection: $selectedTab) {
             NavigationStack {
                 PrototypeClosetView(closet: closet, ownerId: userId)
-                .toolbar { signOutToolbar }
+                .toolbar { profileToolbar }
             }
             .tabItem { Label("My Closet", systemImage: "hanger") }
             .tag(0)
@@ -82,6 +83,9 @@ private struct AppTabs: View {
                         .contentShape(Rectangle())
                         .onTapGesture { dismissDiscoverySearchRequest &+= 1 }
                 }
+                .navigationTitle("Discovery")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar { profileToolbar }
             }
             .tabItem { Label("Discovery", systemImage: "safari") }
             .tag(1)
@@ -89,6 +93,7 @@ private struct AppTabs: View {
             NavigationStack {
                 PrototypeImportView(closet: closet, ownerId: userId)
                     .toolbar {
+                        profileToolbar
                         if deferredSharedId != nil || deferredSharedLinkId != nil {
                             ToolbarItem(placement: .topBarTrailing) {
                                 Button("Review Share") {
@@ -110,6 +115,25 @@ private struct AppTabs: View {
             Button("OK", role: .cancel) { signOutError = nil }
         } message: {
             Text(signOutError ?? "Please try again.")
+        }
+        .sheet(isPresented: $showingProfile) {
+            NavigationStack {
+                List {
+                    Section {
+                        Label("Signed in to Dressed", systemImage: "person.crop.circle.fill")
+                    }
+                    Section {
+                        Button("Sign Out", role: .destructive, action: signOut)
+                            .accessibilityIdentifier("profile.signOut")
+                    }
+                }
+                .navigationTitle("Profile")
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Done") { showingProfile = false }
+                    }
+                }
+            }
         }
         .alert("Shared image unavailable", isPresented: Binding(
             get: { sharedImageError != nil },
@@ -196,16 +220,25 @@ private struct AppTabs: View {
     }
 
     @ToolbarContentBuilder
-    private var signOutToolbar: some ToolbarContent {
+    private var profileToolbar: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
-            Button("Sign Out") {
-                do {
-                    try session.signOut()
-                    SharedImageInbox.setActiveOwner(nil)
-                } catch {
-                    signOutError = error.localizedDescription
-                }
+            Button {
+                showingProfile = true
+            } label: {
+                Image(systemName: "person.crop.circle")
             }
+            .accessibilityLabel("Profile")
+            .accessibilityIdentifier("app.profileButton")
+        }
+    }
+
+    private func signOut() {
+        showingProfile = false
+        do {
+            try session.signOut()
+            SharedImageInbox.setActiveOwner(nil)
+        } catch {
+            signOutError = error.localizedDescription
         }
     }
 
