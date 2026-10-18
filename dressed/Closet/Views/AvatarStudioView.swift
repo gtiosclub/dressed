@@ -57,6 +57,7 @@ struct AvatarStudioView: View {
                 } label: {
                     Label("Save Outfit", systemImage: "heart")
                 }
+                .disabled(model.worn.isEmpty)
             }
 
             ToolbarItem(placement: .topBarTrailing) {
@@ -71,7 +72,7 @@ struct AvatarStudioView: View {
         .alert("Outfit Saved", isPresented: $outfitSavedAlert) {
             Button("OK", role: .cancel) { outfitSavedAlert = false }
         } message: {
-            Text("Your outfit has been saved to your closet!")
+            Text("Find it under Saved Fits in Try On.")
         }
         .sheet(isPresented: $showingTakePic) {
             NavigationStack {

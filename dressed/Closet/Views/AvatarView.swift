@@ -24,8 +24,8 @@ extension ClothingCategory {
 // MARK: - AvatarView
 
 // 3D mannequin on a turntable: drag sideways to spin it, double-tap to face front again.
-// Clothes are still the 2D placeholder drawn over the figure; they narrow and fade as it turns away.
-// Set use3D to false to get the old flat mannequin (used for the take-pic snapshot).
+// Clothes are procedural 3D pieces that turn with the avatar.
+// Set use3D to false to get the old flat mannequin with 2D clothes (used for the take-pic snapshot).
 struct AvatarView: View {
     let look: [AvatarPart: Int]
     let worn: [ClothingCategory: ClothingItem]
@@ -107,7 +107,7 @@ private struct AvatarStage: View {
     }
 }
 
-/// The 2D clothing placeholder. Flat images can't turn, so they narrow and fade as the avatar spins away.
+/// The 2D clothing placeholder (flat snapshot only). Flat images can't turn, so they narrow and fade as the avatar spins away.
 private struct GarmentOverlay: View {
     let worn: [ClothingCategory: ClothingItem]
     let image: (ClothingItem) -> Image
@@ -178,6 +178,13 @@ private enum AvatarScene {
     private static let turntableName = "avatarTurntable"
     private static let bodyPrefix = "body-"
     private static let hairPrefix = "hair-"
+    private static let scleraPrefix = "sclera-"
+    private static let irisPrefix = "iris-"
+    private static let pupilPrefix = "pupil-"
+    private static let lipsPrefix = "lips-"
+
+    /// Fabric color per closet item. Reading the photo and averaging it is too slow to repeat every frame.
+    private static let garmentColors = NSCache<NSString, UIColor>()
 
     // Framing: the figure is 1 unit tall with feet at y = 0. At zoom 1 it fills 95% of the view height,
     // which the 2D overlay assumes. Zooming narrows the view but keeps its top edge fixed, matching the
@@ -230,7 +237,7 @@ private enum AvatarScene {
         return root
     }
 
-    /// Cheap enough to run every frame while spinning: meshes rebuild only when the look changes.
+    /// Cheap enough to run every frame while spinning: meshes rebuild only when the look or outfit changes.
     static func update(
         _ root: Entity,
         look: [AvatarPart: Int],
@@ -246,8 +253,34 @@ private enum AvatarScene {
         let avatar = AvatarLook(look)
 
         // Gender is part of every signature: it changes which body and face presets the indices point to.
-        replaceChild(of: turntable, prefix: bodyPrefix, signature: signature(look, [.gender, .body, .face, .skin])) {
-            model(Mannequin.body(avatar.body, face: avatar.face, nose: NoseShape.presets[0]), material: porcelain(avatar.skin))
+        replaceChild(of: turntable, prefix: bodyPrefix, signature: signature(look, [.gender, .body, .face, .nose, .skin])) {
+            model(Mannequin.body(avatar.body, face: avatar.face, nose: avatar.nose), material: porcelain(avatar.skin))
+        }
+
+        let eyeParts: [AvatarPart] = [.gender, .face, .eyes]
+        replaceChild(of: turntable, prefix: scleraPrefix, signature: signature(look, eyeParts)) {
+            model(
+                Mannequin.eyeWhites(face: avatar.face, eye: avatar.eye),
+                material: glossy(AvatarPalette.sclera, roughness: 0.25, clearcoat: 0.5)
+            )
+        }
+        replaceChild(of: turntable, prefix: irisPrefix, signature: signature(look, eyeParts + [.eyeColor])) {
+            model(
+                Mannequin.irises(face: avatar.face, eye: avatar.eye),
+                material: glossy(avatar.eyeColor, roughness: 0.2, clearcoat: 0.6)
+            )
+        }
+        replaceChild(of: turntable, prefix: pupilPrefix, signature: signature(look, eyeParts)) {
+            model(
+                Mannequin.pupils(face: avatar.face, eye: avatar.eye),
+                material: glossy(AvatarPalette.pupil, roughness: 0.2, clearcoat: 0.6)
+            )
+        }
+        replaceChild(of: turntable, prefix: lipsPrefix, signature: signature(look, [.gender, .face, .lips, .lipColor])) {
+            model(
+                Mannequin.lips(face: avatar.face, shape: avatar.lips),
+                material: glossy(avatar.lipColor, roughness: 0.4, clearcoat: 0.4)
+            )
         }
 
         let hairParts: [AvatarPart] = [.gender, .hair, .bangs, .color, .face, .body]
@@ -258,24 +291,40 @@ private enum AvatarScene {
             )
         }
 
-        // 3D procedural preset clothing pieces turning 360 degrees on the turntable
+        // 3D procedural clothing pieces turning 360 degrees on the turntable.
+        // Body names repeat across genders, so gender is part of the signature too.
+        let bodySignature = signature(look, [.gender, .body])
         for category in ClothingCategory.allCases {
             let garmentPrefix = "garment-\(category.rawValue)-"
             if let item = worn[category] {
-                let img = uiImage?(item)
-                let color = GarmentColorExtractor.dominantColor(from: img)
                 let preset = GarmentPreset.detect(name: item.name, category: category, itemId: item.id)
-                let colorKey = "\(color.hashValue)"
-                let sig = "\(item.id)-\(preset.rawValue)-\(colorKey)-\(avatar.body.name)"
+                let fabric = garmentColor(for: item, uiImage: uiImage)
+                let sig = "\(item.id)-\(preset.rawValue)-\(bodySignature)-\(fabric.resolved)"
 
                 replaceChild(of: turntable, prefix: garmentPrefix, signature: sig) {
                     let mesh = MannequinGarments.mesh(for: preset, shape: avatar.body)
-                    return model(mesh, material: fabricFinish(color))
+                    return model(mesh, material: fabricFinish(fabric.color))
                 }
             } else {
                 turntable.children.filter { $0.name.hasPrefix(garmentPrefix) }.forEach { $0.removeFromParent() }
             }
         }
+    }
+
+    /// The item's fabric color, cached once its photo has been read. `resolved` is false while the photo
+    /// isn't available yet, so the garment gets rebuilt with the real color once it is.
+    private static func garmentColor(
+        for item: ClothingItem,
+        uiImage: ((ClothingItem) -> UIImage?)?
+    ) -> (color: UIColor, resolved: Bool) {
+        let key = item.id as NSString
+        if let cached = garmentColors.object(forKey: key) { return (cached, true) }
+        guard let photo = uiImage?(item) else {
+            return (GarmentColorExtractor.dominantColor(from: nil), false)
+        }
+        let color = GarmentColorExtractor.dominantColor(from: photo)
+        garmentColors.setObject(color, forKey: key)
+        return (color, true)
     }
 
     private static func fabricFinish(_ color: UIColor) -> PhysicallyBasedMaterial {
@@ -344,7 +393,7 @@ private enum AvatarScene {
         return material
     }
 
-    /// Glossy finish for reflective materials.
+    /// Shiny finish for eyes and lips.
     private static func glossy(_ color: UIColor, roughness: Float, clearcoat: Float) -> PhysicallyBasedMaterial {
         var material = PhysicallyBasedMaterial()
         material.baseColor = .init(tint: color)

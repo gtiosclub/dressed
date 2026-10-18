@@ -109,15 +109,18 @@ private struct AppTabs: View {
             .tabItem { Label("Camera", systemImage: "camera") }
             .tag(2)
 
+            // ProfileView has its own NavigationStack (it also hosts the avatar studio),
+            // so it is not wrapped in another one.
             ProfileView(
                 username: userId,
                 items: closet.items,
                 model: studio,
+                closet: closet,
                 onSignOut: signOut,
                 image: { photo(for: $0) },
                 uiImage: { closet.image(for: $0) }
             )
-                .tabItem { Label("Profile", systemImage: "person.crop.circle") }
+                .tabItem { Label("Avatar", systemImage: "figure.stand") }
                 .tag(3)
 
         }
