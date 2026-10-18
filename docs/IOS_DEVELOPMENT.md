@@ -19,6 +19,16 @@ Sign in through the normal app screen with a dedicated development account. Keep
 
 Launch the app without `-mockSignedIn` or `-mockSession`. These launch flags bypass Firebase authentication and must not be used to claim the real sign-in flow works. The existing fixture-backed XCUITests use `-mockSignedIn` to isolate their import flows; run a separate real-account check for authentication and signed-in behavior.
 
+Use a normally signed build when installing or launching the app for Firebase Auth checks. `CODE_SIGNING_ALLOWED=NO` is useful for a compile-only simulator build, but installing that output leaves it without a usable app signing identity for Keychain access. Firebase Auth can then report `ERROR_KEYCHAIN_ERROR` with `SecItemCopyMatching (-34018) A required entitlement is not present` during session restoration or login. Build without that override before installing or running:
+
+```sh
+xcodebuild -project dressed.xcodeproj -scheme dressed -configuration Debug \
+  -destination 'platform=iOS Simulator,id=<UDID>' \
+  -derivedDataPath /private/tmp/dressed-signed-build build
+```
+
+Check the resulting app with `codesign -dv --verbose=2 /private/tmp/dressed-signed-build/Build/Products/Debug-iphonesimulator/dressed.app`; its identifier should be `gtiosclub.dressed`. After installing it, relaunch without mock flags and confirm the Firebase Auth Keychain error is absent from simulator logs. If the error occurs on a signed physical-device build, inspect that build's signing and entitlements separately.
+
 The iOS 27 simulator Photos library has three product photos for import checks: a [blue Uniqlo merino sweater](https://www.uniqlo.com/us/en/products/E469395-000/00), a [Uniqlo wide straight jeans outfit shot](https://www.uniqlo.com/us/en/products/E470542-000/01), and a [Nike Air Force 1 Low shoe](https://www.nike.com/t/air-force-1-low-mens-shoes-XVPIszaq). They are simulator-only test media; the images are not part of the repository. The outfit shot is useful for checking review of multiple visible garments.
 
 ## Camera recognition test service
@@ -79,3 +89,5 @@ Quit InjectionNext and run `defaults delete com.johnholdsworth.InjectionNext mcp
 - The first full UI test run passed 2 of 3 cases. `testManualPieceWhenNoSuggestions` failed because its `Piece name` field was below the tappable area when the test tried to type. After the test was adjusted to scroll it into view, the full suite passed: 3 tests, 0 failures.
 - The app was relaunched without mock flags, signed in with the test account above, and reached the Camera tab. This separately verifies the real authentication path in the simulator.
 - The app also built and launched on the iOS 27.0 iPhone 17 Pro simulator (`FD33AE58-4F68-4424-9D01-5BC234410D90`). Real test-account sign-in succeeded there, and an agent screenshot showed the My Closet screen. This is the newest runtime installed with Xcode 27.0 on this Mac; Apple's latest public iOS patch release at the time was [27.0.1](https://support.apple.com/en-us/100100).
+
+On October 18, an app installed from a `CODE_SIGNING_ALLOWED=NO` build reproduced Firebase Auth's `SecItemCopyMatching (-34018)` startup error on that simulator. The unsigned output identified itself as `dressed` and had no usable signing identity. Rebuilding without that override produced the expected `gtiosclub.dressed` identifier; after installation, Firebase restored the existing test session and the startup Keychain error was absent. This checks session restoration, not a fresh credential submission or a physical-device build.
