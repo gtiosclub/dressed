@@ -1,5 +1,40 @@
 # Architecture and shared contracts
 
+## Discovery and OOTD navigation update (October 18, 2026)
+
+The signed-in Discovery tab now uses a Discovery / OOTD switch based on the
+supplied prototype. Discovery renders individual `CatalogProduct` ideas in a
+two-column grid with search and a detail page. Debug builds show synthetic
+catalog ideas by default; `-showCatalog` or `-liveCatalog` selects the HTTP
+catalog client. Release builds use that client and need a configured catalog
+service; the existing local fixture API is not a live retailer source. Style
+suggestions are backed only by Debug fixture associations until a public style
+contract exists. An idea never becomes a private closet item on tap.
+
+OOTD renders the existing `Post` outfit snapshots as vertical cards with
+in-feed pin, Find items, comment and like controls. Find items shows published
+pieces in a category-filtered sheet. Debug builds use synthetic posts by default;
+`-livePosts` selects Firestore. The Debug Share button inserts only a local
+preview. There is still no connected publication, public media loader,
+persistent comments, likes, or saved-post state. The earlier midsemester
+Discovery post prototype below records previous behavior, not the current
+navigation.
+
+The OOTD plus button now pushes the New post composition screen within the
+Discovery tab, keeping the native tab bar visible. Its outfit image is the
+prototype's greyscale vector placeholder until publishable media is selected.
+The Find items sheet uses the prototype's product-row layout, sort and category
+chips, and a local bookmark toggle. Only the first Debug demo post has fixture
+brands, prices, ratings, and alternatives; other posts display their published
+piece names/categories without invented product metadata. Bookmarks in this
+sheet are UI state, not persisted saved items.
+
+The new fixture-backed `testDiscoveryIdeasAndOOTDPostsAreSeparate` UI test passed
+on the iPhone 17 Pro iOS 26.0 simulator on October 18. It showed individual ideas,
+switched to OOTD, exercised the in-feed controls, and
+displayed both published pieces. This is separate from real-account authentication testing;
+the test uses the existing isolated mock session.
+
 ## Recognition experiment
 
 `backend/recognition/product_search.py` now parses a synthetic Google Product

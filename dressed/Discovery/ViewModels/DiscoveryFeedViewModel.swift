@@ -61,7 +61,12 @@ struct DemoPostFunctions: PostFunctions {
     func fetchRecentPosts() async throws -> [Post] {
         try Task.checkCancellation()
         let examples: [(author: String, caption: String, name: String, pieces: [(String, ClothingCategory)])] = [
-            ("maya", "Weekend layers", "Weekend", [("Cream tee", .tops), ("Black jeans", .pants)]),
+            ("user38483", "caption (optional)", "Fit check", [
+                ("Vintage leather jacket", .outerwear),
+                ("Pleated wool trousers", .pants),
+                ("Leather belt", .accessories),
+                ("Chunky loafers", .shoes)
+            ]),
             ("alex", "Keeping it simple today", "Everyday", [("White shirt", .tops), ("Sneakers", .shoes)]),
             ("jordan", "A little color for Friday", "Friday", [("Blue dress", .dresses), ("Silver necklace", .accessories)]),
             ("sam", "Coffee run fit", "Coffee run", [("Denim jacket", .outerwear), ("Black pants", .pants)]),

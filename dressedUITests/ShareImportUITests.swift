@@ -1,6 +1,138 @@
 import XCTest
 
 final class ShareImportUITests: XCTestCase {
+    func testDiscoveryStyleSearchMatchesPrototype() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-mockSignedIn", "-showDiscovery"]
+        app.launch()
+
+        let search = app.textFields["searchField.textField"]
+        XCTAssertTrue(search.waitForExistence(timeout: 10))
+        search.tap()
+        XCTAssertTrue(app.buttons["discovery.style.select.Y2K"].waitForExistence(timeout: 5))
+        app.buttons["discovery.style.select.Y2K"].tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["discovery.style.remove.Y2K"].exists)
+        XCTAssertTrue(app.buttons["discovery.style.select.Comfortable"].exists)
+        XCTAssertTrue(app.buttons["discovery.showResults"].exists)
+
+        let focusedScreenshot = XCTAttachment(screenshot: app.screenshot())
+        focusedScreenshot.name = "Discovery focused style search"
+        focusedScreenshot.lifetime = .keepAlways
+        add(focusedScreenshot)
+
+        app.buttons["discovery.showResults"].tap()
+        XCTAssertTrue(app.buttons["discovery.idea.idea_top_1"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["discovery.idea.idea_shoes_1"].exists)
+        XCTAssertFalse(app.buttons["discovery.idea.idea_pants_1"].exists)
+    }
+
+    func testDiscoveryIdeasAndOOTDPostsAreSeparate() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-mockSignedIn", "-showDiscovery"]
+        app.launch()
+
+        XCTAssertTrue(app.buttons["discovery.idea.idea_top_1"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["ootd.post.demo_post_1"].exists)
+        let discoveryScreenshot = XCTAttachment(screenshot: app.screenshot())
+        discoveryScreenshot.name = "Discovery ideas"
+        discoveryScreenshot.lifetime = .keepAlways
+        add(discoveryScreenshot)
+
+        app.segmentedControls.buttons["OOTD"].tap()
+        XCTAssertTrue(app.buttons["ootd.findItems.demo_post_1"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["discovery.idea.idea_top_1"].exists)
+        let ootdScreenshot = XCTAttachment(screenshot: app.screenshot())
+        ootdScreenshot.name = "OOTD posts"
+        ootdScreenshot.lifetime = .keepAlways
+        add(ootdScreenshot)
+
+        app.buttons["ootd.pin.demo_post_1.0"].tap()
+        let selectedPin = NSPredicate(format: "value == %@", "Selected")
+        expectation(for: selectedPin, evaluatedWith: app.buttons["ootd.pin.demo_post_1.0"])
+        waitForExpectations(timeout: 5)
+        app.buttons["ootd.like.demo_post_1"].tap()
+        XCTAssertTrue(app.buttons["ootd.like.demo_post_1"].label.contains("Unlike"))
+        XCTAssertFalse(app.navigationBars["Post"].exists)
+
+        app.buttons["ootd.comments.demo_post_1"].tap()
+        let comment = app.textFields["ootd.commentInput"]
+        XCTAssertTrue(comment.waitForExistence(timeout: 5))
+        comment.tap()
+        comment.typeText("Nice fit")
+        app.buttons["ootd.sendComment"].tap()
+        XCTAssertTrue(app.staticTexts["Nice fit"].waitForExistence(timeout: 5))
+        app.buttons["Close comments"].tap()
+        XCTAssertTrue(app.buttons["ootd.comments.demo_post_1"].label.contains("3"))
+        app.buttons["ootd.findItems.demo_post_1"].tap()
+        XCTAssertTrue(app.staticTexts["Vintage leather jacket"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Oversized moto jacket"].exists)
+    }
+
+    func testOOTDItemsSheetMatchesPrototype() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-mockSignedIn", "-showDiscovery", "-showOOTD"]
+        app.launch()
+
+        let findItems = app.buttons["ootd.findItems.demo_post_1"]
+        XCTAssertTrue(findItems.waitForExistence(timeout: 10))
+        findItems.tap()
+        XCTAssertTrue(app.staticTexts["Vintage leather jacket"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Arlo & Finch"].exists)
+        XCTAssertTrue(app.staticTexts["$189"].exists)
+        XCTAssertTrue(app.staticTexts["Verified by creator"].exists)
+        XCTAssertTrue(app.buttons["ootd.category.All"].exists)
+        XCTAssertTrue(app.buttons["ootd.category.Jacket"].exists)
+        let itemsScreenshot = XCTAttachment(screenshot: app.screenshot())
+        itemsScreenshot.name = "OOTD Find items sheet"
+        itemsScreenshot.lifetime = .keepAlways
+        add(itemsScreenshot)
+
+        let save = app.buttons["ootd.saveItem.jacket-1"]
+        save.tap()
+        let savedLabel = NSPredicate(format: "label BEGINSWITH %@", "Saved ")
+        expectation(for: savedLabel, evaluatedWith: save)
+        waitForExpectations(timeout: 5)
+        app.buttons["ootd.itemsSort"].tap()
+        app.buttons["Price: Low to high"].tap()
+        XCTAssertTrue(app.buttons["ootd.itemsSort"].label.contains("Price: Low to high"))
+        app.buttons["ootd.category.Pants"].tap()
+        XCTAssertTrue(app.staticTexts["Pleated wool trousers"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Vintage leather jacket"].exists)
+        app.buttons["ootd.category.Jacket"].tap()
+        XCTAssertFalse(app.staticTexts["Pleated wool trousers"].exists)
+        XCTAssertTrue(app.staticTexts["Washed suede bomber"].exists)
+    }
+
+    func testOOTDCreatePostPreviewStaysInFeed() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-mockSignedIn", "-showDiscovery", "-showOOTD"]
+        app.launch()
+
+        XCTAssertTrue(app.buttons["ootd.createPost"].waitForExistence(timeout: 10))
+        app.buttons["ootd.createPost"].tap()
+        XCTAssertTrue(app.staticTexts["New post"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.images["Outfit preview image"].exists)
+        XCTAssertTrue(app.buttons["ootd.newPost.Audio"].exists)
+        XCTAssertTrue(app.buttons["ootd.newPost.Outfit details"].exists)
+        XCTAssertTrue(app.tabBars.buttons["Discovery"].exists)
+        let createScreenshot = XCTAttachment(screenshot: app.screenshot())
+        createScreenshot.name = "New post creation"
+        createScreenshot.lifetime = .keepAlways
+        add(createScreenshot)
+
+        app.buttons["Back"].tap()
+        XCTAssertTrue(app.buttons["ootd.createPost"].waitForExistence(timeout: 5))
+        app.buttons["ootd.createPost"].tap()
+        let caption = app.textFields["ootd.newPostCaption"]
+        XCTAssertTrue(caption.waitForExistence(timeout: 5))
+        caption.tap()
+        caption.typeText("New fit")
+        app.buttons["ootd.sharePreview"].tap()
+        XCTAssertTrue(app.staticTexts["New fit"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.navigationBars["Post"].exists)
+    }
+
     func testReviewProductURLAndKeepWishlistAfterRelaunch() {
         let app = XCUIApplication()
         let suffix = String(UUID().uuidString.prefix(8))

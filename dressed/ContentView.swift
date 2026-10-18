@@ -34,8 +34,6 @@ private struct AppTabs: View {
 
     @State private var selectedTab: Int
     @State private var discoverySection = 0
-    @State private var dismissDiscoverySearchRequest = 0
-
     @State private var signOutError: String?
     @State private var pendingSharedImage: ReviewImage?
     @State private var presentedSharedId: String?
@@ -58,16 +56,9 @@ private struct AppTabs: View {
 
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
-
-        _selectedTab = State(
-            initialValue: arguments.contains("-showCamera") ? 2 :
-                (arguments.contains("-showCatalog") ||
-                 arguments.contains("-showDiscovery") ? 1 : 0)
-        )
-
-        _discoverySection = State(
-            initialValue: arguments.contains("-showCatalog") ? 1 : 0
-        )
+        _selectedTab = State(initialValue: arguments.contains("-showCamera") ? 2 :
+            (arguments.contains("-showCatalog") || arguments.contains("-showDiscovery") ? 1 : 0))
+        _discoverySection = State(initialValue: arguments.contains("-showOOTD") ? 1 : 0)
         #else
         _selectedTab = State(initialValue: 0)
         #endif
@@ -84,46 +75,32 @@ private struct AppTabs: View {
                     ownerId: userId
                 )
             }
-            .tabItem {
-                Label("My Closet", systemImage: "hanger")
-            }
+            .tabItem { Label("My Closet", image: selectedTab == 0 ? "TablerHanger2Filled" : "TablerHanger2") }
             .tag(0)
 
             // MARK: - Discovery
 
             NavigationStack {
-                VStack {
-                    Picker(
-                        "Discovery",
-                        selection: $discoverySection
-                    ) {
-                        Text("Feed").tag(0)
-                        Text("Search").tag(1)
+                VStack(spacing: 0) {
+                    Picker("Discovery", selection: $discoverySection) {
+                        Text("Discovery").tag(0)
+                        Text("OOTD").tag(1)
                     }
                     .pickerStyle(.segmented)
-                    .padding()
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
+                    .accessibilityIdentifier("discovery.sectionPicker")
 
                     if discoverySection == 0 {
-                        DiscoveryFeedView(
-                            dismissRequest: dismissDiscoverySearchRequest
-                        )
+                        DiscoveryIdeasView { selectedTab = 3 }
                     } else {
-                        PrototypeCatalogView()
+                        OOTDFeedView()
                     }
                 }
-                .background {
-                    Color.clear
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            dismissDiscoverySearchRequest &+= 1
-                        }
-                }
-                .navigationTitle("Discovery")
-                .navigationBarTitleDisplayMode(.inline)
+                .toolbar(.hidden, for: .navigationBar)
             }
-            .tabItem {
-                Label("Discovery", systemImage: "safari")
-            }
+            .tabItem { Label("Discovery", image: selectedTab == 1 ? "TablerCompassFilled" : "TablerCompass") }
             .tag(1)
 
             // MARK: - Camera
@@ -146,9 +123,7 @@ private struct AppTabs: View {
                     }
                 }
             }
-            .tabItem {
-                Label("Camera", systemImage: "camera")
-            }
+            .tabItem { Label("Camera", image: selectedTab == 2 ? "TablerCameraFilled" : "TablerCamera") }
             .tag(2)
 
             // MARK: - Avatar
