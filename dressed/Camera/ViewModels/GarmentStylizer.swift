@@ -89,125 +89,135 @@ enum GarmentStylizer {
     }
 
     private static func cropByBodyPose(cgImage: CGImage, category: ClothingCategory, orientation: UIImage.Orientation) async -> UIImage? {
-        await withCheckedContinuation { continuation in
+        await withCheckedContinuation { (continuation: CheckedContinuation<UIImage?, Never>) in
             DispatchQueue.global(qos: .userInitiated).async {
-                let request = VNDetectHumanBodyPoseRequest()
-                let handler = VNImageRequestHandler(cgImage: cgImage, orientation: CGImagePropertyOrientation(orientation), options: [:])
-
-                do {
-                    try handler.perform([request])
-                    guard let observation = request.results?.first else {
-                        continuation.resume(returning: nil)
-                        return
-                    }
-
-                    let imageWidth = CGFloat(cgImage.width)
-                    let imageHeight = CGFloat(cgImage.height)
-
-                    // Helper to get normalized point in image coordinates (Vision coordinates have (0,0) at bottom-left)
-                    func point(for joint: VNHumanBodyPoseObservation.JointName) -> CGPoint? {
-                        guard let p = try? observation.recognizedPoint(joint), p.confidence > 0.15 else { return nil }
-                        return CGPoint(x: p.location.x * imageWidth, y: (1.0 - p.location.y) * imageHeight)
-                    }
-
-                    var cropRect: CGRect?
-
-                    switch category {
-                    case .tops, .outerwear:
-                        // Torso: from collar/neck down to hips
-                        let neck = point(for: .neck) ?? point(for: .nose)
-                        let leftShoulder = point(for: .leftShoulder)
-                        let rightShoulder = point(for: .rightShoulder)
-                        let leftHip = point(for: .leftHip)
-                        let rightHip = point(for: .rightHip)
-                        let leftWrist = point(for: .leftWrist)
-                        let rightWrist = point(for: .rightWrist)
-
-                        let allPoints = [neck, leftShoulder, rightShoulder, leftHip, rightHip, leftWrist, rightWrist].compactMap { $0 }
-                        if allPoints.count >= 2 {
-                            let minX = max((allPoints.map(\.x).min() ?? 0) - imageWidth * 0.05, 0)
-                            let maxX = min((allPoints.map(\.x).max() ?? imageWidth) + imageWidth * 0.05, imageWidth)
-                            let topY = max((leftShoulder?.y ?? neck?.y ?? allPoints.map(\.y).min() ?? 0) - imageHeight * 0.04, 0)
-                            let bottomY = min((leftHip?.y ?? rightHip?.y ?? allPoints.map(\.y).max() ?? imageHeight) + imageHeight * 0.06, imageHeight)
-
-                            cropRect = CGRect(x: minX, y: topY, width: maxX - minX, height: bottomY - topY)
-                        }
-
-                    case .pants:
-                        // Lower body: from waist/hips down to ankles
-                        let leftHip = point(for: .leftHip)
-                        let rightHip = point(for: .rightHip)
-                        let leftKnee = point(for: .leftKnee)
-                        let rightKnee = point(for: .rightKnee)
-                        let leftAnkle = point(for: .leftAnkle)
-                        let rightAnkle = point(for: .rightAnkle)
-
-                        let allPoints = [leftHip, rightHip, leftKnee, rightKnee, leftAnkle, rightAnkle].compactMap { $0 }
-                        if allPoints.count >= 2 {
-                            let minX = max((allPoints.map(\.x).min() ?? 0) - imageWidth * 0.06, 0)
-                            let maxX = min((allPoints.map(\.x).max() ?? imageWidth) + imageWidth * 0.06, imageWidth)
-                            let topY = max((leftHip?.y ?? rightHip?.y ?? allPoints.map(\.y).min() ?? 0) - imageHeight * 0.03, 0)
-                            let bottomY = min((leftAnkle?.y ?? rightAnkle?.y ?? allPoints.map(\.y).max() ?? imageHeight) + imageHeight * 0.04, imageHeight)
-
-                            cropRect = CGRect(x: minX, y: topY, width: maxX - minX, height: bottomY - topY)
-                        }
-
-                    case .skirts:
-                        let leftHip = point(for: .leftHip)
-                        let rightHip = point(for: .rightHip)
-                        let leftKnee = point(for: .leftKnee)
-                        let rightKnee = point(for: .rightKnee)
-
-                        let allPoints = [leftHip, rightHip, leftKnee, rightKnee].compactMap { $0 }
-                        if allPoints.count >= 2 {
-                            let minX = max((allPoints.map(\.x).min() ?? 0) - imageWidth * 0.08, 0)
-                            let maxX = min((allPoints.map(\.x).max() ?? imageWidth) + imageWidth * 0.08, imageWidth)
-                            let topY = max((leftHip?.y ?? rightHip?.y ?? 0) - imageHeight * 0.03, 0)
-                            let bottomY = min((leftKnee?.y ?? rightKnee?.y ?? imageHeight) + imageHeight * 0.06, imageHeight)
-
-                            cropRect = CGRect(x: minX, y: topY, width: maxX - minX, height: bottomY - topY)
-                        }
-
-                    case .shoes:
-                        let leftAnkle = point(for: .leftAnkle)
-                        let rightAnkle = point(for: .rightAnkle)
-                        let ankles = [leftAnkle, rightAnkle].compactMap { $0 }
-                        if !ankles.isEmpty {
-                            let minX = max((ankles.map(\.x).min() ?? 0) - imageWidth * 0.12, 0)
-                            let maxX = min((ankles.map(\.x).max() ?? imageWidth) + imageWidth * 0.12, imageWidth)
-                            let topY = max((ankles.map(\.y).min() ?? 0) - imageHeight * 0.02, 0)
-                            cropRect = CGRect(x: minX, y: topY, width: maxX - minX, height: imageHeight - topY)
-                        }
-
-                    case .dresses:
-                        let leftShoulder = point(for: .leftShoulder)
-                        let rightShoulder = point(for: .rightShoulder)
-                        let leftKnee = point(for: .leftKnee)
-                        let rightKnee = point(for: .rightKnee)
-                        let points = [leftShoulder, rightShoulder, leftKnee, rightKnee].compactMap { $0 }
-                        if points.count >= 2 {
-                            let minX = max((points.map(\.x).min() ?? 0) - imageWidth * 0.06, 0)
-                            let maxX = min((points.map(\.x).max() ?? imageWidth) + imageWidth * 0.06, imageWidth)
-                            let topY = max((points.map(\.y).min() ?? 0) - imageHeight * 0.03, 0)
-                            let bottomY = min((points.map(\.y).max() ?? imageHeight) + imageHeight * 0.06, imageHeight)
-                            cropRect = CGRect(x: minX, y: topY, width: maxX - minX, height: bottomY - topY)
-                        }
-
-                    case .accessories, .other:
-                        break
-                    }
-
-                    guard let rect = cropRect, rect.width > 20, rect.height > 20,
-                          let croppedCG = cgImage.cropping(to: rect) else {
-                        continuation.resume(returning: nil)
-                        return
-                    }
-
-                    continuation.resume(returning: UIImage(cgImage: croppedCG, scale: 1.0, orientation: .up))
-                } catch {
-                    continuation.resume(returning: nil)
-                }
+                continuation.resume(returning: cropByBodyPoseSync(cgImage: cgImage, category: category,
+                                                                   orientation: orientation))
             }
+        }
+    }
+
+    private static func cropByBodyPoseSync(cgImage: CGImage, category: ClothingCategory,
+                                           orientation: UIImage.Orientation) -> UIImage? {
+        let request = VNDetectHumanBodyPoseRequest()
+        let handler = VNImageRequestHandler(cgImage: cgImage, orientation: CGImagePropertyOrientation(orientation), options: [:])
+
+        do {
+            try handler.perform([request])
+            guard let observation = request.results?.first else {
+                return nil
+            }
+
+            let imageWidth = CGFloat(cgImage.width)
+            let imageHeight = CGFloat(cgImage.height)
+
+            // Helper to get normalized point in image coordinates (Vision coordinates have (0,0) at bottom-left)
+            func point(for joint: VNHumanBodyPoseObservation.JointName) -> CGPoint? {
+                guard let p = try? observation.recognizedPoint(joint), p.confidence > 0.15 else { return nil }
+                return CGPoint(x: p.location.x * imageWidth, y: (1.0 - p.location.y) * imageHeight)
+            }
+
+            var cropRect: CGRect?
+
+            switch category {
+            case .tops, .outerwear:
+                // Torso: from collar/neck down to hips
+                let neck = point(for: .neck) ?? point(for: .nose)
+                let leftShoulder = point(for: .leftShoulder)
+                let rightShoulder = point(for: .rightShoulder)
+                let leftHip = point(for: .leftHip)
+                let rightHip = point(for: .rightHip)
+                let leftWrist = point(for: .leftWrist)
+                let rightWrist = point(for: .rightWrist)
+
+                let allPoints = [neck, leftShoulder, rightShoulder, leftHip, rightHip, leftWrist, rightWrist].compactMap { $0 }
+                if allPoints.count >= 2 {
+                    let minX = max((allPoints.map(\.x).min() ?? 0) - imageWidth * 0.05, 0)
+                    let maxX = min((allPoints.map(\.x).max() ?? imageWidth) + imageWidth * 0.05, imageWidth)
+                    let pointYs = allPoints.map(\.y)
+                    let shoulderY: CGFloat = leftShoulder?.y ?? neck?.y ?? pointYs.min() ?? 0
+                    let hipY: CGFloat = leftHip?.y ?? rightHip?.y ?? pointYs.max() ?? imageHeight
+                    let topY = max(shoulderY - imageHeight * 0.04, 0)
+                    let bottomY = min(hipY + imageHeight * 0.06, imageHeight)
+
+                    cropRect = CGRect(x: minX, y: topY, width: maxX - minX, height: bottomY - topY)
+                }
+
+            case .pants:
+                // Lower body: from waist/hips down to ankles
+                let leftHip = point(for: .leftHip)
+                let rightHip = point(for: .rightHip)
+                let leftKnee = point(for: .leftKnee)
+                let rightKnee = point(for: .rightKnee)
+                let leftAnkle = point(for: .leftAnkle)
+                let rightAnkle = point(for: .rightAnkle)
+
+                let allPoints = [leftHip, rightHip, leftKnee, rightKnee, leftAnkle, rightAnkle].compactMap { $0 }
+                if allPoints.count >= 2 {
+                    let minX = max((allPoints.map(\.x).min() ?? 0) - imageWidth * 0.06, 0)
+                    let maxX = min((allPoints.map(\.x).max() ?? imageWidth) + imageWidth * 0.06, imageWidth)
+                    let pointYs = allPoints.map(\.y)
+                    let hipY: CGFloat = leftHip?.y ?? rightHip?.y ?? pointYs.min() ?? 0
+                    let ankleY: CGFloat = leftAnkle?.y ?? rightAnkle?.y ?? pointYs.max() ?? imageHeight
+                    let topY = max(hipY - imageHeight * 0.03, 0)
+                    let bottomY = min(ankleY + imageHeight * 0.04, imageHeight)
+
+                    cropRect = CGRect(x: minX, y: topY, width: maxX - minX, height: bottomY - topY)
+                }
+
+            case .skirts:
+                let leftHip = point(for: .leftHip)
+                let rightHip = point(for: .rightHip)
+                let leftKnee = point(for: .leftKnee)
+                let rightKnee = point(for: .rightKnee)
+
+                let allPoints = [leftHip, rightHip, leftKnee, rightKnee].compactMap { $0 }
+                if allPoints.count >= 2 {
+                    let minX = max((allPoints.map(\.x).min() ?? 0) - imageWidth * 0.08, 0)
+                    let maxX = min((allPoints.map(\.x).max() ?? imageWidth) + imageWidth * 0.08, imageWidth)
+                    let topY = max((leftHip?.y ?? rightHip?.y ?? 0) - imageHeight * 0.03, 0)
+                    let bottomY = min((leftKnee?.y ?? rightKnee?.y ?? imageHeight) + imageHeight * 0.06, imageHeight)
+
+                    cropRect = CGRect(x: minX, y: topY, width: maxX - minX, height: bottomY - topY)
+                }
+
+            case .shoes:
+                let leftAnkle = point(for: .leftAnkle)
+                let rightAnkle = point(for: .rightAnkle)
+                let ankles = [leftAnkle, rightAnkle].compactMap { $0 }
+                if !ankles.isEmpty {
+                    let minX = max((ankles.map(\.x).min() ?? 0) - imageWidth * 0.12, 0)
+                    let maxX = min((ankles.map(\.x).max() ?? imageWidth) + imageWidth * 0.12, imageWidth)
+                    let topY = max((ankles.map(\.y).min() ?? 0) - imageHeight * 0.02, 0)
+                    cropRect = CGRect(x: minX, y: topY, width: maxX - minX, height: imageHeight - topY)
+                }
+
+            case .dresses:
+                let leftShoulder = point(for: .leftShoulder)
+                let rightShoulder = point(for: .rightShoulder)
+                let leftKnee = point(for: .leftKnee)
+                let rightKnee = point(for: .rightKnee)
+                let points = [leftShoulder, rightShoulder, leftKnee, rightKnee].compactMap { $0 }
+                if points.count >= 2 {
+                    let minX = max((points.map(\.x).min() ?? 0) - imageWidth * 0.06, 0)
+                    let maxX = min((points.map(\.x).max() ?? imageWidth) + imageWidth * 0.06, imageWidth)
+                    let topY = max((points.map(\.y).min() ?? 0) - imageHeight * 0.03, 0)
+                    let bottomY = min((points.map(\.y).max() ?? imageHeight) + imageHeight * 0.06, imageHeight)
+                    cropRect = CGRect(x: minX, y: topY, width: maxX - minX, height: bottomY - topY)
+                }
+
+            case .accessories, .other:
+                break
+            }
+
+            guard let rect = cropRect, rect.width > 20, rect.height > 20,
+                  let croppedCG = cgImage.cropping(to: rect) else {
+                return nil
+            }
+
+            return UIImage(cgImage: croppedCG, scale: 1.0, orientation: .up)
+        } catch {
+            return nil
         }
     }
 
