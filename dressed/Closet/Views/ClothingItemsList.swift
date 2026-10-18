@@ -17,6 +17,7 @@ struct ClothingItemsList: View {
     let items: [ClothingItem]
     let outfits: [SavedOutfit]
     let image: (ClothingItem) -> Image
+    let uiImage: ((ClothingItem) -> UIImage?)?
     let onSelect: (String) -> Void
     let onSelectOutfit: (UUID) -> Void
 
@@ -30,12 +31,14 @@ struct ClothingItemsList: View {
         items: [ClothingItem],
         outfits: [SavedOutfit] = [],
         image: @escaping (ClothingItem) -> Image = { _ in Image(systemName: "photo") },
+        uiImage: ((ClothingItem) -> UIImage?)? = nil,
         onSelect: @escaping (String) -> Void,
         onSelectOutfit: @escaping (UUID) -> Void = { _ in }
     ) {
         self.items = items
         self.outfits = outfits
         self.image = image
+        self.uiImage = uiImage
         self.onSelect = onSelect
         self.onSelectOutfit = onSelectOutfit
     }
@@ -49,7 +52,7 @@ struct ClothingItemsList: View {
         ScrollView {
             switch tab {
             case .clothing:
-                ClosetItemGrid(items: filteredItems, image: image, onSelect: onSelect)
+                ClosetItemGrid(items: filteredItems, image: image, uiImage: uiImage, onSelect: onSelect)
             case .outfits:
                 outfitsGrid
             }
@@ -83,7 +86,13 @@ struct ClothingItemsList: View {
                 ForEach(outfits) { outfit in
                     OutfitPreviewCard(
                         name: outfit.name,
-                        image: Image(systemName: "figure.stand"),
+                        thumbnail: AnyView(AvatarView(
+                            look: [:],
+                            worn: outfit.worn,
+                            image: image,
+                            uiImage: uiImage,
+                            allowsInteraction: false
+                        )),
                         onTap: { onSelectOutfit(outfit.id) }
                     )
                     .buttonStyle(.plain)
