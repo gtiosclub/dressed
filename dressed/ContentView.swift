@@ -58,7 +58,7 @@ private struct AppTabs: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack {
-                PrototypeClosetView(closet: closet)
+                PrototypeClosetView(closet: closet, ownerId: userId)
                 .toolbar { profileToolbar }
             }
             .tabItem { Label("My Closet", systemImage: "hanger") }
@@ -109,20 +109,6 @@ private struct AppTabs: View {
             .tabItem { Label("Camera", systemImage: "camera") }
             .tag(2)
 
-            // ProfileView has its own NavigationStack (it also hosts the avatar studio),
-            // so it is not wrapped in another one.
-            ProfileView(
-                username: userId,
-                items: closet.items,
-                model: studio,
-                closet: closet,
-                onSignOut: signOut,
-                image: { photo(for: $0) },
-                uiImage: { closet.image(for: $0) }
-            )
-                .tabItem { Label("Avatar", systemImage: "figure.stand") }
-                .tag(3)
-
         }
         .alert("Could not sign out", isPresented: Binding(
             get: { signOutError != nil },
@@ -133,23 +119,15 @@ private struct AppTabs: View {
             Text(signOutError ?? "Please try again.")
         }
         .sheet(isPresented: $showingProfile) {
-            NavigationStack {
-                List {
-                    Section {
-                        Label("Signed in to Dressed", systemImage: "person.crop.circle.fill")
-                    }
-                    Section {
-                        Button("Sign Out", role: .destructive, action: signOut)
-                            .accessibilityIdentifier("profile.signOut")
-                    }
-                }
-                .navigationTitle("Profile")
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button("Done") { showingProfile = false }
-                    }
-                }
-            }
+            ProfileView(
+                username: userId,
+                items: closet.items,
+                model: studio,
+                closet: closet,
+                onSignOut: signOut,
+                image: { photo(for: $0) },
+                uiImage: { closet.image(for: $0) }
+            )
         }
         .alert("Shared image unavailable", isPresented: Binding(
             get: { sharedImageError != nil },

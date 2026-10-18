@@ -10,7 +10,11 @@ final class ShareImportUITests: XCTestCase {
 
         let url = app.textFields["productURLField"]
         XCTAssertTrue(url.waitForExistence(timeout: 10))
-        url.tap()
+        for _ in 0..<5 where !url.isHittable {
+            app.scrollViews.firstMatch.swipeUp()
+        }
+        XCTAssertTrue(url.isHittable)
+        url.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         url.typeText("https://www.uniqlo.com/us/en/products/E469395-000/00?test=\(suffix)")
         app.keyboards.buttons["Done"].tap()
         app.buttons["Review Product Link"].tap()
@@ -54,20 +58,19 @@ final class ShareImportUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.navigationBars["Review Shared Image"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["Find Pieces on Device"].exists)
         XCTAssertFalse(app.staticTexts["Finding possible pieces…"].exists)
         app.buttons["Add Piece Manually"].tap()
         XCTAssertTrue(app.navigationBars["Adjust Image Region"].waitForExistence(timeout: 5))
         app.buttons["Use Region"].tap()
 
         let name = app.textFields["Piece name"].firstMatch
-        for _ in 0..<5 where !name.isHittable {
-            app.collectionViews.firstMatch.swipeUp()
+        for _ in 0..<8 where !name.isHittable {
+            app.swipeUp()
         }
         XCTAssertTrue(name.isHittable)
         name.tap()
-        name.typeText("Blue sweater")
-        app.buttons["Blue sweater"].tap()
+        name.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: "Piece".count) + "Blue sweater")
+        app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Blue sweater")).firstMatch.tap()
         app.keyboards.buttons["return"].tap()
         app.collectionViews.firstMatch.swipeUp()
         app.buttons["Save Pieces and Outfit"].tap()

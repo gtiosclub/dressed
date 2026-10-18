@@ -39,6 +39,7 @@ final class OutfitStudioModel {
 // customize the avatar, and take a picture.
 // The model is owned by the parent so the look and worn pieces are shared across tabs.
 struct ProfileView: View {
+    @Environment(\.dismiss) private var dismiss
     let username: String
     let items: [ClothingItem]
     let model: OutfitStudioModel
@@ -72,6 +73,11 @@ struct ProfileView: View {
         NavigationStack {
             ProfileHome(username: username, model: model, image: image, uiImage: uiImage, onSignOut: onSignOut) {
                 showsStudio = true
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Done") { dismiss() }
+                }
             }
             .navigationDestination(isPresented: $showsStudio) {
                 AvatarStudioView(model: model, closet: closet, items: items, image: image, uiImage: uiImage)
@@ -126,6 +132,7 @@ private struct ProfileHome: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Sign Out", action: onSignOut)
+                    .accessibilityIdentifier("profile.signOut")
             }
         }
         .onAppear { isVisible = true }

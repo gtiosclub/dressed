@@ -10,6 +10,7 @@
 		A10100000000000000000001 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10200000000000000000001 /* ShareViewController.swift */; };
 		A10100000000000000000002 /* DressedShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A10200000000000000000004 /* DressedShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B20100000000000000000001 /* ShareImportUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20200000000000000000001 /* ShareImportUITests.swift */; };
+		B20100000000000000000003 /* NavigationUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20200000000000000000003 /* NavigationUITests.swift */; };
 		C10100000000000000000001 /* InjectionNext in Frameworks */ = {isa = PBXBuildFile; productRef = C10300000000000000000001 /* InjectionNext */; };
 		C10100000000000000000002 /* Inject in Frameworks */ = {isa = PBXBuildFile; productRef = C10300000000000000000002 /* Inject */; };
 		360046AB307476B400F78859 /* .swiftlint.yml in Resources */ = {isa = PBXBuildFile; fileRef = 360046AA3074769B00F78859 /* .swiftlint.yml */; };
@@ -28,6 +29,7 @@
 		A10200000000000000000003 /* DressedShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DressedShareExtension.entitlements; sourceTree = "<group>"; };
 		A10200000000000000000004 /* DressedShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DressedShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B20200000000000000000001 /* ShareImportUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareImportUITests.swift; sourceTree = "<group>"; };
+		B20200000000000000000003 /* NavigationUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationUITests.swift; sourceTree = "<group>"; };
 		B20200000000000000000002 /* dressedUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = dressedUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		360046AA3074769B00F78859 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = .swiftlint.yml; sourceTree = "<group>"; };
 		8B87D86730537AB400F3CF9E /* dressed.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = dressed.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -88,7 +90,7 @@
 		};
 		B20500000000000000000001 /* dressedUITests */ = {
 			isa = PBXGroup;
-			children = (B20200000000000000000001 /* ShareImportUITests.swift */, );
+			children = (B20200000000000000000001 /* ShareImportUITests.swift */, B20200000000000000000003 /* NavigationUITests.swift */, );
 			path = dressedUITests;
 			sourceTree = "<group>";
 		};
@@ -265,7 +267,7 @@
 
 /* Begin PBXSourcesBuildPhase section */
 		A10800000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10100000000000000000001 /* ShareViewController.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
-		B20800000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (B20100000000000000000001 /* ShareImportUITests.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
+		B20800000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (B20100000000000000000001 /* ShareImportUITests.swift in Sources */, B20100000000000000000003 /* NavigationUITests.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
 		8B87D86330537AB400F3CF9E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;

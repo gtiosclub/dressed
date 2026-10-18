@@ -160,10 +160,10 @@ struct ImportReviewView: View {
     }
 
     @State private var name = ""
-    @State private var category: ClothingCategory = .tops
+    @State private var category: ClothingCategory = .other
     @State private var selectedPreset: GarmentPreset = .tShirt
     @State private var activeFilter: PresetFilterCategory = .all
-    @State private var previewMode: ImportPreviewMode = .avatar3D
+    @State private var previewMode: ImportPreviewMode = .original
     @State private var hasEditedName = false
     @State private var hasEditedCategory = false
     @State private var recognitionState: RecognitionState = .analyzing
@@ -352,7 +352,7 @@ struct ImportReviewView: View {
                         .padding(.vertical, 4)
                     }
 
-                    // Shoulder coverage & avatar fit badge
+                    // Preset description
                     HStack(spacing: 6) {
                         Image(systemName: selectedPreset.coversShoulders ? "shield.fill" : "sparkles")
                             .foregroundStyle(selectedPreset.coversShoulders ? .blue : .purple)
@@ -362,9 +362,9 @@ struct ImportReviewView: View {
                     }
                     .padding(.top, 2)
                 } header: {
-                    Text("Avatar Preset & 3D Fit")
+                    Text("Avatar Preview")
                 } footer: {
-                    Text("Tap a preset to fill it with your photo's colors and graphics, fitted perfectly to your avatar in 360°.")
+                    Text("Choose a visual preset to preview this piece on the avatar. This does not predict fit.")
                 }
 
                 // MARK: - Review & Name Section
@@ -663,12 +663,8 @@ struct ImportReviewView: View {
         guard !isSaving else { return }
         isSaving = true
         do {
-            // Save the user's chosen preset choice for this item
+            try closet.save(imageData: image.data, draftId: image.id, name: name, category: category)
             GarmentPresetStore.set(selectedPreset, for: image.id)
-
-            // Save the filled avatar-style replicable piece (clean PNG)
-            let dataToSave = stylizedResult?.pngData ?? image.data
-            try closet.save(imageData: dataToSave, draftId: image.id, name: name, category: category)
             onSaved()
         } catch {
             saveError = error.localizedDescription
