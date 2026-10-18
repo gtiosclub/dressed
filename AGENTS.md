@@ -58,6 +58,8 @@ xcodebuild -project dressed.xcodeproj \
   CODE_SIGNING_ALLOWED=NO build
 ```
 
+This command checks compilation only. For Firebase login or any interactive simulator run, install a normally signed build as described in [docs/IOS_DEVELOPMENT.md](docs/IOS_DEVELOPMENT.md#test-account-for-interactive-checks); an app installed from the unsigned output can trigger Firebase Auth's Keychain entitlement error.
+
 The current deployment target is iOS 18.0; use a compatible runtime. Run relevant tests and SwiftLint if available, and report missing tooling instead of claiming it passed. The project has a `dressedUITests` target; inspect its current tests before choosing test commands. Backend changes require authorized and unauthorized access checks in an emulator or designated development project. Do not use real-user data for smoke tests.
 
 ## Git and collaboration

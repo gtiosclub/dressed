@@ -15,7 +15,7 @@ Working scope based on the team's feature notes and attached setup/backlog plan,
 - [Firebase testing for students](officers/firebase-testing.md): current project, safe emulator checks, and live setup limits.
 - [Backend schema templates](../backend/schemas/README.md): canonical types, examples and storage map.
 - [Local catalog prototype](../backend/catalog/README.md): fixture ingestion, SQLite state, read-only demo API, and test commands.
-- [Recognition experiment](../backend/recognition/README.md): fixture-backed Google Product Search and Object Localization response adapters; paid calls are disabled.
+- [Recognition experiment](../backend/recognition/README.md): live development Object Localization bridge plus fixture-backed Product Search adapter; no live product matching.
 - [SwiftLint guide](linting.md): local lint command, CI behavior, and fix workflow.
 - [iOS development and agent testing](IOS_DEVELOPMENT.md): simulator automation, hot reload setup, verification and troubleshooting.
 - [Agent instructions](../AGENTS.md): repository-specific guidance for coding agents.
