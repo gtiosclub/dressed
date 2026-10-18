@@ -39,6 +39,7 @@ private struct AppTabs: View {
     @State private var pendingSharedLink: ReviewProductLink?
     @State private var presentedSharedLinkId: String?
     @State private var deferredSharedLinkId: String?
+    @State private var studio = OutfitStudioModel()
 
     init(session: SessionViewModel, userId: String) {
         self.session = session
@@ -57,7 +58,7 @@ private struct AppTabs: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack {
-                PrototypeClosetView(closet: closet, ownerId: userId)
+                PrototypeClosetView(closet: closet)
                 .toolbar { profileToolbar }
             }
             .tabItem { Label("My Closet", systemImage: "hanger") }
@@ -107,6 +108,21 @@ private struct AppTabs: View {
             }
             .tabItem { Label("Camera", systemImage: "camera") }
             .tag(2)
+
+            // ProfileView has its own NavigationStack (it also hosts the avatar studio),
+            // so it is not wrapped in another one.
+            ProfileView(
+                username: userId,
+                items: closet.items,
+                model: studio,
+                closet: closet,
+                onSignOut: signOut,
+                image: { photo(for: $0) },
+                uiImage: { closet.image(for: $0) }
+            )
+                .tabItem { Label("Avatar", systemImage: "figure.stand") }
+                .tag(3)
+
         }
         .alert("Could not sign out", isPresented: Binding(
             get: { signOutError != nil },
@@ -240,6 +256,10 @@ private struct AppTabs: View {
         } catch {
             signOutError = error.localizedDescription
         }
+    }
+
+    private func photo(for item: ClothingItem) -> Image {
+        closet.image(for: item).map { Image(uiImage: $0) } ?? Image(systemName: "photo")
     }
 
     private func presentNextShare() {

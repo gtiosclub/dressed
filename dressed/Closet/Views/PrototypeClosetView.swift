@@ -2,18 +2,8 @@ import SwiftUI
 
 struct PrototypeClosetView: View {
     @ObservedObject var closet: PrototypeClosetStore
-    @StateObject private var outfits: PrototypeOutfitStore
-    @StateObject private var productLinks: ProductLinkStore
     @State private var category: ClothingCategory?
     @State private var searchText = ""
-    @State private var section = 0
-    @State private var showingOutfitEditor = false
-
-    init(closet: PrototypeClosetStore, ownerId: String) {
-        self.closet = closet
-        _outfits = StateObject(wrappedValue: PrototypeOutfitStore(ownerId: ownerId))
-        _productLinks = StateObject(wrappedValue: ProductLinkStore(ownerId: ownerId))
-    }
 
     private var visibleItems: [ClothingItem] {
         closet.items.filter { item in
@@ -23,75 +13,6 @@ struct PrototypeClosetView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Picker("Closet Section", selection: $section) {
-                Text("Pieces").tag(0)
-                Text("Outfits").tag(1)
-                Text("Wishlist").tag(2)
-            }
-            .pickerStyle(.segmented)
-            .padding()
-
-            if section == 0 {
-                piecesContent
-            } else if section == 1 {
-                outfitsContent
-            } else {
-                wishlistContent
-            }
-        }
-        .navigationTitle("My Closet")
-        .toolbar {
-            if section == 1 {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("New Outfit", systemImage: "plus") { showingOutfitEditor = true }
-                        .disabled(closet.items.isEmpty || closet.error != nil)
-                }
-            }
-        }
-        .sheet(isPresented: $showingOutfitEditor) {
-            PrototypeOutfitEditorView(closet: closet, outfits: outfits)
-        }
-        .onAppear {
-            closet.reload()
-            outfits.reload()
-            productLinks.reload()
-        }
-    }
-
-    @ViewBuilder
-    private var wishlistContent: some View {
-        if let error = productLinks.error {
-            ContentUnavailableView("Could not load Wishlist", systemImage: "exclamationmark.triangle",
-                                   description: Text(error))
-        } else if productLinks.links.isEmpty {
-            ContentUnavailableView("No saved links", systemImage: "heart",
-                                   description: Text("Paste a product link in Camera or share one to Dressed."))
-        } else {
-            List {
-                ForEach(productLinks.links) { item in
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(item.name).font(.headline)
-                        Text(item.category.rawValue.capitalized)
-                            .foregroundStyle(.secondary)
-                        Text(item.productURL.host ?? "Product link")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                        Link("Open product page", destination: item.productURL)
-                    }
-                    .accessibilityElement(children: .contain)
-                }
-                .onDelete { offsets in
-                    for index in offsets {
-                        try? productLinks.delete(id: productLinks.links[index].id)
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var piecesContent: some View {
         Group {
             if let error = closet.error {
                 ContentUnavailableView {
@@ -146,59 +67,12 @@ struct PrototypeClosetView: View {
                 }
             }
         }
+        .navigationTitle("My Closet")
         .searchable(text: $searchText, prompt: "Search pieces")
         .navigationDestination(for: String.self) { id in
             PrototypeItemDetailView(closet: closet, itemID: id)
         }
-    }
-
-    @ViewBuilder
-    private var outfitsContent: some View {
-        if let error = outfits.error {
-            ContentUnavailableView {
-                Label("Could not load outfits", systemImage: "exclamationmark.triangle")
-            } description: {
-                Text(error)
-            } actions: {
-                Button("Try Again") { outfits.reload() }
-            }
-        } else if outfits.outfits.isEmpty {
-            ContentUnavailableView {
-                Label("No outfits yet", systemImage: "square.on.square")
-            } description: {
-                Text("Choose pieces from your closet to make an outfit.")
-            } actions: {
-                Button("New Outfit") { showingOutfitEditor = true }
-                    .disabled(closet.items.isEmpty)
-            }
-        } else {
-            ScrollView {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 155), spacing: 12)], spacing: 12) {
-                    ForEach(outfits.outfits) { outfit in
-                        NavigationLink {
-                            PrototypeOutfitDetailView(outfit: outfit, closet: closet)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Image(systemName: "square.on.square")
-                                    .font(.largeTitle)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 100)
-                                Text(outfit.name ?? "Outfit")
-                                    .font(.headline)
-                                Text("\(outfit.placements.count) pieces")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(12)
-                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding()
-            }
-        }
+        .onAppear { closet.reload() }
     }
 
     private func pieceCard(_ item: ClothingItem) -> some View {
@@ -233,7 +107,7 @@ struct PrototypeClosetView: View {
     }
 }
 
-private struct PrototypeItemDetailView: View {
+struct PrototypeItemDetailView: View {
     @ObservedObject var closet: PrototypeClosetStore
     let itemID: String
 
