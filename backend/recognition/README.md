@@ -4,7 +4,7 @@
 
 The separate Google Cloud project `dressed-511821` has billing linked and the Vision API enabled. A project-scoped **$5 monthly alert** exists, and the project's Object Localization and Product Search quotas are each one request per minute. These are not dollar caps: Google Vision is not covered by the current enforced spend-cap budget feature. Do not increase quotas or use non-development images without lead review.
 
-Each developer needs their own Google account granted access to this project. Install the Google Cloud CLI, run `gcloud auth login`, and verify the intended account with `gcloud auth list`. No `.env`, API key, or service-account JSON is needed for the local bridge. From the repository root, start:
+The 18 non-owner Google user accounts already present on the app's `out-fitted` Firebase project were granted only `roles/serviceusage.serviceUsageConsumer` on `dressed-511821` on October 18. A developer whose Google account is not on that roster needs a lead to add it; GitHub access alone does not grant Cloud access. Install the Google Cloud CLI, run `gcloud auth login`, and verify the intended account with `gcloud auth list`. No `.env`, API key, or service-account JSON is needed for the local bridge. From the repository root, start:
 
 ```sh
 python3 backend/recognition/local_service.py --live-project dressed-511821 --max-live-requests 20
