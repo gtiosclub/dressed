@@ -68,7 +68,7 @@ On October 16, a real public shoe photo selected from Photos on the iOS 27 simul
 
 Use the normal signed build for Firebase login; do not install output from `CODE_SIGNING_ALLOWED=NO`. The Debug recognition bridge at `127.0.0.1:8765` is reachable from a simulator on the Mac, not from a physical iPhone. On the phone, Camera review falls back to on-device suggestions until an authenticated remote recognition service is built.
 
-On October 18, `Neal’s iPhone` (iPhone 15 Pro Max, iOS 26.7.1) was connected, paired, and had Developer Mode enabled. The device build stopped before compilation because Xcode showed the Apple account as **Authentication Expired** and had no development profiles for either app identifier. Refresh that account before retrying; this record does not claim a successful device installation.
+On October 18, `Neal’s iPhone` (iPhone 15 Pro Max, iOS 26.7.1) was connected, paired, and had Developer Mode enabled. After Neal refreshed Xcode's expired Apple login, the account showed only a **Personal Team**. The checked-in project requires team `WDRKBQFYRJ`, so Xcode still could not create development profiles for either app identifier. A temporary override to Neal's Personal Team `GN2A6926JU` also failed because `group.gtiosclub.dressed` is unavailable to that team. The holder or admin of team `WDRKBQFYRJ` must add Neal's Apple account with access to Certificates, Identifiers & Profiles (or provide a team member who can sign and install), then Xcode must refresh its account/team list. This record does not claim a successful device installation.
 
 From the repository root, substitute your simulator ID for `<UDID>`:
 
