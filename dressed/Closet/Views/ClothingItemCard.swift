@@ -4,7 +4,7 @@ struct ClothingItemCard: View {
     let image: Image
     let name: String
     let category: ClothingCategory
-    var subtitle: String? = nil  // replaces the category label when set
+    var subtitle: String?  // replaces the category label when set
     let onTap: () -> Void
 
     var body: some View {
@@ -50,4 +50,3 @@ private struct ClothingItemCardPreview: View {
         }
     }
 }
-

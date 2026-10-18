@@ -224,7 +224,7 @@ enum Mannequin {
         var mesh = torso(shape)
         mesh.append(neck(shape))
         mesh.append(head(face))
-        //mesh.append(noseMesh(face, nose))
+        // mesh.append(noseMesh(face, nose))
         for side: Float in [-1, 1] {
             mesh.append(leg(shape, side: side))
             mesh.append(foot(shape, side: side))
@@ -239,7 +239,7 @@ enum Mannequin {
         var mesh = torso(shape)
         mesh.append(neck(shape))
         mesh.append(head(face))
-        //mesh.append(noseMesh(face, nose))
+        // mesh.append(noseMesh(face, nose))
         for side: Float in [-1, 1] { mesh.append(arm(shape, side: side)) }
         return mesh
     }
@@ -421,7 +421,7 @@ enum Mannequin {
 
         // Palm — wide oval, clearly bigger than the wrist so it reads as a hand
         let palmKeys = [
-            LoftRing([side * wrist,           0.510, 0.000], width: 0.013 * size, depth: 0.013 * size),
+            LoftRing([side * wrist, 0.510, 0.000], width: 0.013 * size, depth: 0.013 * size),
             LoftRing([side * (wrist + 0.002), 0.490, 0.002], width: 0.016 * size, depth: 0.022 * size),
             LoftRing([side * (wrist + 0.003), 0.465, 0.004], width: 0.017 * size, depth: 0.024 * size),
             LoftRing([side * (wrist + 0.003), 0.445, 0.005], width: 0.016 * size, depth: 0.022 * size),

@@ -94,7 +94,7 @@ private struct ProfileHome: View {
     let username: String
     let model: OutfitStudioModel
     let image: (ClothingItem) -> Image
-    var uiImage: ((ClothingItem) -> UIImage?)? = nil
+    var uiImage: ((ClothingItem) -> UIImage?)?
     let onSignOut: () -> Void
     let onEditAvatar: () -> Void
 
@@ -155,7 +155,7 @@ private struct ZoomSlider: View {
 private struct AvatarCustomizationScreen: View {
     @Bindable var model: OutfitStudioModel
     let image: (ClothingItem) -> Image
-    var uiImage: ((ClothingItem) -> UIImage?)? = nil
+    var uiImage: ((ClothingItem) -> UIImage?)?
     let onDone: () -> Void
 
     @State private var part: AvatarPart = .gender
@@ -249,11 +249,11 @@ private struct TryOnScreen: View {
     @Bindable var model: OutfitStudioModel
     let items: [ClothingItem]
     let image: (ClothingItem) -> Image
-    var uiImage: ((ClothingItem) -> UIImage?)? = nil
+    var uiImage: ((ClothingItem) -> UIImage?)?
     let onDone: () -> Void
 
     @State private var tab = 0  // 0 = Clothing, 1 = Saved fits
-    @State private var category: ClothingCategory? = nil  // nil = All
+    @State private var category: ClothingCategory?  // nil = All
 
     private var filteredItems: [ClothingItem] {
         guard let category else { return items }
@@ -333,7 +333,7 @@ private struct TryOnScreen: View {
 private struct FullBodyScreen: View {
     @Bindable var model: OutfitStudioModel
     let image: (ClothingItem) -> Image
-    var uiImage: ((ClothingItem) -> UIImage?)? = nil
+    var uiImage: ((ClothingItem) -> UIImage?)?
     let onFullScreen: () -> Void
 
     var body: some View {
@@ -383,7 +383,7 @@ private struct FullScreenAvatar: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var model: OutfitStudioModel
     let image: (ClothingItem) -> Image
-    var uiImage: ((ClothingItem) -> UIImage?)? = nil
+    var uiImage: ((ClothingItem) -> UIImage?)?
     let onTakePic: () -> Void
 
     var body: some View {
@@ -419,7 +419,7 @@ private struct TakePicScreen: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var model: OutfitStudioModel
     let image: (ClothingItem) -> Image
-    var uiImage: ((ClothingItem) -> UIImage?)? = nil
+    var uiImage: ((ClothingItem) -> UIImage?)?
 
     @State private var snapshot: UIImage?
 

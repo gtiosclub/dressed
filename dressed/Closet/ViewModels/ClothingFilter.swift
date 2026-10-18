@@ -6,16 +6,15 @@
 //
 import Foundation
 
-func filterClothingItems (
+func filterClothingItems(
     _ items: [ClothingItem],
     category: ClothingCategory?
 ) -> [ClothingItem] {
     guard let category = category else {
         return items
     }
-    
+
     return items.filter { item in
         item.category == category
     }
 }
-

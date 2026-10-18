@@ -30,7 +30,7 @@ struct AvatarView: View {
     let look: [AvatarPart: Int]
     let worn: [ClothingCategory: ClothingItem]
     let image: (ClothingItem) -> Image
-    var uiImage: ((ClothingItem) -> UIImage?)? = nil
+    var uiImage: ((ClothingItem) -> UIImage?)?
     var zoom: Double = 1
     var use3D: Bool = true
 

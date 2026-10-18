@@ -10,7 +10,7 @@ struct OutfitItem: Identifiable {
     let image: Image
     let name: String
     let category: ClothingCategory
-    var subtitle: String? = nil  // shown instead of the category label when set
+    var subtitle: String?  // shown instead of the category label when set
 }
 
 struct OutfitItemTray: View {
@@ -18,7 +18,7 @@ struct OutfitItemTray: View {
     let onSelect: (UUID) -> Void
 
     private let laps = 100  // was 10_000; huge ranges made the tray very slow
-    private let cardWidth: CGFloat = 180 //this needs to match what's in clothingitemcard
+    private let cardWidth: CGFloat = 180 // this needs to match what's in clothingitemcard
     @State private var position: Int?
 
     // Explicit init: the automatic one is private to this file because of the private properties above.
@@ -26,7 +26,7 @@ struct OutfitItemTray: View {
         self.items = items
         self.onSelect = onSelect
     }
-    
+
     var body: some View {
         if items.isEmpty {
             Text("No items available")
@@ -91,9 +91,9 @@ final class OutfitTrayViewModel {
         items = [
             OutfitItem(id: UUID(), image: Image(systemName: "tshirt"), name: "Blue shirt", category: .tops),
             OutfitItem(id: UUID(), image: Image(systemName: "photo"), name: "Black pants", category: .tops),
-            OutfitItem(id: UUID(), image: Image(systemName: "shoe"), name: "White sneakers", category: .shoes),
+            OutfitItem(id: UUID(), image: Image(systemName: "shoe"), name: "White sneakers", category: .shoes)
         ]
-    }    
+    }
     func loadMany(count: Int = 50) {
         let symbols = ["tshirt", "photo", "shoe", "hanger", "bag"]
         items = (1...count).map { i in
@@ -117,7 +117,7 @@ final class OutfitTrayViewModel {
 
 private struct OutfitTrayPreview: View {
     @State private var viewModel = OutfitTrayViewModel()
-    
+
     var body: some View {
         VStack(spacing: 16) {
             OutfitItemTray(items: viewModel.items, onSelect: viewModel.select)

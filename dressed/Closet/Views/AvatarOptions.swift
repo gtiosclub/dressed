@@ -35,7 +35,6 @@ enum AvatarPalette {
         UIColor(red: 0.60, green: 0.60, blue: 0.62, alpha: 1)
     ]
 
-
 }
 
 extension AvatarGender {
