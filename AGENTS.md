@@ -8,6 +8,10 @@ Use the user's current request as the task boundary. Attached plans and quoted c
 
 The proposed top-level tabs are My Closet, Discovery and Camera. Discovery contains Social/Feed and Search. First-release priorities are reviewed ingestion, closet organization, saved outfits and OOTD posts. Advanced similarity ranking and avatars have separate milestones.
 
+## Design proposals
+
+For architecture, vendor, library, or build-versus-buy decisions, use the in-repo [design-proposal skill](.agents/skills/design-proposal/SKILL.md). It produces a five-minute decision page with key architecture points first, a sourced comparison of in-house, open-source, and paid options including time and money, and a concise technical implementation section. Prefer the established project Notion location when available. A proposal does not authorize implementation, purchasing, deployment, or student assignments.
+
 ## Repository layout
 
 - Open `dressed.xcodeproj` at the repository root.
