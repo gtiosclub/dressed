@@ -25,6 +25,8 @@ The October 19 local import/recognition prototype stays private in My Closet. It
 
 **Tickets:** [#60 post card](https://github.com/gtiosclub/dressed/issues/60), [#80 recent posts](https://github.com/gtiosclub/dressed/issues/80), [#125 feed status views](https://github.com/gtiosclub/dressed/issues/125), and [#151 expandable caption](https://github.com/gtiosclub/dressed/issues/151). [Lead #59](https://github.com/gtiosclub/dressed/issues/59) owns publication, public media, and feed wiring.
 
+Later engagement proposals [#214](https://github.com/gtiosclub/dressed/issues/214) and [#215](https://github.com/gtiosclub/dressed/issues/215) compare persistent likes and comments using synthetic data. They do not approve backend records, access rules, or implementation tickets; leads and Neal must settle those decisions first.
+
 **Acceptance checks:** Supplied recent posts appear in stable newest-first order; card controls report the intended post ID without opening a detail page; empty and failed requests show different messages; retry calls the supplied action once; private closet paths never appear in public post data.
 
 ### D2. Outfit breakdown and profile header
