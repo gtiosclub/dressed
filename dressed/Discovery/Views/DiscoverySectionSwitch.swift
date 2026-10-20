@@ -1,5 +1,5 @@
 //
-//  DiscoverySectionSwift.swift
+//  DiscoverySectionSwitch.swift
 //  dressed
 //
 //  Created by Sparsh Jain on 10/20/26.
