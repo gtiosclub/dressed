@@ -1,6 +1,6 @@
 # Retail catalog and clothing recognition — proposed spec
 
-**Status:** Proposal for lead review, October 15, 2026. A fixture-backed local SQLite catalog importer and read-only localhost API exist. Discovery Search calls the API and handles loading, empty, failure, and retry. A developer-only Google Product Search response adapter now parses localized boxes and resolves similar products against the fixture catalog. No live retailer crawler/feed, hosted recognition endpoint, app integration, or cloud deployment is implemented.
+**Status:** Proposal for lead review, updated October 18, 2026. A fixture-backed local SQLite catalog importer and read-only localhost API exist. Discovery Search calls the API and handles loading, empty, failure, and retry. An offline adapter converts saved eBay Browse search responses into partial catalog feeds; it does not call eBay. Camera supports reviewed product links saved locally to Wishlist, plus on-device garment suggestions. The Debug simulator can use a local bridge for live Google Object Localization after a developer signs in and receives access to the separate billed recognition project. Google Product Search still parses fixtures only. The app's `out-fitted` Firebase project remains unbilled. No live Product Search match, retailer crawler/feed, hosted recognition endpoint, or cloud deployment is implemented.
 
 ## Outcome and boundaries
 
@@ -65,7 +65,9 @@ The current Apple Vision path classifies the **whole image** and does not locate
 
 **Recommended first API spike:** Google Cloud Vision Object Localization on a small, synthetic or consented image set. It directly tests whether a general hosted API returns separate boxes for clothing pieces. Compare its output with the existing on-device classifier and a manual gold standard before connecting it to the app. A Google Cloud project, billing setup, and an approved spend limit may be needed; the repository's Firebase dependencies do not provision this service.
 
-The [Product Search experiment](../backend/recognition/README.md) adds a second comparison path. It can return garment boxes and similar matches from a preloaded product set in one response, but those matches are limited to that set. Its fixture test is not evidence of detection quality. The user's demo budget is $10; live calls remain bounded developer tests until quality, photo handling, and billing are reviewed.
+The [fixture adapter](../backend/recognition/README.md) now parses Object Localization responses and uses the existing intersection-over-union evaluator. Its synthetic two-detection example is a contract check only; it is not evidence that the provider recognizes real outfits.
+
+The [Product Search experiment](../backend/recognition/README.md) adds a second comparison path. It can return garment boxes and similar matches from a preloaded product set in one response, but those matches are limited to that set. The developer CLI displays Product Search and Object Localization candidate sets from one saved response. Its fixture test is not evidence of detection quality. The $5 monthly budget is an alert, not an enforceable cap. Billing and Vision are enabled on the separate recognition project for bounded Object Localization testing; Product Search has no live adapter or indexed product set.
 
 ### Recognition contract and privacy
 

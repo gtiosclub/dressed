@@ -1,0 +1,19 @@
+{
+  "itemSummaries": [
+    {
+      "itemId": "v1|fixture-shoe-1|0",
+      "title": "Fixture white sneakers",
+      "itemWebUrl": "https://www.ebay.com/itm/fixture-shoe-1",
+      "image": {"imageUrl": "https://i.ebayimg.com/images/g/fixture/s-l500.jpg"},
+      "price": {"value": "49.99", "currency": "USD"},
+      "categories": [{"categoryId": "15709", "categoryName": "Athletic Shoes"}]
+    },
+    {
+      "itemId": "v1|fixture-shoe-2|0",
+      "title": "Fixture low top shoes",
+      "itemWebUrl": "https://www.ebay.com/itm/fixture-shoe-2",
+      "price": {"value": "65.00", "currency": "USD"}
+    }
+  ],
+  "total": 2
+}

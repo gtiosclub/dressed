@@ -4,6 +4,7 @@ The first milestone is photo-library selection, manual name/category entry, and 
 
 Each ticket uses the agreed short function or UI format. UI tickets include the note that screenshots are preferred in the PR. Read [officer guidance](officers/student-tickets.md) before adding work.
 
+The `-P` tickets below are a separate, substantial proposal format for data, viz, and social. They give students a concrete problem and room to compare designs and build a small proof of concept. The `hard` label marks difficulty on the viz and social proposals; it does not grant production ownership. Related `lead` issues still own approval and integration.
 
 ## 1 - Add and browse clothing
 
@@ -78,3 +79,35 @@ Each ticket uses the agreed short function or UI format. UI tickets include the 
 | [#146: DATA-17 - Return selected import candidates](https://github.com/gtiosclub/dressed/issues/146) | `data` |
 | [#147: SOCIAL-12 - Build a catalog-product result row](https://github.com/gtiosclub/dressed/issues/147) | `social` |
 | [#161: SOCIAL-17 - Build a Discovery Feed/Search switch](https://github.com/gtiosclub/dressed/issues/161) | `social` |
+
+## Data architecture proposals
+
+| Ticket | Team |
+| --- | --- |
+| [#173: DATA-P01 - Propose private clothing photo storage and cleanup](https://github.com/gtiosclub/dressed/issues/173) | `data` |
+| [#174: DATA-P02 - Propose a reliable reviewed-import pipeline](https://github.com/gtiosclub/dressed/issues/174) | `data` |
+| [#175: DATA-P03 - Measure garment recognition options on the same images](https://github.com/gtiosclub/dressed/issues/175) | `data` |
+| [#176: DATA-P04 - Propose outfit data integrity and deletion behavior](https://github.com/gtiosclub/dressed/issues/176) | `data` |
+| [#177: DATA-P05 - Design a trustworthy retailer catalog import](https://github.com/gtiosclub/dressed/issues/177) | `data` |
+| [#178: DATA-P06 - Evaluate catalog search and similar-item ranking](https://github.com/gtiosclub/dressed/issues/178) | `data` |
+| [#179: DATA-P07 - Propose safe publication snapshots from private outfits](https://github.com/gtiosclub/dressed/issues/179) | `data` |
+
+## Viz design proposals
+
+| Ticket | Team |
+| --- | --- |
+| [#180: VIZ-P01 - Propose an accessible closet browsing layout](https://github.com/gtiosclub/dressed/issues/180) | `viz` |
+| [#181: VIZ-P02 - Prototype a usable 2D outfit canvas](https://github.com/gtiosclub/dressed/issues/181) | `viz` |
+| [#182: VIZ-P03 - Evaluate saved-outfit previews with missing pieces](https://github.com/gtiosclub/dressed/issues/182) | `viz` |
+| [#183: VIZ-P04 - Prototype reviewed-import results in My Closet](https://github.com/gtiosclub/dressed/issues/183) | `viz` |
+
+## Social design proposals
+
+| Ticket | Team |
+| --- | --- |
+| [#184: SOCIAL-P01 - Propose a resilient chronological feed](https://github.com/gtiosclub/dressed/issues/184) | `social` |
+| [#185: SOCIAL-P02 - Prototype a safe post-detail breakdown](https://github.com/gtiosclub/dressed/issues/185) | `social` |
+| [#186: SOCIAL-P03 - Propose saved-post behavior when posts change](https://github.com/gtiosclub/dressed/issues/186) | `social` |
+| [#187: SOCIAL-P04 - Evaluate trustworthy Discovery Search results](https://github.com/gtiosclub/dressed/issues/187) | `social` |
+| [#214: SOCIAL-P05 - Propose persistent post likes](https://github.com/gtiosclub/dressed/issues/214) | `social` |
+| [#215: SOCIAL-P06 - Propose persistent post comments](https://github.com/gtiosclub/dressed/issues/215) | `social` |

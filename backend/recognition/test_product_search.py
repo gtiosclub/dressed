@@ -1,14 +1,15 @@
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "catalog"))
 from catalog import CatalogDatabase
-from product_search import parse_response, query_google
+from product_search import parse_response
+from object_localization import parse_response as parse_object_response
 
 
 class ProductSearchTests(unittest.TestCase):
@@ -64,28 +65,25 @@ class ProductSearchTests(unittest.TestCase):
         result = parse_response(self.response, "draft-1", self.catalog)
         self.assertEqual(len(result["candidates"]), 1)
 
-    def test_live_query_is_one_bounded_product_search_request(self):
-        class FakeResponse:
-            def __enter__(self):
-                return self
+    def test_combined_fixture_has_two_review_only_results(self):
+        response = json.loads(
+            (Path(__file__).parent / "fixtures/combined-vision-response.json").read_text())
+        product = parse_response(response, "draft-1", self.catalog)
+        objects = parse_object_response(response, "draft-1")
+        self.assertEqual(len(product["candidates"]), 2)
+        self.assertEqual(len(objects["candidates"]), 2)
+        self.assertTrue(all(not item["selected"] for item in
+                            product["candidates"] + objects["candidates"]))
 
-            def __exit__(self, *_):
-                pass
-
-            def read(self, *_):
-                return b'{"responses": [{}]}'
-
-        with patch("product_search.urlopen", return_value=FakeResponse()) as send:
-            response = query_google(b"image", "projects/demo/locations/us-east1/productSets/clothes", "token")
-        self.assertEqual(response, {"responses": [{}]})
-        request = send.call_args.args[0]
-        body = json.loads(request.data)
-        self.assertEqual(len(body["requests"]), 1)
-        self.assertEqual(body["requests"][0]["features"], [{"type": "PRODUCT_SEARCH"}])
-        self.assertEqual(request.get_header("Authorization"), "Bearer token")
-        with self.assertRaisesRegex(ValueError, "5 MB"):
-            query_google(b"a" * 5_000_001,
-                         "projects/demo/locations/us-east1/productSets/clothes", "token")
+    def test_cli_rejects_removed_live_flags(self):
+        script = Path(__file__).parent / "product_search.py"
+        result = subprocess.run(
+            [sys.executable, str(script), "--db", str(Path(self.temp.name) / "catalog.sqlite"),
+             "--import-id", "draft-1", "--image", "photo.jpg"],
+            capture_output=True, text=True, check=False,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("--response-file", result.stderr)
 
 
 if __name__ == "__main__":

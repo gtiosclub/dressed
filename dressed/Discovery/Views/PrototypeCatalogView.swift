@@ -10,47 +10,53 @@ struct PrototypeCatalogView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Menu {
-                    Button("All Categories") { category = nil }
-                    ForEach(ClothingCategory.allCases, id: \.self) { option in
-                        Button(option.rawValue.capitalized) { category = option }
-                    }
-                } label: {
-                    Label(category?.rawValue.capitalized ?? "All Categories", systemImage: "line.3.horizontal.decrease")
-                }
-                .accessibilityLabel("Filter catalog by category")
+        VStack(spacing: 0) {
+            SearchField(query: $query, placeholder: "Search products")
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 12)
 
-                switch model.state {
-                case .idle, .loading:
-                    ProgressView("Loading products…")
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Menu {
+                        Button("All Categories") { category = nil }
+                        ForEach(ClothingCategory.allCases, id: \.self) { option in
+                            Button(option.rawValue.capitalized) { category = option }
+                        }
+                    } label: {
+                        Label(category?.rawValue.capitalized ?? "All Categories", systemImage: "line.3.horizontal.decrease")
+                    }
+                    .accessibilityLabel("Filter catalog by category")
+
+                    switch model.state {
+                    case .idle, .loading:
+                        ProgressView("Loading products…")
+                            .frame(maxWidth: .infinity, minHeight: 260)
+                    case .loaded(let products) where products.isEmpty:
+                        ContentUnavailableView(
+                            "No matching products",
+                            systemImage: "magnifyingglass",
+                            description: Text("Try another name or category.")
+                        )
                         .frame(maxWidth: .infinity, minHeight: 260)
-                case .loaded(let products) where products.isEmpty:
-                    ContentUnavailableView(
-                        "No matching products",
-                        systemImage: "magnifyingglass",
-                        description: Text("Try another name or category.")
-                    )
-                    .frame(maxWidth: .infinity, minHeight: 260)
-                case .loaded(let products):
-                    LazyVStack(spacing: 10) {
-                        ForEach(products) { product in productRow(product) }
+                    case .loaded(let products):
+                        LazyVStack(spacing: 10) {
+                            ForEach(products) { product in productRow(product) }
+                        }
+                    case .failed(let message):
+                        ContentUnavailableView {
+                            Label("Catalog unavailable", systemImage: "wifi.exclamationmark")
+                        } description: {
+                            Text(message)
+                        } actions: {
+                            Button("Retry") { reload() }
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 260)
                     }
-                case .failed(let message):
-                    ContentUnavailableView {
-                        Label("Catalog unavailable", systemImage: "wifi.exclamationmark")
-                    } description: {
-                        Text(message)
-                    } actions: {
-                        Button("Retry") { reload() }
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 260)
                 }
+                .padding()
             }
-            .padding()
         }
-        .searchable(text: $query, prompt: "Search products")
         .task(id: SearchInput(query: query, category: category)) {
             if !query.isEmpty { try? await Task.sleep(for: .milliseconds(300)) }
             guard !Task.isCancelled else { return }

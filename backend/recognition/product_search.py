@@ -1,27 +1,22 @@
-"""Bounded Google Product Search experiment for reviewed garment imports.
+"""Offline Google Product Search response adapter for reviewed garment imports.
 
-This is a developer CLI, not an app endpoint. It never writes closet records.
-Live mode sends one explicitly selected image to Google Cloud Vision.
+This developer CLI reads saved JSON only. It never calls Google or writes closet records.
 """
 
 from __future__ import annotations
 
 import argparse
-import base64
 import hashlib
 import json
 import re
 import sys
 from pathlib import Path
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "catalog"))
 from catalog import CatalogDatabase  # noqa: E402
+from object_localization import parse_response as parse_object_response
 
 
-MAX_IMAGE_BYTES = 5_000_000
-PRODUCT_SET = re.compile(r"^projects/[^/]+/locations/[^/]+/productSets/[^/]+$")
 CATALOG_ID = re.compile(r"^[0-9a-f]{24}$")
 CATEGORY_NAMES = {
     "tops": "Top", "pants": "Pants", "skirts": "Skirt", "dresses": "Dress",
@@ -130,62 +125,25 @@ def parse_response(response: object, import_id: str, catalog: CatalogDatabase) -
     }
 
 
-def query_google(image: bytes, product_set: str, access_token: str) -> dict:
-    if not image or len(image) > MAX_IMAGE_BYTES:
-        raise ValueError("image must be 1 byte to 5 MB")
-    if not PRODUCT_SET.fullmatch(product_set):
-        raise ValueError("invalid product set resource name")
-    body = json.dumps({"requests": [{
-        "image": {"content": base64.b64encode(image).decode("ascii")},
-        "features": [{"type": "PRODUCT_SEARCH"}],
-        "imageContext": {"productSearchParams": {
-            "productSet": product_set, "productCategories": ["apparel-v2"]}},
-    }]}).encode()
-    request = Request(
-        "https://vision.googleapis.com/v1/images:annotate", data=body,
-        headers={"Authorization": f"Bearer {access_token}",
-                 "Content-Type": "application/json"}, method="POST",
-    )
-    try:
-        with urlopen(request, timeout=20) as provider_response:
-            return json.load(provider_response)
-    except (HTTPError, URLError) as error:
-        raise RuntimeError(f"Vision request failed: {error}") from error
-
-
-def adc_token() -> str:
-    try:
-        import google.auth
-        from google.auth.transport.requests import Request as AuthRequest
-    except ImportError as error:
-        raise RuntimeError("live mode requires google-auth: python3 -m pip install google-auth") from error
-    credentials, _ = google.auth.default(
-        scopes=["https://www.googleapis.com/auth/cloud-platform"])
-    credentials.refresh(AuthRequest())
-    return credentials.token
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--db", required=True, type=Path, help="existing local catalog SQLite file")
     parser.add_argument("--import-id", required=True, help="stable private draft ID")
-    source = parser.add_mutually_exclusive_group(required=True)
-    source.add_argument("--response-file", type=Path, help="saved Vision JSON; no cloud call")
-    source.add_argument("--image", type=Path, help="local image for one live Vision call")
-    parser.add_argument("--product-set", help="Google Product Search resource for live mode")
+    parser.add_argument("--response-file", required=True, type=Path,
+                        help="saved Vision JSON; no cloud call")
+    parser.add_argument("--compare-object-localization", action="store_true",
+                        help="show generic object detections in the same saved response")
     args = parser.parse_args()
     if not args.db.is_file():
         parser.error("catalog database does not exist")
-    if args.image and not args.product_set:
-        parser.error("--image requires --product-set")
-    if args.response_file and args.product_set:
-        parser.error("--product-set is only for live mode")
-
     catalog = CatalogDatabase(args.db)
     try:
-        response = (json.loads(args.response_file.read_text()) if args.response_file
-                    else query_google(args.image.read_bytes(), args.product_set, adc_token()))
-        print(json.dumps(parse_response(response, args.import_id, catalog), indent=2))
+        response = json.loads(args.response_file.read_text())
+        product_result = parse_response(response, args.import_id, catalog)
+        result = ({"productSearch": product_result,
+                   "objectLocalization": parse_object_response(response, args.import_id)}
+                  if args.compare_object_localization else product_result)
+        print(json.dumps(result, indent=2))
     except (ValueError, RuntimeError, OSError, json.JSONDecodeError) as error:
         parser.exit(1, f"recognition error: {error}\n")
     finally:

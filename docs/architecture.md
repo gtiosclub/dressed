@@ -1,20 +1,65 @@
 # Architecture and shared contracts
 
+## Discovery and OOTD navigation update (October 18, 2026)
+
+The signed-in Discovery tab now uses a Discovery / OOTD switch based on the
+supplied prototype. Discovery renders individual `CatalogProduct` ideas in a
+two-column grid with search and a detail page. Debug builds show synthetic
+catalog ideas by default; `-showCatalog` or `-liveCatalog` selects the HTTP
+catalog client. Release builds use that client and need a configured catalog
+service; the existing local fixture API is not a live retailer source. Style
+suggestions are backed only by Debug fixture associations until a public style
+contract exists. An idea never becomes a private closet item on tap.
+
+OOTD renders the existing `Post` outfit snapshots as vertical cards with
+in-feed pin, Find items, comment and like controls. Find items shows published
+pieces in a category-filtered sheet. Debug builds use synthetic posts by default;
+`-livePosts` selects Firestore. The Debug Share button inserts only a local
+preview. There is still no connected publication, public media loader,
+persistent comments, likes, or saved-post state. The earlier midsemester
+Discovery post prototype below records previous behavior, not the current
+navigation.
+
+The OOTD plus button now pushes the New post composition screen within the
+Discovery tab, keeping the native tab bar visible. Its outfit image is the
+prototype's greyscale vector placeholder until publishable media is selected.
+The Find items sheet uses the prototype's product-row layout, sort and category
+chips, and a local bookmark toggle. Only the first Debug demo post has fixture
+brands, prices, ratings, and alternatives; other posts display their published
+piece names/categories without invented product metadata. Bookmarks in this
+sheet are UI state, not persisted saved items.
+
+The new fixture-backed `testDiscoveryIdeasAndOOTDPostsAreSeparate` UI test passed
+on the iPhone 17 Pro iOS 26.0 simulator on October 18. It showed individual ideas,
+switched to OOTD, exercised the in-feed controls, and
+displayed both published pieces. This is separate from real-account authentication testing;
+the test uses the existing isolated mock session.
+
 ## Recognition experiment
 
 `backend/recognition/product_search.py` now parses a synthetic Google Product
 Search response into separate, unselected garment candidates with normalized
 boxes. It resolves similar product IDs only against active records in the local
 catalog and leaves an empty/manual result when no regions are found. A developer
-can make one live call using Application Default Credentials and an already
-indexed Google Product Search set. This is a backend experiment: no hosted
-endpoint, iOS connection, multi-item review UI, live catalog images, or actual
-recognition quality has been verified. A local evaluation harness now compares
+can run it against a saved response. `object_localization.py` separately parses
+generic Google Vision garment boxes. A Debug-only Camera action calls
+`local_service.py` over simulator loopback for reviewed multi-piece suggestions;
+that local service serves fixtures only and makes no cloud request. There is no
+hosted/authenticated endpoint, indexed product set, live catalog match, or
+measured recognition quality on user photos. A local evaluation harness compares
 saved responses with annotated garment boxes; its bundled example is synthetic
 and demonstrates scoring only. See
 [`backend/recognition/README.md`](../backend/recognition/README.md).
 
 ## Local catalog prototype
+
+The local product-link flow accepts pasted HTTPS links in Camera and URL shares in
+the Share Extension. Both reach review, where the user enters a name and
+category and explicitly confirms Wishlist. The separate owner-scoped
+`SavedProductLink` record persists on-device without a photo; it does not alter
+the six-field `ClothingItem`. Dressed does not fetch retailer page metadata or
+infer exact identity from a photo. Shared link drafts expire after 24 hours;
+Wishlist storage is not backend-enforced or synced across devices.
 
 `backend/catalog/catalog.py` ingests a synthetic fixture feed into local
 SQLite and serves a read-only API on loopback. It records stable product IDs,
@@ -32,6 +77,39 @@ returned one sneaker, and stopping the server displayed the retry state. This
 is still synthetic local data, not a hosted retailer integration. See
 [`backend/catalog/README.md`](../backend/catalog/README.md) for commands.
 
+## Midsemester Discovery post prototype
+
+The Discovery Feed section now displays a two-column grid of outfit-post
+previews. The separate Search section still opens the catalog prototype.
+Both sections keep an inline search field below the Feed/Search switch, so
+switching sections does not move the search entry. The signed-in tab shell
+shows a profile icon in each tab's navigation bar; its account sheet contains
+Sign Out. A public profile editor is not connected.
+A tap opens a post with its author, caption,
+and outfit artwork. A small button on the image opens the published pieces in a
+draggable sheet. The sheet sorts by original post order, piece name, or category;
+price and popularity sorting need data the published snapshot does not contain.
+Those rows share the catalog row layout without turning snapshots into catalog
+products. Product links appear only when a snapshot has a usable HTTPS URL.
+Focusing search replaces the post grid with suggested styles and the native
+keyboard. Selected styles appear as removable chips immediately below the
+search bar and wrap into new rows when needed. Tapping a suggested style adds
+its chip below the bar. Pressing the keyboard's Search key shows post results
+filtered by author, caption, outfit name, or published piece name. The clear
+button removes search text and all selected style chips. Tapping empty space
+outside the search field and suggested styles returns to the prior feed state
+and discards edits from the current search session. Selected styles filter
+locally against the demo style associations or visible post text.
+Style associations for synthetic posts live only in the demo view. A public
+style-tag contract is still TBD. Debug builds show synthetic post snapshots by
+default; `-livePosts` uses `FirebasePostFunctions` for development checks.
+Release builds also use `FirebasePostFunctions`, but public media loading,
+author profiles, publishing, and saved-post state are not connected. Live posts
+therefore show an explicit image fallback;
+the demo artwork does not resolve private clothing paths. `-showCatalog` still
+opens the Search section for existing Debug tests. Saved-post reads and writes
+remain closed by Firestore rules until owner-only rules are reviewed and tested.
+
 ## Local import prototype in progress
 
 The current `main` working tree contains a local-only import prototype under
@@ -43,13 +121,16 @@ to a bounded JPEG, writes a user-bound draft into `group.gtiosclub.dressed`, and
 user to open Dressed. Camera and photo-library images enter the same review
 screen. Apple's on-device Vision classifier may suggest a category for one
 garment in the whole image; no-match and failure states allow manual details.
-The user edits the name/category before confirming. Cancelling review keeps a
+The user edits the name/category before confirming. Camera review additionally
+tries a Debug-only Google Vision service through loopback automatically: each detected crop starts
+unselected, can be corrected, and only selected pieces save. A missed piece can
+be added manually. This Debug path has no credentials in the app. Cancelling review keeps a
 shared draft queued, with a Camera action to reopen it. Confirmed pieces are
-stored as private on-device JPEG and JSON files for the signed-in user. My
+stored as private on-device JPEG or PNG images and JSON files for the signed-in user. My
 Closet supports local search, category filtering, item details, edits, and deletion.
 
-This is a prototype path, not the proposed S1 release flow. It does not extract
-multiple separate garments, create an outfit, upload to Firebase Storage, sync
+This is a prototype path, not the proposed S1 release flow. The local Google
+test suggests boxes, not masks or product identities. It does not upload to Firebase Storage, sync
 between devices, or enforce cloud ownership. Device signing requires the App
 Group capability on both targets. On October 11, 2026, an iPhone 16 Pro iOS
 18.6 simulator build passed; a synthetic image shared from Photos appeared in
@@ -64,6 +145,60 @@ photo review, share cancellation, and closet deletion interactions have not yet
 been verified on a device or in a complete native UI walkthrough.
 The six-field `ClothingItem` contract is unchanged; the local image path is a
 prototype storage reference.
+
+On October 16, 2026, the loopback fixture returned two unselected suggestions
+in the iOS 18.6 simulator. One selected crop saved as a local closet record;
+the other was not saved. Separately, a live call through the same local service
+returned three Dress boxes for Google's public sample image. This does not
+verify live Google recognition from inside the app or accuracy on personal photos.
+
+The shared-image review now keeps an owner-bound, 24-hour review draft in the App
+Group. Recognition starts when a new review opens. In Debug the app first tries
+the local Google Vision service; otherwise it uses on-device body landmarks and
+whole-image classification as fallbacks.
+Each suggestion starts unselected. The user can adjust a rectangular region
+or trace a polygon around a garment. Each suggested region attempts a
+transparent cutout with Apple's foreground-instance mask, then a local edge
+flood fill for plain product-photo backgrounds; a hand-drawn outline
+overrides that attempt. Both cutouts save as PNG when selected and confirmed.
+They can edit names and categories, add a missed piece manually, and save
+selected pieces together with a local outfit. Stable IDs allow a retry to reuse
+the same records. The foreground mask can include skin or miss fabric, and the
+on-device heuristic does not reliably detect every piece or establish product identity; flat lays and overlapping items
+may need a manually drawn outline. The Google adapter merges two nearby,
+similarly sized shoe detections into one unselected pair candidate and suppresses
+highly overlapping same-category boxes. These rules do not guarantee every
+pair or duplicate is handled correctly. The Share Extension itself still only
+queues the image: Apple's [extension URL-opening API](https://developer.apple.com/documentation/foundation/nsextensioncontext/open%28_%3Acompletionhandler%3A%29) supports Today and iMessage extensions on iOS, not Share extensions, so this extension cannot directly launch the containing app. This path has
+no Firebase Storage or Firestore sync and no backend ownership enforcement.
+On October 16, signed iOS 18.6 simulator UI tests passed for a seeded shared
+image: two of three candidates were selected, edited, saved as one outfit, and
+found again after relaunch. A separate seeded image with no suggestions passed
+the manual-piece and save flow. These tests do not measure recognition quality
+on real photos or verify cloud access rules.
+
+On October 16, the iOS 27 simulator loaded a queued public shoe photo under
+the real test account without starting recognition. A manually traced shoe
+outline appeared in review, then saved as one local PNG with a 1638×787
+image size and an alpha channel. The local recognition adapter's 21 tests passed,
+including nearby and distant shoe cases. Those checks predate the automatic
+foreground mask; its accuracy and direct share-extension foregrounding still
+need broader image testing. A later iOS 27 simulator check selected a public
+shoe from Photos and automatically produced one unselected generic candidate
+with a 1620×785 transparent PNG. The classifier failed to create an Espresso
+context on that simulator, so category recognition was not verified.
+
+## Local saved-outfit prototype
+
+My Closet now has Pieces and Outfits sections. A signed-in user can select local
+closet pieces, name an outfit, arrange their photos on a 2D canvas, and save it
+to owner-scoped on-device JSON. Saved outfits reopen with their piece list and
+show a warning if a referenced piece was deleted. This uses the shared `Outfit`
+record and normalized placement coordinates. It does not sync through Firebase,
+provide outfit editing, or publish a post. On October 16, 2026, the iOS 18.6
+Simulator build passed. With two synthetic closet pieces, an outfit was saved,
+opened, and remained available after an app relaunch. The position controls and
+missing-piece state have not yet been exercised in a full native UI walkthrough.
 
 ## Observed baseline
 
@@ -94,7 +229,7 @@ The current planning branch adds schema-only Codable types in `dressed/Common/Mo
 
 The access-rules work added Firestore and Storage rules with emulator tests for synthetic users. Firestore rules were published to `out-fitted` on September 28, 2026; live Rules Playground simulations confirmed owner and non-owner read decisions. Storage rules remain local because live Storage is unavailable. See [Firebase testing](officers/firebase-testing.md) before assigning live database work.
 
-The visualization branch adds an avatar prototype in `Closet/Views`. `OutfitStudio` follows the Figma flow: customize, try on, full body, full screen, then take a picture. `AvatarView` renders a faceless procedural mannequin (`Mannequin`, `MannequinGeometry`) with RealityKit's non-AR camera. Users drag it to turn it on a turntable (`AvatarOrbit`), and clothes are still flat 2D images that narrow and fade as it turns. Body, face, hair and bangs are presets, and skin is a light tint on porcelain. This is outfit visualization, not fit prediction. The 3D model source, 3D garment representation and take-pic capture of the 3D view are TBD. A replacement model must keep the procedural figure's framing: 1 unit tall, feet at y = 0, facing +z.
+The visualization prototype lives in `Closet/Views` and opens from the Profile sheet, preserving the three top-level tabs and the Closet's Pieces, Outfits, and Wishlist sections. `AvatarStudioView` offers customization, try-on, full-body viewing, and a picture flow. `AvatarView` renders a faceless procedural mannequin (`Mannequin`, `MannequinGeometry`) with RealityKit's non-AR camera. Users drag it to turn it on a turntable (`AvatarOrbit`), and clothes are still flat 2D images that narrow and fade as it turns. Body, face, hair and bangs are presets, and skin is a light tint on porcelain. This is outfit visualization, not fit prediction. Studio saved fits are temporary in-memory state and do not replace the persisted Outfit flow. The 3D model source, 3D garment representation and take-pic capture of the 3D view are TBD. A replacement model must keep the procedural figure's framing: 1 unit tall, feet at y = 0, facing +z.
 
 Everything below is a proposed contract. Confirm details in the lead planning tickets before implementation. Firestore plus Storage is the proposed primary persistence stack; do not build a parallel Realtime Database model merely because that dependency is linked.
 

@@ -1,19 +1,36 @@
 import SwiftUI
 
 struct ClothingItemCard: View {
-    let image: Image
+    private let thumbnail: AnyView
     let name: String
     let category: ClothingCategory
     var subtitle: String? = nil  // replaces the category label when set
     let onTap: () -> Void
 
+    init(image: Image, name: String, category: ClothingCategory, subtitle: String? = nil, onTap: @escaping () -> Void) {
+        self.thumbnail = AnyView(image.resizable().scaledToFit())
+        self.name = name
+        self.category = category
+        self.subtitle = subtitle
+        self.onTap = onTap
+    }
+
+    init(thumbnail: AnyView, name: String, category: ClothingCategory, subtitle: String? = nil, onTap: @escaping () -> Void) {
+        self.thumbnail = thumbnail
+        self.name = name
+        self.category = category
+        self.subtitle = subtitle
+        self.onTap = onTap
+    }
+
     var body: some View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 8) {
-                image
-                    .resizable()
-                    .scaledToFit()
+                thumbnail
                     .frame(height: 150)
+                    .frame(maxWidth: .infinity)
+                    .clipped()
+                    .accessibilityHidden(true)
 
                 Text(name)
                     .font(.headline)

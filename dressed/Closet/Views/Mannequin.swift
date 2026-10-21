@@ -215,32 +215,33 @@ enum Mannequin {
     static let headHeight: Float = 0.0625
 
     // Where the features sit on the face, as angles down from the crown.
-    private static let eyePhi: Float = 1.40
-    private static let nosePhi: Float = 1.671
-    private static let lipsPhi: Float = 2.004
 
     /// Body, neck, head and nose as one skin mesh.
-    static func body(_ shape: BodyShape, face: FaceShape, nose: NoseShape) -> MannequinMesh {
+    static func body(_ shape: BodyShape, face: FaceShape) -> MannequinMesh {
         var mesh = torso(shape)
         mesh.append(neck(shape))
         mesh.append(head(face))
-        //mesh.append(noseMesh(face, nose))
+
         for side: Float in [-1, 1] {
             mesh.append(leg(shape, side: side))
             mesh.append(foot(shape, side: side))
             mesh.append(arm(shape, side: side))
             mesh.append(hand(shape, side: side))
         }
+
         return mesh
     }
 
     /// Torso, neck, head, nose and arms only (used for option previews).
-    static func bust(_ shape: BodyShape, face: FaceShape, nose: NoseShape) -> MannequinMesh {
+    static func bust(_ shape: BodyShape, face: FaceShape) -> MannequinMesh {
         var mesh = torso(shape)
         mesh.append(neck(shape))
         mesh.append(head(face))
-        //mesh.append(noseMesh(face, nose))
-        for side: Float in [-1, 1] { mesh.append(arm(shape, side: side)) }
+
+        for side: Float in [-1, 1] {
+            mesh.append(arm(shape, side: side))
+        }
+
         return mesh
     }
 
@@ -265,24 +266,110 @@ enum Mannequin {
         }
         return mesh
     }
+    
+    // MARK: - Default outfit (worn when nothing else covers the body)
+
+    /// A plain crew-neck tee: the torso from the hip to the shoulders, plus short sleeves.
+    static func defaultTop(_ shape: BodyShape) -> MannequinMesh {
+        let lowerWaist = (shape.hips + shape.waist) / 2
+        let upperWaist = (shape.waist + shape.bust) / 2
+        // The same rings as the torso, a touch larger, so the tee follows every body shape.
+        func ring(_ center: SIMD3<Float>, _ width: Float, _ depth: Float) -> LoftRing {
+            LoftRing(center, width: width * 1.04 + 0.002, depth: depth * 1.05 + 0.002)
+        }
+        let keys = [
+            ring([0, 0.535, -0.006], 0.093 * shape.hips, 0.058 * shape.hips),
+            ring([0, 0.585, -0.003], 0.077 * lowerWaist, 0.050 * lowerWaist),
+            ring([0, 0.635, 0], 0.065 * shape.waist, 0.045 * shape.waist),
+            ring([0, 0.69, 0.003], 0.076 * upperWaist, 0.050 * upperWaist),
+            ring([0, 0.735, 0.006], 0.085 * shape.bust, 0.056 * shape.bust),
+            ring([0, 0.78, 0.002], 0.094 * shape.shoulders, 0.050 * shape.bust),
+            ring([0, 0.81, -0.003], 0.096 * shape.shoulders, 0.042 * shape.bust)
+        ]
+        var mesh = MannequinGeometry.loft(keys, sides: 40, caps: (start: 0.004, end: 0.022))
+        for side: Float in [-1, 1] { mesh.append(defaultSleeve(shape, side: side)) }
+        return mesh
+    }
+
+    /// Plain pants: a hip and waist section plus both legs down to the ankle.
+    static func defaultBottom(_ shape: BodyShape) -> MannequinMesh {
+        let lowerWaist = (shape.hips + shape.waist) / 2
+        func ring(_ center: SIMD3<Float>, _ width: Float, _ depth: Float) -> LoftRing {
+            LoftRing(center, width: width * 1.02 + 0.002, depth: depth * 1.03 + 0.002)
+        }
+        let keys = [
+            ring([0, 0.455, -0.004], 0.060 * shape.hips, 0.044 * shape.hips),
+            ring([0, 0.5, -0.007], 0.091 * shape.hips, 0.056 * shape.hips),
+            ring([0, 0.535, -0.006], 0.093 * shape.hips, 0.058 * shape.hips),
+            ring([0, 0.585, -0.003], 0.077 * lowerWaist, 0.050 * lowerWaist),
+            ring([0, 0.635, 0], 0.065 * shape.waist, 0.045 * shape.waist)
+        ]
+        var mesh = MannequinGeometry.loft(keys, sides: 40, caps: (start: 0.015, end: 0.004))
+        for side: Float in [-1, 1] { mesh.append(defaultPantLeg(shape, side: side)) }
+        return mesh
+    }
+
+    private static func defaultSleeve(_ shape: BodyShape, side: Float) -> MannequinMesh {
+        let limbs = shape.limbs
+        let shoulderX = 0.1 * shape.shoulders
+        func ring(_ x: Float, _ y: Float, _ z: Float, _ width: Float, _ depth: Float) -> LoftRing {
+            LoftRing([side * x, y, z], width: width * limbs * 1.22 + 0.002, depth: depth * limbs * 1.22 + 0.002)
+        }
+        // Follows the top of the arm, stopping above the elbow.
+        let keys = [
+            ring(shoulderX, 0.805, -0.004, 0.026, 0.028),
+            ring(shoulderX + 0.008, 0.72, -0.006, 0.022, 0.024),
+            ring(shoulderX + 0.0109, 0.685, -0.0077, 0.0204, 0.0219)
+        ]
+        return MannequinGeometry.loft(keys, sides: 24, caps: (start: 0.012, end: 0.003))
+    }
+
+    private static func defaultPantLeg(_ shape: BodyShape, side: Float) -> MannequinMesh {
+        let thigh = (shape.hips + shape.limbs) / 2
+        let limbs = shape.limbs
+        let hipX = max(0.05 * shape.hips, 0.046 * thigh + 0.003)
+        func ring(_ x: Float, _ y: Float, _ z: Float, _ width: Float, _ depth: Float) -> LoftRing {
+            LoftRing([side * x, y, z], width: width * 1.1 + 0.002, depth: depth * 1.1 + 0.002)
+        }
+        // The same rings as the leg, a touch larger.
+        let keys = [
+            ring(hipX, 0.53, -0.005, 0.040 * thigh, 0.044 * thigh),
+            ring(hipX, 0.47, -0.003, 0.048 * thigh, 0.050 * thigh),
+            ring(hipX * 0.96, 0.38, 0, 0.040 * thigh, 0.042 * thigh),
+            ring(0.044, 0.285, 0.002, 0.026 * limbs, 0.028 * limbs),
+            ring(0.044, 0.21, -0.005, 0.030 * limbs, 0.033 * limbs),
+            ring(0.044, 0.12, -0.002, 0.021 * limbs, 0.022 * limbs),
+            ring(0.045, 0.07, -0.004, 0.017 * limbs, 0.018 * limbs)
+        ]
+        return MannequinGeometry.loft(keys, sides: 28, caps: (start: 0.03, end: 0.004))
+    }
 
     // MARK: - Face features (separate meshes: each gets its own color)
 
-    static func eyeWhites(face: FaceShape, eye: EyeShape) -> MannequinMesh {
-        MannequinMesh()
-    }
-
-    static func irises(face: FaceShape, eye: EyeShape) -> MannequinMesh {
-        MannequinMesh()
-    }
-
-    static func pupils(face: FaceShape, eye: EyeShape) -> MannequinMesh {
-        MannequinMesh()
-    }
-
-    static func lips(face: FaceShape, shape: LipShape) -> MannequinMesh {
-        MannequinMesh()
-    }
+//    static func eyeWhites(face: FaceShape, eye: EyeShape) -> MannequinMesh {
+//        eyeLayer(face, eye, width: eye.width, height: eye.height, depth: 0.0022, push: -0.0004)
+//    }
+//
+//    static func irises(face: FaceShape, eye: EyeShape) -> MannequinMesh {
+//        eyeLayer(face, eye, width: eye.height * 0.92, height: eye.height * 0.92, depth: 0.0027, push: -0.0002)
+//    }
+//
+//    static func pupils(face: FaceShape, eye: EyeShape) -> MannequinMesh {
+//        eyeLayer(face, eye, width: eye.height * 0.45, height: eye.height * 0.45, depth: 0.0031, push: 0)
+//    }
+//
+//    static func lips(face: FaceShape, shape: LipShape) -> MannequinMesh {
+//        let base = headPoint(face, theta: 0, phi: lipsPhi)
+//        var mesh = ellipsoid(
+//            center: base + [0, shape.upper * 0.55, 0.0005],
+//            radii: [shape.width, shape.upper, 0.0026]
+//        )
+//        mesh.append(ellipsoid(
+//            center: base + [0, -shape.lower * 0.55, 0.0005],
+//            radii: [shape.width * 0.94, shape.lower, 0.0030]
+//        ))
+//        return mesh
+//    }
 
     /// A point on the head at the given angles, or with `inflate`, on a shell that far outside it.
     /// Sharing this between head and hair keeps the hair from ever cutting into the head.
@@ -336,33 +423,33 @@ enum Mannequin {
         })
     }
 
-    /// A bridge and a rounded tip, both half sunk into the face.
-    private static func noseMesh(_ face: FaceShape, _ shape: NoseShape) -> MannequinMesh {
-        let base = headPoint(face, theta: 0, phi: nosePhi)
-        var mesh = ellipsoid(
-            center: base + [0, shape.length * 0.35, shape.projection * 0.10],
-            radii: [shape.width * 0.55, shape.length, shape.projection * 0.5]
-        )
-        mesh.append(ellipsoid(
-            center: base + [0, -shape.length * 0.55, shape.projection * 0.35],
-            radii: [shape.width, shape.width * 0.85, shape.projection * 0.6]
-        ))
-        return mesh
-    }
+//    /// A bridge and a rounded tip, both half sunk into the face.
+//    private static func noseMesh(_ face: FaceShape, _ shape: NoseShape) -> MannequinMesh {
+//        let base = headPoint(face, theta: 0, phi: nosePhi)
+//        var mesh = ellipsoid(
+//            center: base + [0, shape.length * 0.35, shape.projection * 0.10],
+//            radii: [shape.width * 0.55, shape.length, shape.projection * 0.5]
+//        )
+//        mesh.append(ellipsoid(
+//            center: base + [0, -shape.length * 0.55, shape.projection * 0.35],
+//            radii: [shape.width, shape.width * 0.85, shape.projection * 0.6]
+//        ))
+//        return mesh
+//    }
 
     /// One flat dome per eye, turned to face along the surface where it sits.
-    private static func eyeLayer(
-        _ face: FaceShape, _ eye: EyeShape, width: Float, height: Float, depth: Float, push: Float
-    ) -> MannequinMesh {
-        var mesh = MannequinMesh()
-        for side: Float in [-1, 1] {
-            let theta = side * eye.spacing
-            let anchor = headPoint(face, theta: theta, phi: eyePhi)
-            let outward = SIMD3<Float>(sin(theta), 0, cos(theta))
-            mesh.append(ellipsoid(center: anchor + outward * push, radii: [width, height, depth], yaw: theta))
-        }
-        return mesh
-    }
+//    private static func eyeLayer(
+//        _ face: FaceShape, _ eye: EyeShape, width: Float, height: Float, depth: Float, push: Float
+//    ) -> MannequinMesh {
+//        var mesh = MannequinMesh()
+//        for side: Float in [-1, 1] {
+//            let theta = side * eye.spacing
+//            let anchor = headPoint(face, theta: theta, phi: eyePhi)
+//            let outward = SIMD3<Float>(sin(theta), 0, cos(theta))
+//            mesh.append(ellipsoid(center: anchor + outward * push, radii: [width, height, depth], yaw: theta))
+//        }
+//        return mesh
+//    }
 
     private static func leg(_ shape: BodyShape, side: Float) -> MannequinMesh {
         let thigh = (shape.hips + shape.limbs) / 2
@@ -413,36 +500,17 @@ enum Mannequin {
         return MannequinGeometry.loft(keys, sides: 24, caps: (start: 0.024 * limbs, end: 0.01))
     }
 
-    /// A blocky mitten-style hand with a visible palm and thumb knuckle.
+    /// A relaxed mitten hand, palm facing the thigh.
     private static func hand(_ shape: BodyShape, side: Float) -> MannequinMesh {
         let size = (1 + shape.limbs) / 2
         let wrist = wristX(shape)
-        var mesh = MannequinMesh()
-
-        // Palm — wide oval, clearly bigger than the wrist so it reads as a hand
-        let palmKeys = [
-            LoftRing([side * wrist,           0.510, 0.000], width: 0.013 * size, depth: 0.013 * size),
-            LoftRing([side * (wrist + 0.002), 0.490, 0.002], width: 0.016 * size, depth: 0.022 * size),
-            LoftRing([side * (wrist + 0.003), 0.465, 0.004], width: 0.017 * size, depth: 0.024 * size),
-            LoftRing([side * (wrist + 0.003), 0.445, 0.005], width: 0.016 * size, depth: 0.022 * size),
-            LoftRing([side * (wrist + 0.002), 0.430, 0.005], width: 0.014 * size, depth: 0.018 * size),
-            LoftRing([side * (wrist + 0.001), 0.415, 0.004], width: 0.011 * size, depth: 0.013 * size)
+        let keys = [
+            LoftRing([side * wrist, 0.512, 0], width: 0.011 * size, depth: 0.010 * size),
+            LoftRing([side * (wrist + 0.002), 0.485, 0.002], width: 0.009 * size, depth: 0.019 * size),
+            LoftRing([side * (wrist + 0.003), 0.455, 0.003], width: 0.0075 * size, depth: 0.018 * size),
+            LoftRing([side * (wrist + 0.003), 0.43, 0.004], width: 0.006 * size, depth: 0.013 * size)
         ]
-        mesh.append(MannequinGeometry.loft(palmKeys, sides: 20, caps: (start: 0.008, end: 0.014)))
-
-        // Thumb — short stubby oval protruding sideways off the upper palm
-        let thumbDir: Float = side
-        let thumbKeys = [
-            LoftRing([side * (wrist + 0.003), 0.490, 0.003],
-                     width: 0.009 * size, depth: 0.010 * size),
-            LoftRing([side * (wrist + 0.002) + thumbDir * 0.010 * size, 0.483, 0.005],
-                     width: 0.008 * size, depth: 0.009 * size),
-            LoftRing([side * (wrist + 0.001) + thumbDir * 0.017 * size, 0.475, 0.006],
-                     width: 0.006 * size, depth: 0.007 * size)
-        ]
-        mesh.append(MannequinGeometry.loft(thumbKeys, sides: 14, caps: (start: 0.005, end: 0.007)))
-
-        return mesh
+        return MannequinGeometry.loft(keys, sides: 16, caps: (start: 0.006, end: 0.012))
     }
 
     // MARK: - Hair

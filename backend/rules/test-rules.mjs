@@ -2,7 +2,17 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
-import { collection, deleteDoc, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  setDoc,
+} from 'firebase/firestore';
 import { deleteObject, getMetadata, ref, uploadBytes } from 'firebase/storage';
 
 const env = await initializeTestEnvironment({
@@ -83,6 +93,19 @@ try {
     await assertFails(getDoc(doc(alice.firestore(), 'CLOTHING/legacy_001')));
   });
 
+  await test('saved-post writes stay closed until owner rules are reviewed', async () => {
+    await env.clearFirestore();
+    const savedPath = 'users/bob/savedPosts/post_001';
+    const saved = {
+      id: 'post_001', schemaVersion: 1, ownerId: 'bob', postId: 'post_001', createdAt,
+    };
+    await assertFails(setDoc(doc(alice.firestore(), savedPath), saved));
+    await assertFails(getDoc(doc(alice.firestore(), savedPath)));
+    await assertFails(setDoc(doc(bob.firestore(), savedPath), saved));
+    await assertFails(getDoc(doc(bob.firestore(), savedPath)));
+    await assertFails(getDoc(doc(guest.firestore(), savedPath)));
+  });
+
   await test('private JPEG media is owner-only and size/type-limited', async () => {
     await env.clearStorage();
     const own = ref(alice.storage(bucket), imagePath);
@@ -99,6 +122,90 @@ try {
     await assertFails(uploadBytes(ref(alice.storage(bucket), 'posts/alice/post_001/photo.jpg'), jpeg, { contentType: 'image/jpeg' }));
     await assertSucceeds(deleteObject(own));
   });
+
+  await test('recent posts returns an empty result when there are no posts', async () => {
+    await env.clearFirestore();
+
+    const recentPosts = query(
+      collection(alice.firestore(), 'posts'),
+      orderBy('createdAt', 'desc'),
+      limit(20)
+    );
+
+    const snapshot = await assertSucceeds(getDocs(recentPosts));
+
+    assert.equal(snapshot.docs.length, 0);
+  });
+
+  await test('recent posts are ordered newest first', async () => {
+    await env.clearFirestore();
+
+    await env.withSecurityRulesDisabled(async (admin) => {
+      await setDoc(doc(admin.firestore(), 'posts/post_001'), {
+        createdAt: new Date('2026-10-01T12:00:00Z'),
+      });
+      await setDoc(doc(admin.firestore(), 'posts/post_002'), {
+        createdAt: new Date('2026-10-03T12:00:00Z'),
+      });
+      await setDoc(doc(admin.firestore(), 'posts/post_003'), {
+        createdAt: new Date('2026-10-02T12:00:00Z'),
+      });
+    });
+
+    const recentPosts = query(
+      collection(alice.firestore(), 'posts'),
+      orderBy('createdAt', 'desc'),
+      limit(20)
+    );
+
+    const snapshot = await assertSucceeds(getDocs(recentPosts));
+
+    assert.deepEqual(
+      snapshot.docs.map((document) => document.id),
+      ['post_002', 'post_003', 'post_001']
+    );
+  });
+
+  await test('recent posts returns at most 20 posts', async () => {
+    await env.clearFirestore();
+
+    await env.withSecurityRulesDisabled(async (admin) => {
+      for (let i = 0; i < 25; i += 1) {
+        await setDoc(doc(admin.firestore(), `posts/post_${i}`), {
+          createdAt: new Date(Date.UTC(2026, 9, 1, 0, 0, i)),
+        });
+      }
+    });
+
+    const recentPosts = query(
+      collection(alice.firestore(), 'posts'),
+      orderBy('createdAt', 'desc'),
+      limit(20)
+    );
+
+    const snapshot = await assertSucceeds(getDocs(recentPosts));
+
+    assert.equal(snapshot.docs.length, 20);
+  });
+
+  await test('recent posts query fails for an unauthenticated user', async () => {
+    await env.clearFirestore();
+
+    await env.withSecurityRulesDisabled(async (admin) => {
+      await setDoc(doc(admin.firestore(), 'posts/post_001'), {
+        createdAt: new Date('2026-10-01T12:00:00Z'),
+      });
+    });
+
+    const recentPosts = query(
+      collection(guest.firestore(), 'posts'),
+      orderBy('createdAt', 'desc'),
+      limit(20)
+    );
+
+    await assertFails(getDocs(recentPosts));
+  });
+
 } finally {
   await env.cleanup();
 }

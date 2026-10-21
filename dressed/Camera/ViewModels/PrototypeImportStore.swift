@@ -64,25 +64,16 @@ final class PrototypeClosetStore: ObservableObject {
     }
 
     func image(for item: ClothingItem) -> UIImage? {
-        guard item.ownerId == ownerId else { return nil }
-        let directURL = directory.appendingPathComponent(item.imagePath)
-        if FileManager.default.fileExists(atPath: directURL.path) {
-            return UIImage(contentsOfFile: directURL.path)
-        }
-        let pngURL = directory.appendingPathComponent("images/\(item.id).png")
-        if FileManager.default.fileExists(atPath: pngURL.path) {
-            return UIImage(contentsOfFile: pngURL.path)
-        }
-        let jpgURL = directory.appendingPathComponent("images/\(item.id).jpg")
-        if FileManager.default.fileExists(atPath: jpgURL.path) {
-            return UIImage(contentsOfFile: jpgURL.path)
-        }
-        return nil
+        guard item.ownerId == ownerId,
+              item.imagePath == "images/\(item.id).jpg" || item.imagePath == "images/\(item.id).png" else { return nil }
+        return UIImage(contentsOfFile: directory.appendingPathComponent(item.imagePath).path)
     }
 
     func item(id: String) -> ClothingItem? {
         items.first { $0.id == id && $0.ownerId == ownerId }
     }
+
+    func belongs(to userID: String) -> Bool { ownerId == userID }
 
     func save(imageData: Data, draftId: String, name: String, category: ClothingCategory) throws {
         guard error == nil else { throw PrototypeImportError.unavailableStorage }
@@ -92,15 +83,15 @@ final class PrototypeClosetStore: ObservableObject {
         guard let image = UIImage(data: imageData) else {
             throw PrototypeImportError.invalidImage
         }
-
-        let isPNG = (imageData.count >= 8 && imageData.prefix(8) == Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]))
-        let imageExtension = isPNG ? "png" : "jpg"
-        let fileData = isPNG ? (image.pngData() ?? imageData) : (image.jpegData(compressionQuality: 0.85) ?? imageData)
+        let isPNG = imageData.starts(with: [0x89, 0x50, 0x4E, 0x47])
+        guard let encoded = isPNG ? image.pngData() : image.jpegData(compressionQuality: 0.85) else {
+            throw PrototypeImportError.invalidImage
+        }
 
         let fileManager = FileManager.default
         let imageDirectory = directory.appendingPathComponent("images", isDirectory: true)
         try fileManager.createDirectory(at: imageDirectory, withIntermediateDirectories: true)
-        let imagePath = "images/\(draftId).\(imageExtension)"
+        let imagePath = "images/\(draftId).\(isPNG ? "png" : "jpg")"
         let imageURL = directory.appendingPathComponent(imagePath)
         let record = ClothingItem(
             id: draftId,
@@ -115,7 +106,7 @@ final class PrototypeClosetStore: ObservableObject {
         // The stable draft ID makes a retry replace the same item rather than create another.
         let previousImage = fileManager.fileExists(atPath: imageURL.path)
             ? try Data(contentsOf: imageURL) : nil
-        try fileData.write(to: imageURL, options: .atomic)
+        try encoded.write(to: imageURL, options: .atomic)
         do {
             try persist(updated)
             items = updated
@@ -190,7 +181,7 @@ final class PrototypeClosetStore: ObservableObject {
     }
 }
 
-struct SharedImageEnvelope: Decodable {
+struct SharedImageEnvelope: Codable {
     let id: String
     let ownerId: String
     let createdAt: Date
@@ -199,42 +190,133 @@ struct SharedImageEnvelope: Decodable {
 enum SharedImageInbox {
     static let groupId = "group.gtiosclub.dressed"
     private static let ownerKey = "activeOwnerId"
+    private static let draftLifetime: TimeInterval = 24 * 60 * 60
+
+    enum Next {
+        case image(ReviewImage)
+        case discarded(String)
+        case none
+    }
 
     static func setActiveOwner(_ ownerId: String?) {
         UserDefaults(suiteName: groupId)?.set(ownerId, forKey: ownerKey)
     }
 
-    static func next(for ownerId: String) -> ReviewImage? {
+    static func next(for ownerId: String) -> Next {
         guard let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId) else {
-            return nil
+            return .none
         }
         let inbox = root.appendingPathComponent("Inbox", isDirectory: true)
         guard let files = try? FileManager.default.contentsOfDirectory(at: inbox, includingPropertiesForKeys: nil)
             .filter({ $0.pathExtension == "json" }).sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) else {
-            return nil
+            return .none
         }
         for file in files {
+            let fileId = file.deletingPathExtension().lastPathComponent
             guard let data = try? Data(contentsOf: file),
                   let envelope = try? JSONDecoder().decode(SharedImageEnvelope.self, from: data) else {
-                continue
+                discard(file: file)
+                return .discarded("A shared image could not be read. Please share it again.")
             }
-            if Date().timeIntervalSince(envelope.createdAt) >= 24 * 60 * 60 {
+            guard UUID(uuidString: envelope.id) != nil, envelope.id == fileId else {
+                discard(file: file)
+                return .discarded("A shared image was invalid. Please share it again.")
+            }
+            let age = Date().timeIntervalSince(envelope.createdAt)
+            if age >= draftLifetime || age < -60 {
                 remove(id: envelope.id)
+                if envelope.ownerId == ownerId {
+                    return .discarded("This shared image expired. Please share it again.")
+                }
                 continue
             }
-            guard envelope.ownerId == ownerId,
-                  let imageData = try? Data(contentsOf: inbox.appendingPathComponent("\(envelope.id).jpg")) else { continue }
-            return ReviewImage(id: envelope.id, data: imageData, source: "Shared image", isShared: true)
+            guard envelope.ownerId == ownerId else { continue }
+            guard let imageData = try? Data(contentsOf: inbox.appendingPathComponent("\(envelope.id).jpg")),
+                  !imageData.isEmpty, imageData.count <= 40 * 1024 * 1024,
+                  UIImage(data: imageData) != nil else {
+                remove(id: envelope.id)
+                return .discarded("This shared image is unavailable. Please share it again.")
+            }
+            return .image(ReviewImage(id: envelope.id, data: imageData, source: "Shared image", isShared: true))
         }
-        return nil
+        return .none
     }
 
     static func remove(id: String) {
+        guard UUID(uuidString: id) != nil else { return }
         guard let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId) else {
             return
         }
         let inbox = root.appendingPathComponent("Inbox", isDirectory: true)
+        if let data = try? Data(contentsOf: root.appendingPathComponent("Reviews/\(id).json")),
+           let draft = try? JSONDecoder().decode(ImportDraft.self, from: data) {
+            SharedImportDraftStore.removeAutomaticCutouts(for: draft.candidates)
+        }
         try? FileManager.default.removeItem(at: inbox.appendingPathComponent("\(id).jpg"))
         try? FileManager.default.removeItem(at: inbox.appendingPathComponent("\(id).json"))
+        try? FileManager.default.removeItem(at: root.appendingPathComponent("Reviews/\(id).json"))
     }
+
+    private static func discard(file: URL) {
+        try? FileManager.default.removeItem(at: file.deletingPathExtension().appendingPathExtension("jpg"))
+        try? FileManager.default.removeItem(at: file)
+    }
+
+    #if DEBUG
+    static func seedFixture(id: String, ownerId: String, withCandidates: Bool) throws {
+        guard UUID(uuidString: id) != nil,
+              let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId) else {
+            throw SharedImportDraftError.unavailable
+        }
+        let inbox = root.appendingPathComponent("Inbox", isDirectory: true)
+        try FileManager.default.createDirectory(at: inbox, withIntermediateDirectories: true)
+        let previousFixtures = try FileManager.default.contentsOfDirectory(at: inbox, includingPropertiesForKeys: nil)
+            .filter { $0.pathExtension == "json" && $0.lastPathComponent.hasPrefix("00000000-0000-4000-8000-") }
+        for file in previousFixtures where file.deletingPathExtension().lastPathComponent != id {
+            remove(id: file.deletingPathExtension().lastPathComponent)
+        }
+        let size = CGSize(width: 600, height: 800)
+        let image = UIGraphicsImageRenderer(size: size).image { context in
+            UIColor.white.setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+            UIColor.systemBlue.setFill()
+            context.fill(CGRect(x: 130, y: 120, width: 340, height: 260))
+            UIColor.darkGray.setFill()
+            context.fill(CGRect(x: 150, y: 400, width: 300, height: 300))
+            UIColor.systemYellow.setFill()
+            context.fill(CGRect(x: 190, y: 20, width: 220, height: 70))
+        }
+        guard let data = image.jpegData(compressionQuality: 0.85) else {
+            throw SharedImportDraftError.unavailable
+        }
+        try data.write(to: inbox.appendingPathComponent("\(id).jpg"), options: .atomic)
+        try JSONEncoder().encode(SharedImageEnvelope(id: id, ownerId: ownerId, createdAt: Date()))
+            .write(to: inbox.appendingPathComponent("\(id).json"), options: .atomic)
+        if withCandidates {
+            var draft = try SharedImportDraftStore.loadOrCreate(
+                image: ReviewImage(id: id, data: data, source: "Shared image", isShared: true),
+                ownerId: ownerId
+            )
+            draft.status = .review
+            draft.candidates = [
+                ImportCandidate(id: SharedImportDraftStore.stableID(importID: id, part: "upper"),
+                                name: "Top", category: .tops, destination: .closet,
+                                temporaryCutoutPath: nil,
+                                region: NormalizedImageRegion(x: 0.2, y: 0.12, width: 0.6, height: 0.38),
+                                suggestionSource: "Fixture region", selected: false, tags: [], suggestedTags: []),
+                ImportCandidate(id: SharedImportDraftStore.stableID(importID: id, part: "lower"),
+                                name: "Pants", category: .pants, destination: .closet,
+                                temporaryCutoutPath: nil,
+                                region: NormalizedImageRegion(x: 0.2, y: 0.48, width: 0.6, height: 0.42),
+                                suggestionSource: "Fixture region", selected: false, tags: [], suggestedTags: []),
+                ImportCandidate(id: SharedImportDraftStore.stableID(importID: id, part: "accessory"),
+                                name: "Hat", category: .accessories, destination: .closet,
+                                temporaryCutoutPath: nil,
+                                region: NormalizedImageRegion(x: 0.3, y: 0.01, width: 0.4, height: 0.12),
+                                suggestionSource: "Fixture region", selected: false, tags: [], suggestedTags: [])
+            ]
+            try SharedImportDraftStore.save(draft)
+        }
+    }
+    #endif
 }

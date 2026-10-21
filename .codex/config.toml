@@ -1,0 +1,4 @@
+[mcp_servers.MobileBuildMCP]
+command = "mobilebuildmcp"
+args = ["mcp"]
+tool_timeout_sec = 600

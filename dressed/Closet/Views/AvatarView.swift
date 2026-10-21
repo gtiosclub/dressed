@@ -24,8 +24,8 @@ extension ClothingCategory {
 // MARK: - AvatarView
 
 // 3D mannequin on a turntable: drag sideways to spin it, double-tap to face front again.
-// Clothes are still the 2D placeholder drawn over the figure; they narrow and fade as it turns away.
-// Set use3D to false to get the old flat mannequin (used for the take-pic snapshot).
+// Clothes are procedural 3D pieces that turn with the avatar.
+// Set use3D to false to get the old flat mannequin with 2D clothes (used for the take-pic snapshot).
 struct AvatarView: View {
     let look: [AvatarPart: Int]
     let worn: [ClothingCategory: ClothingItem]
@@ -33,6 +33,7 @@ struct AvatarView: View {
     var uiImage: ((ClothingItem) -> UIImage?)? = nil
     var zoom: Double = 1
     var use3D: Bool = true
+    var allowsInteraction: Bool = true
 
     @State private var orbit = AvatarOrbit()
 
@@ -58,15 +59,15 @@ struct AvatarView: View {
                 }
             }
             .contentShape(Rectangle())
-            .gesture(turnGesture(viewWidth: size.width), including: use3D ? .all : .none)
+            .gesture(turnGesture(viewWidth: size.width), including: use3D && allowsInteraction ? .all : .none)
             .onTapGesture(count: 2) {
-                if use3D { orbit.resetToFront() }
+                if use3D && allowsInteraction { orbit.resetToFront() }
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Avatar")
-            .accessibilityHint(use3D ? "Swipe up or down to turn the avatar." : "")
+            .accessibilityHint(use3D && allowsInteraction ? "Swipe up or down to turn the avatar." : "")
             .accessibilityAdjustableAction { direction in
-                guard use3D else { return }
+                guard use3D && allowsInteraction else { return }
                 switch direction {
                 case .increment: orbit.turn(by: .pi / 4)
                 case .decrement: orbit.turn(by: -.pi / 4)
@@ -106,7 +107,7 @@ private struct AvatarStage: View {
     }
 }
 
-/// The 2D clothing placeholder. Flat images can't turn, so they narrow and fade as the avatar spins away.
+/// The 2D clothing placeholder (flat snapshot only). Flat images can't turn, so they narrow and fade as the avatar spins away.
 private struct GarmentOverlay: View {
     let worn: [ClothingCategory: ClothingItem]
     let image: (ClothingItem) -> Image
@@ -177,6 +178,15 @@ private enum AvatarScene {
     private static let turntableName = "avatarTurntable"
     private static let bodyPrefix = "body-"
     private static let hairPrefix = "hair-"
+    private static let scleraPrefix = "sclera-"
+    private static let irisPrefix = "iris-"
+    private static let pupilPrefix = "pupil-"
+    private static let lipsPrefix = "lips-"
+    private static let defaultTopPrefix = "default-top-"
+    private static let defaultBottomPrefix = "default-bottom-"
+
+    /// Fabric color per closet item. Reading the photo and averaging it is too slow to repeat every frame.
+    private static let garmentColors = NSCache<NSString, UIColor>()
 
     // Framing: the figure is 1 unit tall with feet at y = 0. At zoom 1 it fills 95% of the view height,
     // which the 2D overlay assumes. Zooming narrows the view but keeps its top edge fixed, matching the
@@ -229,7 +239,7 @@ private enum AvatarScene {
         return root
     }
 
-    /// Cheap enough to run every frame while spinning: meshes rebuild only when the look changes.
+    /// Cheap enough to run every frame while spinning: meshes rebuild only when the look or outfit changes.
     static func update(
         _ root: Entity,
         look: [AvatarPart: Int],
@@ -245,9 +255,10 @@ private enum AvatarScene {
         let avatar = AvatarLook(look)
 
         // Gender is part of every signature: it changes which body and face presets the indices point to.
-        replaceChild(of: turntable, prefix: bodyPrefix, signature: signature(look, [.gender, .body, .face, .skin])) {
-            model(Mannequin.body(avatar.body, face: avatar.face, nose: NoseShape.presets[0]), material: porcelain(avatar.skin))
+        replaceChild(of: turntable, prefix: bodyPrefix, signature: signature(look, [.gender, .body, .face, .nose, .skin])) {
+            model(Mannequin.body(avatar.body, face: avatar.face), material: porcelain(avatar.skin))
         }
+
 
         let hairParts: [AvatarPart] = [.gender, .hair, .bangs, .color, .face, .body]
         replaceChild(of: turntable, prefix: hairPrefix, signature: signature(look, hairParts)) {
@@ -257,24 +268,91 @@ private enum AvatarScene {
             )
         }
 
-        // 3D procedural preset clothing pieces turning 360 degrees on the turntable
+        // 3D procedural clothing pieces turning 360 degrees on the turntable.
+        // Body names repeat across genders, so gender is part of the signature too.
+        let bodySignature = signature(look, [.gender, .body])
         for category in ClothingCategory.allCases {
             let garmentPrefix = "garment-\(category.rawValue)-"
             if let item = worn[category] {
-                let img = uiImage?(item)
-                let color = GarmentColorExtractor.dominantColor(from: img)
                 let preset = GarmentPreset.detect(name: item.name, category: category, itemId: item.id)
-                let colorKey = "\(color.hashValue)"
-                let sig = "\(item.id)-\(preset.rawValue)-\(colorKey)-\(avatar.body.name)"
-
+                let fabric = garmentColor(for: item, uiImage: uiImage)
+                let sig = "\(item.id)-\(item.name)-\(preset.rawValue)-\(bodySignature)-\(fabric.resolved)"
+                
                 replaceChild(of: turntable, prefix: garmentPrefix, signature: sig) {
                     let mesh = MannequinGarments.mesh(for: preset, shape: avatar.body)
-                    return model(mesh, material: fabricFinish(color))
+                    let garment = model(mesh, material: fabricFinish(fabric.color))
+                    garment.scale = layerScale(for: category)
+                    return garment
                 }
             } else {
                 turntable.children.filter { $0.name.hasPrefix(garmentPrefix) }.forEach { $0.removeFromParent() }
             }
         }
+
+        // Default outfit: a plain tee and pants wherever nothing else covers the body, so the avatar is
+        // never bare. A dress covers both, and a skirt takes the place of the pants.
+        let wearsDress = worn[.dresses] != nil
+        syncDefaultGarment(
+            on: turntable,
+            prefix: defaultTopPrefix,
+            isShown: worn[.tops] == nil && !wearsDress,
+            signature: bodySignature,
+            category: .tops,
+            color: AvatarPalette.defaultTop
+        ) { Mannequin.defaultTop(avatar.body) }
+        syncDefaultGarment(
+            on: turntable,
+            prefix: defaultBottomPrefix,
+            isShown: worn[.pants] == nil && worn[.skirts] == nil && !wearsDress,
+            signature: bodySignature,
+            category: .pants,
+            color: AvatarPalette.defaultBottom
+        ) { Mannequin.defaultBottom(avatar.body) }
+    }
+
+    /// Shows or removes one default garment. It is rebuilt only when the body shape changes.
+    private static func syncDefaultGarment(
+        on turntable: Entity,
+        prefix: String,
+        isShown: Bool,
+        signature: String,
+        category: ClothingCategory,
+        color: UIColor,
+        mesh: () -> MannequinMesh
+    ) {
+        guard isShown else {
+            turntable.children.filter { $0.name.hasPrefix(prefix) }.forEach { $0.removeFromParent() }
+            return
+        }
+        replaceChild(of: turntable, prefix: prefix, signature: signature) {
+            let garment = model(mesh(), material: fabricFinish(color))
+            garment.scale = layerScale(for: category)
+            return garment
+        }
+    }
+
+    /// Each garment layer sits a hair further out from the body than the one beneath it, so surfaces
+    /// never share a depth. Without this, clothes and body shimmer ("z-fight") as the avatar turns.
+    private static func layerScale(for category: ClothingCategory) -> SIMD3<Float> {
+        let layer = Float(ClothingCategory.layerOrder.firstIndex(of: category) ?? 0)
+        let spread = 1.015 + 0.006 * layer
+        return [spread, 1, spread]
+    }
+
+    /// The item's fabric color, cached once its photo has been read. `resolved` is false while the photo
+    /// isn't available yet, so the garment gets rebuilt with the real color once it is.
+    private static func garmentColor(
+        for item: ClothingItem,
+        uiImage: ((ClothingItem) -> UIImage?)?
+    ) -> (color: UIColor, resolved: Bool) {
+        let key = item.id as NSString
+        if let cached = garmentColors.object(forKey: key) { return (cached, true) }
+        guard let photo = uiImage?(item) else {
+            return (GarmentColorExtractor.dominantColor(from: nil), false)
+        }
+        let color = GarmentColorExtractor.dominantColor(from: photo)
+        garmentColors.setObject(color, forKey: key)
+        return (color, true)
     }
 
     private static func fabricFinish(_ color: UIColor) -> PhysicallyBasedMaterial {
@@ -299,7 +377,9 @@ private enum AvatarScene {
     private static func addLights(to root: Entity) {
         let key = DirectionalLight()
         key.light.intensity = 2600
-        key.shadow = DirectionalLightComponent.Shadow(maximumDistance: 5, depthBias: 2)
+        // The figure is about 1.5 units from the camera, so a short shadow range keeps the shadow map sharp.
+        // A wide range blurs it, and clothes (which render both sides) then shadow themselves and shimmer.
+        key.shadow = DirectionalLightComponent.Shadow(maximumDistance: 2.5, depthBias: 4)
         root.addChild(key)
         key.look(at: [0, 0.55, 0], from: [0.9, 1.8, 2.2], relativeTo: nil)
 
@@ -343,7 +423,7 @@ private enum AvatarScene {
         return material
     }
 
-    /// Glossy finish for reflective materials.
+    /// Shiny finish for eyes and lips.
     private static func glossy(_ color: UIColor, roughness: Float, clearcoat: Float) -> PhysicallyBasedMaterial {
         var material = PhysicallyBasedMaterial()
         material.baseColor = .init(tint: color)

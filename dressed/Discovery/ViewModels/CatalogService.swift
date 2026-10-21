@@ -5,6 +5,60 @@ protocol CatalogSearching {
     func search(query: String, category: ClothingCategory?) async throws -> CatalogSearchResponse
 }
 
+enum DiscoveryCatalogSource {
+    static var current: any CatalogSearching {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        if !arguments.contains("-liveCatalog") && !arguments.contains("-showCatalog") &&
+            !arguments.contains("-catalogAPIURL") {
+            return DemoCatalogService()
+        }
+        #endif
+        return HTTPCatalogService(baseURL: CatalogConfiguration.baseURL)
+    }
+
+    static let demoStyles: [String: Set<String>] = [
+        "idea_top_1": ["Y2K", "Comfortable"],
+        "idea_pants_1": ["Minimal", "Trendy"],
+        "idea_skirt_1": ["Colorful", "Trendy"],
+        "idea_shoes_1": ["Streetwear", "Y2K"],
+        "idea_accessory_1": ["Vintage", "Colorful"],
+        "idea_outerwear_1": ["Comfortable", "Minimal"],
+        "idea_top_2": ["Trendy", "Monotone"],
+        "idea_pants_2": ["Minimal", "Monotone"]
+    ]
+}
+
+/// Synthetic public item cards for the Debug prototype; they are not purchasable products.
+struct DemoCatalogService: CatalogSearching {
+    func search(query: String, category: ClothingCategory?) async throws -> CatalogSearchResponse {
+        try Task.checkCancellation()
+        let samples: [(String, String, ClothingCategory)] = [
+            ("idea_top_1", "Everyday tee", .tops),
+            ("idea_pants_1", "Straight-leg pants", .pants),
+            ("idea_skirt_1", "Pleated skirt", .skirts),
+            ("idea_shoes_1", "Low-top sneakers", .shoes),
+            ("idea_accessory_1", "Pendant necklace", .accessories),
+            ("idea_outerwear_1", "Light jacket", .outerwear),
+            ("idea_top_2", "Relaxed shirt", .tops),
+            ("idea_pants_2", "Dark trousers", .pants)
+        ]
+        let products = samples.compactMap { id, title, itemCategory -> CatalogProduct? in
+            guard category == nil || category == itemCategory else { return nil }
+            guard query.isEmpty || title.localizedCaseInsensitiveContains(query) ||
+                    itemCategory.rawValue.localizedCaseInsensitiveContains(query) else { return nil }
+            guard let productURL = URL(string: "https://dressed.example/\(id)") else { return nil }
+            return CatalogProduct(
+                id: id, sourceId: "prototype", sourceName: "Prototype", externalId: id,
+                title: title, productURL: productURL,
+                category: itemCategory, brand: nil, imageURL: nil, priceCents: nil,
+                currency: nil, availability: "unknown", status: "demo", lastCheckedAt: ""
+            )
+        }
+        return CatalogSearchResponse(products: products, total: products.count, nextOffset: nil)
+    }
+}
+
 enum CatalogConfiguration {
     static var baseURL: URL? {
         #if DEBUG

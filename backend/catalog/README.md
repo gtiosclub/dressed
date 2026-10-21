@@ -23,3 +23,16 @@ python3 backend/catalog/catalog.py --db /private/tmp/dressed-catalog.sqlite expo
 Run the behavior tests with `python3 -m unittest discover -s backend/catalog -p 'test_*.py' -v`. The HTTP test needs permission to bind a local port in sandboxed environments.
 
 Before adding a live retailer connector, move approved source configuration out of the untrusted feed, confirm access and image-use terms, cap refresh frequency, and provide an authenticated backend deployment. Do not expose the local development server publicly.
+
+## Saved eBay Browse response adapter
+
+`ebay_browse.py` converts a **saved** eBay US Browse `item_summary/search` JSON response into this catalog's partial feed. It fixes the eBay product and image host allowlists in code, validates item IDs, prices, and URLs, and keeps a stable ID based on eBay's `itemId`. The Dressed category is an explicit operator choice; the source category remains separate. A keyword result is always a partial scan, so absent listings are not marked stale. This is a response adapter, not a live retailer connection or an exact product matcher.
+
+Try it with synthetic data, without making an API request:
+
+```sh
+python3 backend/catalog/ebay_browse.py backend/catalog/fixtures/ebay-browse-response.json --category shoes --db /private/tmp/dressed-ebay-demo.sqlite
+python3 backend/catalog/catalog.py --db /private/tmp/dressed-ebay-demo.sqlite search --category shoes
+```
+
+The fixture's eBay-shaped links are not real listings. Production use requires eBay Buy API access and a reviewed right to store and display its content. eBay's published daily API call limit is a rate limit, not a dollar cap. The adapter has no token handling, network request, schedule, or paid call path; live access stays off until credentials, terms, retention, and spending controls are resolved. Never put an application token or client secret in the iOS app or repository.

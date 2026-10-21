@@ -1,5 +1,7 @@
 # Social roadmap and feature spec
 
+October 18 navigation update: outfit posts now belong on the OOTD section inside the Discovery tab, while the Discovery section shows individual clothing ideas. The tracks below describe the post and catalog contracts; references to a “Discovery Feed” are earlier planning language and should be read as OOTD Feed. See [the implementation plan](discovery-ootd-implementation-plan.md). Live publication and public post media remain lead work.
+
 The `social` team owns small Discovery views and basic post/save operations. It does not publish private closet photos or decide the public snapshot contract. This roadmap follows the shared [product scope](product-scope.md) and complements the [data roadmap](data-roadmap.md): an outfit becomes social content only through an explicit publish action after private closet and outfit flows work. GitHub issues and the social board remain the source of truth for assignment and status.
 
 ## Product outcome and sequence
@@ -17,13 +19,15 @@ The October 19 local import/recognition prototype stays private in My Closet. It
 
 ### D1. Feed cards and status
 
-**User flow:** The Discovery tab switches between Feed and Search. Feed shows a recent post card with publishable outfit image, caption, author display, and a visible save state. Loading, no-posts, retryable error, and removed-content states are distinct. A tap opens post details; a save tap reports the post ID and desired state once.
+**User flow:** The Discovery tab switches between individual clothing ideas and OOTD posts. OOTD shows a recent post card with publishable outfit image, caption and author display. Its pin, Find items, comments and like buttons act in the feed; the card itself has no detail route. Find items opens a published-piece sheet. Loading, no-posts, retryable error and removed-content states are distinct. Backend engagement and saved-post persistence remain lead work.
 
 **Inputs and outputs:** Cards accept supplied `Post` display data and callbacks. The recent-post function reads a bounded page of public post records; the lead defines cursor ordering, indexes, and the safe DTO. Do not use private `ClothingItem.imagePath` in a feed card.
 
 **Tickets:** [#60 post card](https://github.com/gtiosclub/dressed/issues/60), [#80 recent posts](https://github.com/gtiosclub/dressed/issues/80), [#125 feed status views](https://github.com/gtiosclub/dressed/issues/125), and [#151 expandable caption](https://github.com/gtiosclub/dressed/issues/151). [Lead #59](https://github.com/gtiosclub/dressed/issues/59) owns publication, public media, and feed wiring.
 
-**Acceptance checks:** Supplied recent posts appear in stable newest-first order; a card tap reports one ID; empty and failed requests show different messages; retry calls the supplied action once; private closet paths never appear in public post data.
+Later engagement proposals [#214](https://github.com/gtiosclub/dressed/issues/214) and [#215](https://github.com/gtiosclub/dressed/issues/215) compare persistent likes and comments using synthetic data. They do not approve backend records, access rules, or implementation tickets; leads and Neal must settle those decisions first.
+
+**Acceptance checks:** Supplied recent posts appear in stable newest-first order; card controls report the intended post ID without opening a detail page; empty and failed requests show different messages; retry calls the supplied action once; private closet paths never appear in public post data.
 
 ### D2. Outfit breakdown and profile header
 

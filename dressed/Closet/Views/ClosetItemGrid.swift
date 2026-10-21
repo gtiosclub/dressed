@@ -6,6 +6,7 @@ import SwiftUI
 struct ClosetItemGrid: View {
     let items: [ClothingItem]
     let image: (ClothingItem) -> Image
+    let uiImage: ((ClothingItem) -> UIImage?)?
     let onSelect: (String) -> Void
 
     private let columns = [
@@ -16,10 +17,12 @@ struct ClosetItemGrid: View {
     init(
         items: [ClothingItem],
         image: @escaping (ClothingItem) -> Image = { _ in Image(systemName: "photo") },
+        uiImage: ((ClothingItem) -> UIImage?)? = nil,
         onSelect: @escaping (String) -> Void
     ) {
         self.items = items
         self.image = image
+        self.uiImage = uiImage
         self.onSelect = onSelect
     }
 
@@ -33,7 +36,14 @@ struct ClosetItemGrid: View {
             LazyVGrid(columns: columns, spacing: 16) {
                 ForEach(items) { item in
                     ClothingItemCard(
-                        image: image(item),
+                        thumbnail: AnyView(AvatarView(
+                            look: [:],
+                            worn: [item.category: item],
+                            image: image,
+                            uiImage: uiImage,
+                            zoom: 0.78,
+                            allowsInteraction: false
+                        )),
                         name: item.name,
                         category: item.category,
                         onTap: { onSelect(item.id) }
