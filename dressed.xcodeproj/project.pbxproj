@@ -15,7 +15,7 @@
 		8B87D8BF305380F100F3CF9E /* FirebaseAI in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8BE305380F100F3CF9E /* FirebaseAI */; };
 		8B87D8C1305380F400F3CF9E /* FirebaseAILogic in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8C0305380F400F3CF9E /* FirebaseAILogic */; };
 		A10100000000000000000001 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10200000000000000000001 /* ShareViewController.swift */; };
-		A10100000000000000000002 /* DressedShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A10200000000000000000004 /* DressedShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A10100000000000000000002 /* DressedShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A10200000000000000000004 /* DressedShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B20100000000000000000001 /* ShareImportUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20200000000000000000001 /* ShareImportUITests.swift */; };
 		C10100000000000000000001 /* InjectionNext in Frameworks */ = {isa = PBXBuildFile; productRef = C10300000000000000000001 /* InjectionNext */; };
 		C10100000000000000000002 /* Inject in Frameworks */ = {isa = PBXBuildFile; productRef = C10300000000000000000002 /* Inject */; };
@@ -39,15 +39,15 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		A10300000000000000000001 /* Embed App Extensions */ = {
+		A10300000000000000000001 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				A10100000000000000000002 /* DressedShareExtension.appex in Embed App Extensions */,
+				A10100000000000000000002 /* DressedShareExtension.appex in Embed Foundation Extensions */,
 			);
-			name = "Embed App Extensions";
+			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -153,7 +153,7 @@
 				8B87D86330537AB400F3CF9E /* Sources */,
 				8B87D86430537AB400F3CF9E /* Frameworks */,
 				8B87D86530537AB400F3CF9E /* Resources */,
-				A10300000000000000000001 /* Embed App Extensions */,
+				A10300000000000000000001 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
@@ -220,7 +220,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2660;
-				LastUpgradeCheck = 2700;
+				LastUpgradeCheck = 2710;
 				TargetAttributes = {
 					8B87D86630537AB400F3CF9E = {
 						CreatedOnToolsVersion = 26.6;
