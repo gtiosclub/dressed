@@ -63,21 +63,21 @@ private extension UIImage {
     }
 }
 
-#Preview("Supplied image") {
-    PublishedPostImageView(image: .fixture(width: 400, height: 500))
-        .padding(.horizontal, 20)
-}
-
-#Preview("Tall and wide images, narrow width") {
-    HStack(alignment: .top, spacing: 12) {
-        PublishedPostImageView(image: .fixture(width: 300, height: 600))
-        PublishedPostImageView(image: .fixture(width: 600, height: 300))
-    }
-    .frame(width: 280)
-    .padding()
-}
-
-#Preview("No image") {
-    PublishedPostImageView(image: nil)
-        .padding(.horizontal, 20)
-}
+//#Preview("Supplied image") {
+//    PublishedPostImageView(image: .fixture(width: 400, height: 500))
+//        .padding(.horizontal, 20)
+//}
+//
+//#Preview("Tall and wide images, narrow width") {
+//    HStack(alignment: .top, spacing: 12) {
+//        PublishedPostImageView(image: .fixture(width: 300, height: 600))
+//        PublishedPostImageView(image: .fixture(width: 600, height: 300))
+//    }
+//    .frame(width: 280)
+//    .padding()
+//}
+//
+//#Preview("No image") {
+//    PublishedPostImageView(image: nil)
+//        .padding(.horizontal, 20)
+//}
