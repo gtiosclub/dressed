@@ -8,9 +8,11 @@ struct PrototypeClosetView: View {
     @State private var searchText = ""
     @State private var section = 0
     @State private var showingOutfitEditor = false
+    let onTryOn: (ClothingItem) -> Void
 
-    init(closet: PrototypeClosetStore, ownerId: String) {
+    init(closet: PrototypeClosetStore, ownerId: String, onTryOn: @escaping (ClothingItem) -> Void) {
         self.closet = closet
+        self.onTryOn = onTryOn
         _outfits = StateObject(wrappedValue: PrototypeOutfitStore(ownerId: ownerId))
         _productLinks = StateObject(wrappedValue: ProductLinkStore(ownerId: ownerId))
     }
@@ -148,7 +150,7 @@ struct PrototypeClosetView: View {
         }
         .searchable(text: $searchText, prompt: "Search pieces")
         .navigationDestination(for: String.self) { id in
-            PrototypeItemDetailView(closet: closet, itemID: id)
+            PrototypeItemDetailView(closet: closet, itemID: id, onTryOn: onTryOn)
         }
     }
 
@@ -238,6 +240,7 @@ struct PrototypeClosetView: View {
 struct PrototypeItemDetailView: View {
     @ObservedObject var closet: PrototypeClosetStore
     let itemID: String
+    let onTryOn: (ClothingItem) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var isEditing = false
@@ -293,6 +296,12 @@ struct PrototypeItemDetailView: View {
                                 name = item.name
                                 category = item.category
                                 isEditing = true
+                            }
+                            Button {
+                                onTryOn(item)
+                                dismiss()
+                            } label: {
+                                Label("Try On", systemImage: "person.crop.circle")
                             }
                             Button("Delete Piece", role: .destructive) { confirmsDeletion = true }
                         }
