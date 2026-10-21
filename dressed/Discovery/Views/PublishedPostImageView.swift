@@ -41,27 +41,27 @@ struct PublishedPostImageView: View {
     }
 }
 
-// MARK: - Local fixtures (no Firebase, no private paths)
-
-private extension UIImage {
-    /// A grey image with a white circle. If the view ever stretched the image,
-    /// the circle would turn into an oval, so it doubles as a proportion check.
-    static func fixture(width: CGFloat, height: CGFloat) -> UIImage {
-        let size = CGSize(width: width, height: height)
-        return UIGraphicsImageRenderer(size: size).image { context in
-            UIColor(white: 0.45, alpha: 1).setFill()
-            context.fill(CGRect(origin: .zero, size: size))
-            let diameter = min(width, height) * 0.5
-            UIColor.white.setFill()
-            context.cgContext.fillEllipse(in: CGRect(
-                x: (width - diameter) / 2,
-                y: (height - diameter) / 2,
-                width: diameter,
-                height: diameter
-            ))
-        }
-    }
-}
+//// MARK: - Local fixtures (no Firebase, no private paths)
+//
+//private extension UIImage {
+//    /// A grey image with a white circle. If the view ever stretched the image,
+//    /// the circle would turn into an oval, so it doubles as a proportion check.
+//    static func fixture(width: CGFloat, height: CGFloat) -> UIImage {
+//        let size = CGSize(width: width, height: height)
+//        return UIGraphicsImageRenderer(size: size).image { context in
+//            UIColor(white: 0.45, alpha: 1).setFill()
+//            context.fill(CGRect(origin: .zero, size: size))
+//            let diameter = min(width, height) * 0.5
+//            UIColor.white.setFill()
+//            context.cgContext.fillEllipse(in: CGRect(
+//                x: (width - diameter) / 2,
+//                y: (height - diameter) / 2,
+//                width: diameter,
+//                height: diameter
+//            ))
+//        }
+//    }
+//}
 
 //#Preview("Supplied image") {
 //    PublishedPostImageView(image: .fixture(width: 400, height: 500))
