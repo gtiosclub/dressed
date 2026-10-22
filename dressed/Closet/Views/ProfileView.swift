@@ -62,7 +62,8 @@ struct ProfileView: View {
         image: @escaping (ClothingItem) -> Image = {
             _ in Image(systemName: "photo")
         },
-        uiImage: ((ClothingItem) -> UIImage?)? = nil
+        uiImage: ((ClothingItem) -> UIImage?)? = nil,
+        
     ) {
         self.username = username
         self.items = items
@@ -80,7 +81,7 @@ struct ProfileView: View {
                 closet: closet,
                 items: items,
                 image: image,
-                uiImage: uiImage
+                uiImage: uiImage,
             )
         }
     }

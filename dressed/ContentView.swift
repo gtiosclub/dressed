@@ -72,7 +72,11 @@ private struct AppTabs: View {
             NavigationStack {
                 PrototypeClosetView(
                     closet: closet,
-                    ownerId: userId
+                    ownerId: userId,
+                    onTryOn: { item in
+                        studio.worn[item.category] = item
+                        selectedTab = 3
+                    }
                 )
             }
             .tabItem { Label("My Closet", image: selectedTab == 0 ? "TablerHanger2Filled" : "TablerHanger2") }

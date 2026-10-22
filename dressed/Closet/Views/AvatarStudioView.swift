@@ -8,7 +8,7 @@ struct AvatarStudioView: View {
     let items: [ClothingItem]
     let image: (ClothingItem) -> Image
     var uiImage: ((ClothingItem) -> UIImage?)? = nil
-
+    
     enum StudioTab: String, CaseIterable, Identifiable {
         case tryOn = "Try On"
         case customize = "Customize"
@@ -25,7 +25,7 @@ struct AvatarStudioView: View {
     @State private var showingTakePic = false
     @State private var itemDetailSheet: ItemDetailSheet? = nil
     @State private var outfitSavedAlert = false
-
+    
     var body: some View {
         VStack(spacing: 0) {
             Picker("Mode", selection: $activeTab) {
@@ -82,7 +82,12 @@ struct AvatarStudioView: View {
         .sheet(item: $itemDetailSheet) { sheet in
             if let closet {
                 NavigationStack {
-                    PrototypeItemDetailView(closet: closet, itemID: sheet.id)
+                    PrototypeItemDetailView(
+                        closet: closet,
+                        itemID: sheet.id,
+                        onTryOn: { item in
+                            model.worn[item.category] = item
+                    })
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
                                 Button("Done") { itemDetailSheet = nil }
