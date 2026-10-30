@@ -22,7 +22,7 @@ struct ClothingItemsList: View {
     let onSelectOutfit: (UUID) -> Void
 
     @State private var tab: ListTab = .clothing
-    @State private var selectedCategory: ClothingCategory? = nil  // nil = All
+    @State private var selectedCategory: ClothingCategory?  // nil = All
 
     // OutfitPreviewCard is a fixed 200 wide, so this is one column on a phone and more on wider screens.
     private let outfitColumns = [GridItem(.adaptive(minimum: 200), spacing: 16)]

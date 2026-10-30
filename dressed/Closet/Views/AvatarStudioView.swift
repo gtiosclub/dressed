@@ -4,10 +4,10 @@ import SwiftUI
 /// customizes avatar appearance, saves outfits, and captures photos.
 struct AvatarStudioView: View {
     @Bindable var model: OutfitStudioModel
-    var closet: PrototypeClosetStore? = nil
+    var closet: PrototypeClosetStore?
     let items: [ClothingItem]
     let image: (ClothingItem) -> Image
-    var uiImage: ((ClothingItem) -> UIImage?)? = nil
+    var uiImage: ((ClothingItem) -> UIImage?)?
 
     enum StudioTab: String, CaseIterable, Identifiable {
         case tryOn = "Try On"
@@ -23,7 +23,7 @@ struct AvatarStudioView: View {
 
     @State private var activeTab: StudioTab = .tryOn
     @State private var showingTakePic = false
-    @State private var itemDetailSheet: ItemDetailSheet? = nil
+    @State private var itemDetailSheet: ItemDetailSheet?
     @State private var outfitSavedAlert = false
 
     var body: some View {
@@ -95,7 +95,7 @@ struct AvatarStudioView: View {
 
     // MARK: - 1. Try On Mode
 
-    @State private var trayCategory: ClothingCategory? = nil
+    @State private var trayCategory: ClothingCategory?
     @State private var traySource = 0 // 0 = Clothing, 1 = Saved fits
 
     private var filteredItems: [ClothingItem] {
@@ -411,7 +411,7 @@ private struct StudioTakePicView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var model: OutfitStudioModel
     let image: (ClothingItem) -> Image
-    var uiImage: ((ClothingItem) -> UIImage?)? = nil
+    var uiImage: ((ClothingItem) -> UIImage?)?
 
     @State private var snapshot: UIImage?
 

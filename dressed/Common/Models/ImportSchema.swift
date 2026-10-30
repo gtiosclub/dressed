@@ -49,7 +49,7 @@ struct ImportCandidate: Codable, Identifiable {
     var region: NormalizedImageRegion?
     // Optional user-drawn contour in full-image coordinates. A rectangle remains
     // the fallback when no contour has been drawn.
-    var outline: [NormalizedImagePoint]? = nil
+    var outline: [NormalizedImagePoint]?
     var suggestionSource: String?
     var selected: Bool
     var tags: [String]

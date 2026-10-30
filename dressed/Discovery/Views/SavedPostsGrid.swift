@@ -22,9 +22,9 @@ struct SavedPostGrid: View {
             .fontWeight(.bold)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
-        if(posts.isEmpty){
+        if posts.isEmpty {
             Spacer()
-            VStack{
+            VStack {
                 Image(systemName: "person.2")
                     .resizable()
                     .scaledToFit()
@@ -34,10 +34,10 @@ struct SavedPostGrid: View {
             }
             Spacer()
         } else {
-            ScrollView{
-                LazyVGrid(columns:columns, spacing: 10){
-                    ForEach(posts){ post in
-                        Button{
+            ScrollView {
+                LazyVGrid(columns: columns, spacing: 10) {
+                    ForEach(posts) { post in
+                        Button {
                             onPostTap(post.postId)
                         } label: {
                             if let image = images[post.postId] {
@@ -54,7 +54,6 @@ struct SavedPostGrid: View {
                                     .scaledToFit()
                                     .frame(height: 180)
                                     .frame(maxWidth: .infinity)
-
 
                             }
                         }

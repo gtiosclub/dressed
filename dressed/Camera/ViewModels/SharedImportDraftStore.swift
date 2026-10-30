@@ -92,7 +92,7 @@ enum SharedImportDraftStore {
             format.scale = 1
             format.opaque = false
             let renderer = UIGraphicsImageRenderer(size: size, format: format)
-            return renderer.pngData { context in
+            return renderer.pngData { _ in
                 let path = UIBezierPath()
                 for (index, point) in outline.enumerated() {
                     let location = CGPoint(x: (point.x - left) / width * size.width,

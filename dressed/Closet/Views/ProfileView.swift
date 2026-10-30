@@ -46,7 +46,7 @@ struct ProfileView: View {
     let items: [ClothingItem]
     let model: OutfitStudioModel
 
-    var closet: PrototypeClosetStore? = nil
+    var closet: PrototypeClosetStore?
 
     let image: (ClothingItem) -> Image
     let onSignOut: () -> Void
