@@ -6,8 +6,10 @@ struct AvatarStudioView: View {
     @Bindable var model: OutfitStudioModel
     var closet: PrototypeClosetStore? = nil
     let items: [ClothingItem]
+    let outfits: PrototypeOutfitStore
     let image: (ClothingItem) -> Image
     var uiImage: ((ClothingItem) -> UIImage?)? = nil
+
 
     enum StudioTab: String, CaseIterable, Identifiable {
         case tryOn = "Try On"
@@ -21,11 +23,12 @@ struct AvatarStudioView: View {
         let id: String
     }
 
+    @State private var draftOutfitName = ""
     @State private var activeTab: StudioTab = .tryOn
     @State private var showingTakePic = false
     @State private var itemDetailSheet: ItemDetailSheet? = nil
     @State private var outfitSavedAlert = false
-
+    
     var body: some View {
         VStack(spacing: 0) {
             Picker("Mode", selection: $activeTab) {
@@ -50,10 +53,51 @@ struct AvatarStudioView: View {
         .navigationTitle("Avatar Studio")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                TextField("Unnamed Outfit", text: $draftOutfitName)
+                    .textFieldStyle(.roundedBorder)
+                    .multilineTextAlignment(.center)
+                    .accessibilityLabel("Outfit name")
+            }
+
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    model.saveCurrentOutfit()
-                    outfitSavedAlert = true
+                    let placements: [OutfitPlacement] =
+                        ClothingCategory.layerOrder.enumerated().compactMap { layer, category in
+                            guard let item = model.worn[category] else {
+                                return nil
+                            }
+
+                            return OutfitPlacement(
+                                itemId: item.id,
+                                centerX: 0.5,
+                                centerY: 0.5,
+                                width: 0.5,
+                                rotationDegrees: 0,
+                                layer: layer
+                            )
+                        }
+
+                    let typedName = draftOutfitName.trimmingCharacters(
+                        in: .whitespacesAndNewlines
+                    )
+
+                    let outfitName = typedName.isEmpty
+                        ? "Unnamed Outfit \(outfits.outfits.count + 1)"
+                        : typedName
+
+                    do {
+                        try outfits.save(
+                            name: outfitName,
+                            placements: placements,
+                            availableItems: items
+                        )
+
+                        draftOutfitName = ""
+                        outfitSavedAlert = true
+                    } catch {
+                        print("Could not save outfit: \(error.localizedDescription)")
+                    }
                 } label: {
                     Label("Save Outfit", systemImage: "heart")
                 }
@@ -82,7 +126,12 @@ struct AvatarStudioView: View {
         .sheet(item: $itemDetailSheet) { sheet in
             if let closet {
                 NavigationStack {
-                    PrototypeItemDetailView(closet: closet, itemID: sheet.id)
+                    PrototypeItemDetailView(
+                        closet: closet,
+                        itemID: sheet.id,
+                        onTryOn: { item in
+                            model.worn[item.category] = item
+                    })
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
                                 Button("Done") { itemDetailSheet = nil }
@@ -228,18 +277,45 @@ struct AvatarStudioView: View {
         return UUID(uuidString: formatted) ?? UUID()
     }
 
+    private func wornItems(for outfit: Outfit) -> [ClothingCategory: ClothingItem] {
+        var worn: [ClothingCategory: ClothingItem] = [:]
+
+        for placement in outfit.placements {
+            guard let item = items.first(where: { item in
+                item.id == placement.itemId
+            }) else {
+                continue
+            }
+
+            worn[item.category] = item
+        }
+
+        return worn
+    }
+
     private var savedFitsTray: some View {
-        OutfitItemTray(
-            items: model.savedOutfits.map { outfit in
-                OutfitItem(
-                    id: outfit.id,
-                    thumbnail: AnyView(SavedFitThumbnail(worn: outfit.worn, image: image)),
-                    name: outfit.name,
+        let entries = outfits.outfits.map { outfit in
+            let worn = wornItems(for: outfit)
+
+            return (
+                worn: worn,
+                tray: OutfitItem(
+                    id: Self.stableID(for: outfit.id),
+                    thumbnail: AnyView(
+                        SavedFitThumbnail(worn: worn, image: image)
+                    ),
+                    name: outfit.name ?? "Outfit",
                     category: .tops,
-                    subtitle: "\(outfit.worn.count) pieces"
+                    subtitle: "\(worn.count) pieces"
                 )
-            },
-            onSelect: { model.wearOutfit(id: $0) }
+            )
+        }
+        return OutfitItemTray(
+            items: entries.map { $0.tray },
+            onSelect: { id in
+                guard let entry = entries.first(where: { $0.tray.id == id }) else { return }
+                model.worn = entry.worn
+            }
         )
     }
 
