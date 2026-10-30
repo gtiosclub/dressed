@@ -103,6 +103,10 @@ struct PrototypeOutfitEditorView: View {
         if placements.contains(where: { $0.itemId == item.id }) {
             placements.removeAll { $0.itemId == item.id }
         } else {
+            // remove exisiting item in this category
+            placements.removeAll { placement in
+                closet.item(id: placement.itemId)?.category == item.category
+            }
             let count = placements.count
             placements.append(OutfitPlacement(
                 itemId: item.id,
@@ -139,12 +143,15 @@ struct PrototypeOutfitEditorView: View {
 
 struct PrototypeOutfitDetailView: View {
     let outfit: Outfit
+    let onTryOutfit: (Outfit) -> Void
     @ObservedObject var closet: PrototypeClosetStore
     @State private var placements: [OutfitPlacement]
+    @Environment(\.dismiss) private var dismiss
 
-    init(outfit: Outfit, closet: PrototypeClosetStore) {
+    init(outfit: Outfit, closet: PrototypeClosetStore, onTryOutfit: @escaping (Outfit) -> Void) {
         self.outfit = outfit
         self.closet = closet
+        self.onTryOutfit = onTryOutfit
         _placements = State(initialValue: outfit.placements)
     }
 
@@ -153,6 +160,12 @@ struct PrototypeOutfitDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 OutfitCanvasView(placements: $placements, closet: closet, editable: false)
                     .frame(height: 400)
+                Button {
+                    onTryOutfit(outfit)
+                    dismiss()
+                } label: {
+                    Label("Try On Outfit", systemImage: "person.crop.circle")
+                }
                 Text("Pieces")
                     .font(.title2.bold())
                 ForEach(outfit.placements, id: \.itemId) { placement in

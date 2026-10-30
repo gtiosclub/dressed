@@ -2,18 +2,20 @@ import SwiftUI
 
 struct PrototypeClosetView: View {
     @ObservedObject var closet: PrototypeClosetStore
-    @StateObject private var outfits: PrototypeOutfitStore
+    @ObservedObject var outfits: PrototypeOutfitStore
     @StateObject private var productLinks: ProductLinkStore
     @State private var category: ClothingCategory?
     @State private var searchText = ""
     @State private var section = 0
     @State private var showingOutfitEditor = false
     let onTryOn: (ClothingItem) -> Void
+    let onTryOutfit: (Outfit) -> Void
 
-    init(closet: PrototypeClosetStore, ownerId: String, onTryOn: @escaping (ClothingItem) -> Void) {
-        self.closet = closet
+    init(closet: PrototypeClosetStore, outfits: PrototypeOutfitStore, ownerId: String, onTryOn: @escaping (ClothingItem) -> Void, onTryOutfit: @escaping (Outfit) -> Void) {
+        _closet = ObservedObject(wrappedValue: closet)
+        _outfits = ObservedObject(wrappedValue: outfits)
         self.onTryOn = onTryOn
-        _outfits = StateObject(wrappedValue: PrototypeOutfitStore(ownerId: ownerId))
+        self.onTryOutfit = onTryOutfit
         _productLinks = StateObject(wrappedValue: ProductLinkStore(ownerId: ownerId))
     }
 
@@ -178,7 +180,7 @@ struct PrototypeClosetView: View {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 155), spacing: 12)], spacing: 12) {
                     ForEach(outfits.outfits) { outfit in
                         NavigationLink {
-                            PrototypeOutfitDetailView(outfit: outfit, closet: closet)
+                            PrototypeOutfitDetailView(outfit: outfit, closet: closet, onTryOutfit: onTryOutfit)
                         } label: {
                             VStack(alignment: .leading, spacing: 6) {
                                 Image(systemName: "square.on.square")

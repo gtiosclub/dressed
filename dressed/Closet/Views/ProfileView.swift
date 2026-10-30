@@ -45,6 +45,7 @@ struct ProfileView: View {
     let username: String
     let items: [ClothingItem]
     let model: OutfitStudioModel
+    @ObservedObject var outfits: PrototypeOutfitStore
 
     var closet: PrototypeClosetStore? = nil
 
@@ -58,6 +59,7 @@ struct ProfileView: View {
         items: [ClothingItem],
         model: OutfitStudioModel,
         closet: PrototypeClosetStore? = nil,
+        outfits: PrototypeOutfitStore,
         onSignOut: @escaping () -> Void,
         image: @escaping (ClothingItem) -> Image = {
             _ in Image(systemName: "photo")
@@ -69,6 +71,7 @@ struct ProfileView: View {
         self.items = items
         self.model = model
         self.closet = closet
+        _outfits = ObservedObject(wrappedValue: outfits)
         self.onSignOut = onSignOut
         self.image = image
         self.uiImage = uiImage
@@ -80,6 +83,7 @@ struct ProfileView: View {
                 model: model,
                 closet: closet,
                 items: items,
+                outfits: outfits,
                 image: image,
                 uiImage: uiImage,
             )
@@ -94,6 +98,7 @@ struct ProfileView: View {
         username: "aditya",
         items: ClothingItem.previewSamples,
         model: OutfitStudioModel(),
+        outfits: PrototypeOutfitStore(ownerId: "preview"),
         onSignOut: {}
     )
 }
