@@ -6,6 +6,7 @@ enum PrototypeOutfitError: LocalizedError {
     case emptyOutfit
     case missingPiece
     case unavailableStorage
+    case duplicateCategory
 
     var errorDescription: String? {
         switch self {
@@ -13,6 +14,7 @@ enum PrototypeOutfitError: LocalizedError {
         case .emptyOutfit: "Select at least one piece."
         case .missingPiece: "A selected piece is no longer in your closet."
         case .unavailableStorage: "Saved outfits could not be loaded. Try again."
+        case .duplicateCategory: "Choose only one piece per clothing category."
         }
     }
 }
@@ -62,6 +64,14 @@ final class PrototypeOutfitStore: ObservableObject {
         guard UUID(uuidString: id) != nil else { throw PrototypeOutfitError.unavailableStorage }
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else { throw PrototypeOutfitError.emptyName }
+        let selectedCategories = placements.compactMap { placement in
+            availableItems.first { item in
+                item.id == placement.itemId
+            }?.category
+        }
+        guard Set(selectedCategories).count == selectedCategories.count else {
+            throw PrototypeOutfitError.duplicateCategory
+        }
         guard !placements.isEmpty else { throw PrototypeOutfitError.emptyOutfit }
         let ownedIds = Set(availableItems.filter { $0.ownerId == ownerId }.map(\.id))
         guard placements.allSatisfy({ ownedIds.contains($0.itemId) }) else {
