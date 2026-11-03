@@ -29,6 +29,7 @@ private struct AppTabs: View {
     let userId: String
 
     @StateObject private var closet: PrototypeClosetStore
+    @StateObject private var savedPosts: SavedPostsViewModel
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -53,6 +54,11 @@ private struct AppTabs: View {
         _closet = StateObject(
             wrappedValue: PrototypeClosetStore(ownerId: userId)
         )
+        _savedPosts = StateObject(wrappedValue: SavedPostsViewModel(
+            ownerId: userId,
+            saves: DiscoveryPostSource.currentSavedPosts,
+            posts: DiscoveryPostSource.current
+        ))
 
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
@@ -95,7 +101,7 @@ private struct AppTabs: View {
                     if discoverySection == 0 {
                         DiscoveryIdeasView { selectedTab = 3 }
                     } else {
-                        OOTDFeedView()
+                        OOTDFeedView(savedPosts: savedPosts)
                     }
                 }
                 .toolbar(.hidden, for: .navigationBar)

@@ -47,6 +47,8 @@ Later engagement proposals [#214](https://github.com/gtiosclub/dressed/issues/21
 
 **Tickets:** [#61 save post](https://github.com/gtiosclub/dressed/issues/61), [#121 remove saved post](https://github.com/gtiosclub/dressed/issues/121), [#122 fetch saved IDs](https://github.com/gtiosclub/dressed/issues/122), [#124 saved-post grid](https://github.com/gtiosclub/dressed/issues/124), [#149 save toggle](https://github.com/gtiosclub/dressed/issues/149), and [#148 filter saved posts](https://github.com/gtiosclub/dressed/issues/148). [Lead #94](https://github.com/gtiosclub/dressed/issues/94) owns the owner-only Firestore rules before live writes.
 
+**Status:** [#186](https://github.com/gtiosclub/dressed/issues/186) connected the toggle, grid and saved IDs on OOTD with Debug demo data. See [architecture](architecture.md#saved-posts-on-ootd-november-2026). Live saving still waits on #94 and a live `posts` source.
+
 **Acceptance checks:** Account A can save, relaunch, and still see the state; a second save creates no duplicate; Account B cannot read or alter A's saved relation; unsaving removes only A's relation; a deleted post gives a removed-content state.
 
 ## Track S: Search and composing a post
