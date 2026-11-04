@@ -34,8 +34,8 @@ xcrun swiftc dressed/Common/Models/*.swift dressed/Discovery/ViewModels/SavedPos
 /private/tmp/saved-posts-state-check
 ```
 
-`dressedUITests/SavedPostsUITests.swift` covers the fixture-backed screens with the
-mock session. Neither check covers real sign-in or the Firestore rules.
+`SavedPostsUITests` in `dressedUITests/NavigationUITests.swift` covers the fixture-backed
+screens with the mock session. Neither check covers real sign-in or the Firestore rules.
 
 Checked on November 2, 2026, on an iPhone 17 Pro simulator with iOS 27.0:
 
