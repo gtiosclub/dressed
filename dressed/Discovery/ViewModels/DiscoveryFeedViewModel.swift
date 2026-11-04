@@ -58,17 +58,40 @@ final class DiscoveryFeedViewModel: ObservableObject {
 
 /// Synthetic published snapshots for the signed-in simulator walkthrough.
 struct DemoPostFunctions: PostFunctions {
+    private struct Example {
+        let author: String
+        let caption: String
+        let name: String
+        let pieces: [(String, ClothingCategory)]
+
+        init(_ author: String, _ caption: String, _ name: String, _ pieces: [(String, ClothingCategory)]) {
+            self.author = author
+            self.caption = caption
+            self.name = name
+            self.pieces = pieces
+        }
+    }
+
     func fetchRecentPosts() async throws -> [Post] {
         try Task.checkCancellation()
-        let examples: [(author: String, caption: String, name: String, pieces: [(String, ClothingCategory)])] = [
-            ("maya", "Weekend layers", "Weekend", [("Cream tee", .tops), ("Black jeans", .pants)]),
-            ("alex", "Keeping it simple today", "Everyday", [("White shirt", .tops), ("Sneakers", .shoes)]),
-            ("jordan", "A little color for Friday", "Friday", [("Blue dress", .dresses), ("Silver necklace", .accessories)]),
-            ("sam", "Coffee run fit", "Coffee run", [("Denim jacket", .outerwear), ("Black pants", .pants)]),
-            ("lee", "Sunny afternoon", "Sunny day", [("Pleated skirt", .skirts), ("Canvas shoes", .shoes)]),
-            ("riley", "My favorite layers", "Layers", [("Striped top", .tops), ("Light jacket", .outerwear)]),
-            ("casey", "Dinner with friends", "Dinner", [("Black dress", .dresses), ("Pendant necklace", .accessories)]),
-            ("taylor", "Back to basics", "Basics", [("Gray tee", .tops), ("Straight-leg pants", .pants)])
+        let examples: [Example] = [
+            Example("user38483", "caption (optional)", "Fit check", [
+                ("Vintage leather jacket", .outerwear),
+                ("Pleated wool trousers", .pants),
+                ("Leather belt", .accessories),
+                ("Chunky loafers", .shoes)
+            ]),
+            Example("alex", "Keeping it simple today", "Everyday", [("White shirt", .tops), ("Sneakers", .shoes)]),
+            Example("jordan", "A little color for Friday", "Friday", [
+                ("Blue dress", .dresses), ("Silver necklace", .accessories)
+            ]),
+            Example("sam", "Coffee run fit", "Coffee run", [("Denim jacket", .outerwear), ("Black pants", .pants)]),
+            Example("lee", "Sunny afternoon", "Sunny day", [("Pleated skirt", .skirts), ("Canvas shoes", .shoes)]),
+            Example("riley", "My favorite layers", "Layers", [("Striped top", .tops), ("Light jacket", .outerwear)]),
+            Example("casey", "Dinner with friends", "Dinner", [
+                ("Black dress", .dresses), ("Pendant necklace", .accessories)
+            ]),
+            Example("taylor", "Back to basics", "Basics", [("Gray tee", .tops), ("Straight-leg pants", .pants)])
         ]
 
         return examples.enumerated().map { index, example in
@@ -92,5 +115,10 @@ struct DemoPostFunctions: PostFunctions {
                 createdAt: Date(timeIntervalSince1970: 1_792_000_000 - Double(index * 3_600))
             )
         }
+    }
+
+    func fetchPosts(ids: [String]) async throws -> [Post] {
+        let wanted = Set(ids)
+        return try await fetchRecentPosts().filter { wanted.contains($0.id) }
     }
 }

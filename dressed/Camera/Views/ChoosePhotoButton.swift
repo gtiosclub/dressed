@@ -7,10 +7,14 @@ struct ChoosePhotoButton: View {
     var body: some View {
         // TODO(#52): Show a button with a photo icon and "Choose photo".
         // Call onPhotoLibrary once when it is tapped.
-        EmptyView()
+        Button(action: onPhotoLibrary) {
+            Label("Choose photo", systemImage: "photo")
+        }
     }
 }
 
 #Preview {
-    ChoosePhotoButton(onPhotoLibrary: {})
+    ChoosePhotoButton(onPhotoLibrary: {
+        print("ChoosePhotoButton tapped")
+    })
 }
