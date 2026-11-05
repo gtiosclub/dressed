@@ -154,6 +154,7 @@ final class PrototypeClosetStore: ObservableObject {
             throw error
         }
         items = updated
+        GarmentPresetStore.remove(for: id)
         if hadPhoto {
             do {
                 try fileManager.removeItem(at: backupURL)

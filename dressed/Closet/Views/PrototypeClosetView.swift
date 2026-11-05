@@ -203,22 +203,24 @@ struct PrototypeClosetView: View {
 
     private func pieceCard(_ item: ClothingItem) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Group {
-                if let image = closet.image(for: item) {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    Image(systemName: "photo")
-                        .resizable()
-                        .scaledToFit()
-                        .padding(40)
-                        .foregroundStyle(.secondary)
+            GeometryReader { geometry in
+                Group {
+                    if let image = closet.image(for: item) {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        Image(systemName: "photo")
+                            .resizable()
+                            .scaledToFit()
+                            .padding(40)
+                            .foregroundStyle(.secondary)
+                    }
                 }
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .clipped()
             }
             .frame(height: 160)
-            .frame(maxWidth: .infinity)
-            .clipped()
             Text(item.name)
                 .font(.headline)
                 .lineLimit(2)
@@ -233,7 +235,7 @@ struct PrototypeClosetView: View {
     }
 }
 
-private struct PrototypeItemDetailView: View {
+struct PrototypeItemDetailView: View {
     @ObservedObject var closet: PrototypeClosetStore
     let itemID: String
 
