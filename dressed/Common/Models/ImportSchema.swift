@@ -1,11 +1,11 @@
 import Foundation
 
 // Later import work. These templates are not needed to save a manual closet item.
-enum ClosetDestination: String, Codable {
+nonisolated enum ClosetDestination: String, Codable {
     case closet, wishlist
 }
 
-struct ClothingSource: Codable {
+nonisolated struct ClothingSource: Codable {
     enum Kind: String, Codable {
         case camera, photoLibrary, sharedImage, sharedURL, productURL
     }
@@ -25,7 +25,7 @@ struct SavedProductLink: Codable, Identifiable {
 }
 
 // Private local draft. Temporary paths are not public Storage references.
-struct ImportDraft: Codable, Identifiable {
+nonisolated struct ImportDraft: Codable, Identifiable {
     enum Status: String, Codable {
         case received, processing, review, saving, failed, saved
     }
@@ -40,7 +40,7 @@ struct ImportDraft: Codable, Identifiable {
     var expiresAt: Date
 }
 
-struct ImportCandidate: Codable, Identifiable {
+nonisolated struct ImportCandidate: Codable, Identifiable {
     var id: String
     var name: String
     var category: ClothingCategory
@@ -56,7 +56,7 @@ struct ImportCandidate: Codable, Identifiable {
     var suggestedTags: [String]
 }
 
-struct NormalizedImagePoint: Codable {
+nonisolated struct NormalizedImagePoint: Codable {
     var x: Double
     var y: Double
 
@@ -66,7 +66,7 @@ struct NormalizedImagePoint: Codable {
 }
 
 // Coordinates use the displayed image's top-left corner as (0, 0).
-struct NormalizedImageRegion: Codable {
+nonisolated struct NormalizedImageRegion: Codable {
     var x: Double
     var y: Double
     var width: Double

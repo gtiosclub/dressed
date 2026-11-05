@@ -1,12 +1,92 @@
 import XCTest
 
 final class ShareImportUITests: XCTestCase {
+    func testInterruptedSharedDraftRestartsAndKeepsManualSelectionAfterRelaunch() {
+        let app = XCUIApplication()
+        let suffix = String(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(12))
+        app.launchArguments = ["-mockSignedIn", "-showCamera", "-seedShareFixture",
+                               "00000000-0000-4000-8000-\(suffix)",
+                               "-seedInterruptedManual", "-delaySharedRecognition"]
+        app.launch()
+        XCTAssertTrue(app.navigationBars["Review Shared Image"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Finding possible pieces…"].waitForExistence(timeout: 5))
+        app.terminate()
+
+        // Do not reseed or delay on return. The app must load the persisted
+        // processing draft and run its real on-device recognition service.
+        app.launchArguments = ["-mockSignedIn", "-showCamera"]
+        app.launch()
+        XCTAssertTrue(app.navigationBars["Review Shared Image"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Find Pieces Again"].waitForExistence(timeout: 30))
+        let manual = app.buttons["Manual scarf"]
+        for _ in 0..<6 where !manual.isHittable { app.collectionViews.firstMatch.swipeUp() }
+        XCTAssertTrue(manual.exists)
+        XCTAssertEqual(manual.value as? String, "Selected")
+        let count = app.staticTexts["1 of 2 pieces selected"]
+        for _ in 0..<4 where !count.isHittable { app.collectionViews.firstMatch.swipeUp() }
+        XCTAssertTrue(count.exists, "Recognition must merge without losing or duplicating the manual piece")
+        let save = app.buttons["Save Pieces and Outfit"]
+        for _ in 0..<3 where !save.isHittable { app.collectionViews.firstMatch.swipeUp() }
+        XCTAssertTrue(save.isEnabled)
+
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.navigationBars["Review Shared Image"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Find Pieces Again"].waitForExistence(timeout: 10))
+        for _ in 0..<6 where !manual.isHittable { app.collectionViews.firstMatch.swipeUp() }
+        XCTAssertEqual(manual.value as? String, "Selected")
+        for _ in 0..<4 where !count.isHittable { app.collectionViews.firstMatch.swipeUp() }
+        XCTAssertTrue(count.exists)
+        app.buttons["Discard"].tap()
+        app.buttons["Discard Image"].tap()
+    }
+
+    func testOnDeviceBenchmarkCompletesAndShowsMeasuredResults() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-recognitionLab", "-syntheticRecognition", "-runRecognitionBenchmark"]
+        app.launch()
+        XCTAssertTrue(app.navigationBars["On-device speed test"].waitForExistence(timeout: 10))
+        let progress = app.staticTexts["recognition.progress"]
+        for _ in 0..<3 where !progress.isHittable { app.collectionViews.firstMatch.swipeUp() }
+        let finished = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label BEGINSWITH 'Finished'"), object: progress)
+        XCTAssertEqual(XCTWaiter.wait(for: [finished], timeout: 90), .completed)
+        for _ in 0..<4 where !app.staticTexts["Measured wall time"].isHittable {
+            app.collectionViews.firstMatch.swipeUp()
+        }
+        XCTAssertTrue(app.staticTexts["Measured wall time"].exists)
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'ms median'")).count >= 2)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
+    func testOnDeviceBenchmarkCancellationKeepsControlsUsable() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-recognitionLab", "-syntheticRecognition", "-runRecognitionBenchmark", "-benchmarkRepeats", "5"]
+        app.launch()
+        let stop = app.buttons["Stop comparison"]
+        for _ in 0..<3 where !stop.isHittable { app.collectionViews.firstMatch.swipeUp() }
+        XCTAssertTrue(stop.waitForExistence(timeout: 10))
+        stop.tap()
+        let progress = app.staticTexts["recognition.progress"]
+        let stopped = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label BEGINSWITH 'Stopped'"), object: progress)
+        XCTAssertEqual(XCTWaiter.wait(for: [stopped], timeout: 30), .completed)
+        XCTAssertTrue(app.buttons["Run comparison"].isEnabled)
+    }
+
     func testReviewProductURLAndKeepWishlistAfterRelaunch() {
         let app = XCUIApplication()
         let suffix = String(UUID().uuidString.prefix(8))
         let title = "Blue merino sweater \(suffix)"
         app.launchArguments = ["-mockSignedIn", "-showCamera"]
         app.launch()
+
+        // A prior interrupted shared-image check can leave a queued draft.
+        if app.navigationBars["Review Shared Image"].waitForExistence(timeout: 2) {
+            app.buttons["Later"].tap()
+        }
 
         let url = app.textFields["productURLField"]
         XCTAssertTrue(url.waitForExistence(timeout: 10))
@@ -41,39 +121,47 @@ final class ShareImportUITests: XCTestCase {
         app.terminate()
         app.launchArguments = ["-mockSignedIn"]
         app.launch()
+        if app.navigationBars["Review Shared Image"].waitForExistence(timeout: 2) {
+            app.buttons["Later"].tap()
+        }
         XCTAssertTrue(wishlist.waitForExistence(timeout: 5))
         wishlist.tap()
         XCTAssertTrue(app.staticTexts[title].waitForExistence(timeout: 5))
     }
 
-    func testManualPieceWhenNoSuggestions() {
+    func testAddManualPieceAlongsideAutomaticSuggestions() {
         let app = XCUIApplication()
         let suffix = String(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(12))
+        let pieceName = "Blue sweater \(suffix)"
         app.launchArguments = ["-mockSignedIn", "-showCamera", "-seedShareFixture",
                                "00000000-0000-4000-8000-\(suffix)"]
         app.launch()
 
         XCTAssertTrue(app.navigationBars["Review Shared Image"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["Find Pieces on Device"].exists)
+        XCTAssertTrue(app.buttons["Find Pieces Again"].waitForExistence(timeout: 30))
         XCTAssertFalse(app.staticTexts["Finding possible pieces…"].exists)
         app.buttons["Add Piece Manually"].tap()
         XCTAssertTrue(app.navigationBars["Adjust Image Region"].waitForExistence(timeout: 5))
         app.buttons["Use Region"].tap()
 
-        let name = app.textFields["Piece name"].firstMatch
+        // SwiftUI lazily loads rows; a count taken before scrolling can select
+        // the automatic suggestion instead of the newly added empty manual field.
+        let name = app.textFields.matching(identifier: "Piece name")
+            .matching(NSPredicate(format: "value == nil OR value == '' OR value == 'Piece name'"))
+            .firstMatch
         for _ in 0..<5 where !name.isHittable {
             app.collectionViews.firstMatch.swipeUp()
         }
         XCTAssertTrue(name.isHittable)
         name.tap()
-        name.typeText("Blue sweater")
-        app.buttons["Blue sweater"].tap()
+        name.typeText(pieceName)
+        app.buttons[pieceName].tap()
         app.keyboards.buttons["return"].tap()
         app.collectionViews.firstMatch.swipeUp()
         app.buttons["Save Pieces and Outfit"].tap()
 
         app.buttons["My Closet"].tap()
-        XCTAssertTrue(app.staticTexts["Blue sweater"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts[pieceName].waitForExistence(timeout: 5))
     }
 
     func testSelectTop() {
@@ -88,6 +176,7 @@ final class ShareImportUITests: XCTestCase {
         top.tap()
         XCTAssertEqual(top.value as? String, "Selected")
         let topName = app.textFields["Piece name"].firstMatch
+        for _ in 0..<3 where !topName.isHittable { app.collectionViews.firstMatch.swipeUp() }
         topName.tap()
         topName.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 3) + "Blue top")
         XCTAssertEqual(topName.value as? String, "Blue top")

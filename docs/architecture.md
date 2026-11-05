@@ -7,9 +7,9 @@ Search response into separate, unselected garment candidates with normalized
 boxes. It resolves similar product IDs only against active records in the local
 catalog and leaves an empty/manual result when no regions are found. A developer
 can run it against a saved response. `object_localization.py` separately parses
-generic Google Vision garment boxes. A Debug-only Camera action calls
-`local_service.py` over simulator loopback for reviewed multi-piece suggestions;
-that local service serves fixtures only and makes no cloud request. There is no
+generic Google Vision garment boxes. The legacy `local_service.py` serves fixtures
+only and makes no cloud request; current Camera and shared-image recognition do
+not call it. There is no
 hosted/authenticated endpoint, indexed product set, live catalog match, or
 measured recognition quality on user photos. A local evaluation harness compares
 saved responses with annotated garment boxes; its bundled example is synthetic
@@ -118,9 +118,21 @@ returned three Dress boxes for Google's public sample image. This does not
 verify live Google recognition from inside the app or accuracy on personal photos.
 
 The shared-image review now keeps an owner-bound, 24-hour review draft in the App
-Group. Recognition starts when a new review opens. In Debug the app first tries
-the local Google Vision service; otherwise it uses on-device body landmarks and
-whole-image classification as fallbacks.
+Group. Recognition starts when a new review opens. Both Debug and Release use
+on-device body landmarks and whole-image classification. The #208 pipeline
+offers an opt-in native-resolution crop/context-reuse/scanline-mask trial and removes a
+duplicate Camera classifier task. Imports default to original processing until
+physical-phone speed and quality checks pass. Simulator builds explicitly select a supported
+CPU for image classification; device builds keep automatic compute selection. Current iOS
+27 simulator body-pose and foreground-mask inference still fail, as recorded in the
+[environment investigation](verification/recognition-208/vision-environment.md). The diagnostic compares the
+original processing path against the new path without writing closet records.
+Interrupted processing drafts restart on return, including drafts with manual
+pieces; this is restart, not guaranteed execution while the app is suspended.
+The standalone `DressedSpeedLab` target references the same source files and runs without
+Firebase, authentication or an App Group entitlement. It supplies independent diagnostics,
+not a closet-save flow. See [recognition performance guide](recognition-speed-demo.md) for measured results,
+cancellation behavior and physical-device verification limits.
 Each suggestion starts unselected. The user can adjust a rectangular region
 or trace a polygon around a garment. Each suggested region attempts a
 transparent cutout with Apple's foreground-instance mask, then a local edge

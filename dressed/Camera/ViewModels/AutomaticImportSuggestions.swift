@@ -1,43 +1,52 @@
 import Foundation
 
+struct OnDeviceImportRecognitionService: GarmentRecognitionService {
+    func detect(imageData: Data, importID: String) async throws -> [ImportCandidate] {
+        try await AutomaticImportSuggestions.detect(imageData: imageData, importID: importID)
+    }
+}
+
+#if DEBUG
+// Used only by the isolated lifecycle XCUITest to guarantee an interruption
+// before completion, regardless of simulator speed. Production uses the adapter above.
+struct DelayedImportRecognitionTestService: GarmentRecognitionService {
+    func detect(imageData: Data, importID: String) async throws -> [ImportCandidate] {
+        try await Task.sleep(for: .seconds(45))
+        return try await AutomaticImportSuggestions.detect(imageData: imageData, importID: importID)
+    }
+}
+#endif
+
 enum AutomaticImportSuggestions {
     static func detect(imageData: Data, importID: String) async throws -> [ImportCandidate] {
-        var candidates: [ImportCandidate] = []
-        #if DEBUG
-        // The optional development bridge supplies multi-piece boxes when running.
-        candidates = (try? await LocalGarmentRecognition().detect(imageData: imageData, importID: importID)) ?? []
-        #endif
-        if candidates.isEmpty {
-            candidates = (try? await OnDeviceGarmentRegions.detect(imageData: imageData, importID: importID)) ?? []
+        // No loopback service or hosted provider, including in Debug.
+        // Keep the original processing path as the default until the phone quality/speed gate passes.
+        let mode: RecognitionMode = UserDefaults.standard.bool(forKey: "recognition.nativeProcessing")
+            ? .nativePixels : .baseline
+        let run = try await OnDeviceRecognitionPipeline.run(imageData: imageData, importID: importID, mode: mode)
+        var candidates = run.candidates
+        guard let root = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: SharedImageInbox.groupId) else { return candidates }
+        let directory = root.appendingPathComponent("Cutouts", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        var created: [URL] = []
+        do {
+            for index in candidates.indices {
+                try Task.checkCancellation()
+                guard let png = run.cutouts[candidates[index].id] else { continue }
+                let path = "Cutouts/\(candidates[index].id).png"
+                let file = root.appendingPathComponent(path)
+                let existed = FileManager.default.fileExists(atPath: file.path)
+                try png.write(to: file, options: .atomic)
+                if !existed { created.append(file) }
+                candidates[index].temporaryCutoutPath = path
+            }
+        } catch {
+            // A failed/cancelled batch must not orphan newly created temporary images.
+            // Existing retry files still belong to their persisted draft.
+            for file in created { try? FileManager.default.removeItem(at: file) }
+            throw error
         }
-        if candidates.isEmpty, let suggestion = try? await PrototypeGarmentRecognition.analyze(imageData) {
-            candidates = [ImportCandidate(
-                id: SharedImportDraftStore.stableID(importID: importID, part: "whole-image"),
-                name: suggestion.name,
-                category: suggestion.category,
-                destination: .closet,
-                temporaryCutoutPath: nil,
-                region: nil,
-                suggestionSource: "On-device suggestion",
-                selected: false,
-                tags: [],
-                suggestedTags: []
-            )]
-        }
-        if candidates.isEmpty {
-            candidates = [ImportCandidate(
-                id: SharedImportDraftStore.stableID(importID: importID, part: "whole-image"),
-                name: "Piece",
-                category: .other,
-                destination: .closet,
-                temporaryCutoutPath: nil,
-                region: nil,
-                suggestionSource: "Review this photo",
-                selected: false,
-                tags: [],
-                suggestedTags: []
-            )]
-        }
-        return await SharedImportDraftStore.addAutomaticCutouts(to: candidates, imageData: imageData)
+        return candidates
     }
 }
