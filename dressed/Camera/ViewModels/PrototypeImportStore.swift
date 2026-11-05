@@ -292,13 +292,13 @@ enum SharedImageInbox {
         try data.write(to: inbox.appendingPathComponent("\(id).jpg"), options: .atomic)
         try JSONEncoder().encode(SharedImageEnvelope(id: id, ownerId: ownerId, createdAt: Date()))
             .write(to: inbox.appendingPathComponent("\(id).json"), options: .atomic)
-        if withCandidates {
+        do {
             var draft = try SharedImportDraftStore.loadOrCreate(
                 image: ReviewImage(id: id, data: data, source: "Shared image", isShared: true),
                 ownerId: ownerId
             )
             draft.status = .review
-            draft.candidates = [
+            draft.candidates = withCandidates ? [
                 ImportCandidate(id: SharedImportDraftStore.stableID(importID: id, part: "upper"),
                                 name: "Top", category: .tops, destination: .closet,
                                 temporaryCutoutPath: nil,
@@ -314,7 +314,7 @@ enum SharedImageInbox {
                                 temporaryCutoutPath: nil,
                                 region: NormalizedImageRegion(x: 0.3, y: 0.01, width: 0.4, height: 0.12),
                                 suggestionSource: "Fixture region", selected: false, tags: [], suggestedTags: [])
-            ]
+            ] : []
             try SharedImportDraftStore.save(draft)
         }
     }
