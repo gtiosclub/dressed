@@ -33,6 +33,28 @@ The synthetic response contains a shirt, pants, and a person. Its manual annotat
 
 `product_search.py` is a developer-only adapter for Google Vision Product Search. It turns localized product boxes into **unselected** import candidates and attaches up to three visually similar products from the local, active catalog. It does not save clothing, create outfits, expose an HTTP endpoint, or run from the iOS app. A missing box yields `noDetection` so the app can keep its manual entry path. The response is a proposed handoff shape, not an implemented app contract.
 
+## P18 gap analysis: where pieces get lost and what needs more evidence
+
+The gap analysis runs the object-localization adapter on **hard-case fixtures** (layered outfits, partly hidden garments, cropped photos, difficult lighting) and, for every miss or false alert, attributes the problem to the stage where the piece was lost. It distinguishes a **plain miss** (the provider returned no region, so Dressed must not name it) from a **possible missing piece** (a real visual region was returned but could not be named, so Dressed flags it and asks for another photo or manual entry). A localized piece with the wrong suggested category is reported as a `categoryError` (a false suggestion) rather than a miss.
+
+Run the before/after demo:
+
+```sh
+python3 backend/recognition/gap_analysis.py \
+  --manifest backend/recognition/fixtures/gap-evaluation.json
+```
+
+The demo has two samples. `layered-jacket-shirt` returns a confirmed Jacket plus a collar region labeled only as `Clothing`, so the gap analysis flags a **possible top** underneath and does not name it. `cropped-hard-light` confirms Pants, flags a possible cropped top, and records a fully hidden accessory as a plain `no-box` miss that is **not** flagged. These are synthetic contract checks, not evidence of any provider's accuracy on real photos.
+
+For the iOS review demo, the loopback fixture service attaches an optional `clues` list so the app can show a distinct "Possible Missing Piece" state:
+
+```sh
+python3 backend/recognition/local_service.py \
+  --fixture backend/recognition/fixtures/gap-demo-response.json
+```
+
+The Debug app surfaces those clues as an orange, non-selectable section beside detected candidates, with **Add Another Photo**, **Enter Manually**, and **Dismiss**. Nothing uncertain is saved automatically; P17 consumes the extra photo once the person provides one.
+
 For a side-by-side fixture run, ingest the catalog as below, then add `--compare-object-localization` and use `fixtures/combined-vision-response.json` as `--response-file`. This prints independent Product Search and Object Localization candidate lists from one saved response. The app does not call this CLI.
 
 ## Run without a cloud account

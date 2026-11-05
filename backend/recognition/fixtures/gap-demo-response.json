@@ -1,0 +1,32 @@
+{
+  "clues": [
+    {
+      "piece": "tops",
+      "clueLabel": "Clothing",
+      "reason": "A collar is visible above the jacket. There may be a top underneath. Add another photo or enter it manually.",
+      "region": {"x": 0.35, "y": 0.08, "width": 0.3, "height": 0.14}
+    }
+  ],
+  "responses": [
+    {
+      "localizedObjectAnnotations": [
+        {
+          "name": "Jacket",
+          "score": 0.92,
+          "boundingPoly": {"normalizedVertices": [
+            {"x": 0.1, "y": 0.15}, {"x": 0.9, "y": 0.15},
+            {"x": 0.9, "y": 0.7}, {"x": 0.1, "y": 0.7}
+          ]}
+        },
+        {
+          "name": "Clothing",
+          "score": 0.7,
+          "boundingPoly": {"normalizedVertices": [
+            {"x": 0.35, "y": 0.08}, {"x": 0.65, "y": 0.08},
+            {"x": 0.65, "y": 0.22}, {"x": 0.35, "y": 0.22}
+          ]}
+        }
+      ]
+    }
+  ]
+}

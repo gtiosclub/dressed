@@ -115,7 +115,8 @@ struct PrototypeImportView: View {
                 image: image,
                 closet: closet,
                 onCancel: { review = nil },
-                onSaved: { review = nil }
+                onSaved: { review = nil },
+                onAnotherPhoto: { newImage in review = newImage }
             )
         }
         .sheet(item: $productLink) { link in
@@ -142,6 +143,9 @@ struct ImportReviewView: View {
     @ObservedObject var closet: PrototypeClosetStore
     let onCancel: () -> Void
     let onSaved: () -> Void
+    // P18 handoff to P17: when the person chooses another photo for a possible
+    // missing piece, hand the new image back so review starts again on it.
+    var onAnotherPhoto: ((ReviewImage) -> Void)? = nil
 
     private enum RecognitionState: Equatable {
         case analyzing
@@ -160,11 +164,13 @@ struct ImportReviewView: View {
     @State private var isSaving = false
     @State private var saveError: String?
     @State private var candidates: [ImportCandidate] = []
+    @State private var possibleMissing: [PossibleMissingPiece] = []
     @State private var isDetectingPieces = false
     @State private var detectionMessage: String?
     @State private var editingCandidateID: String?
     @State private var didStartPieceDetection = false
     @State private var detectionTask: Task<Void, Never>?
+    @State private var additionalPhoto: PhotosPickerItem?
 
     var body: some View {
         NavigationStack {
@@ -231,6 +237,41 @@ struct ImportReviewView: View {
                     Section {
                         Button(isSaving ? "Saving…" : "Save Selected Pieces", action: saveSelectedPieces)
                             .disabled(isSaving || isDetectingPieces || !candidates.contains(where: \.selected))
+                    }
+                }
+
+                if !possibleMissing.isEmpty {
+                    Section {
+                        ForEach(possibleMissing) { hint in
+                            VStack(alignment: .leading, spacing: 10) {
+                                Label("Possible missing piece", systemImage: "questionmark.circle")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.orange)
+                                Text(hint.reason)
+                                    .foregroundStyle(.secondary)
+                                PhotosPicker(selection: $additionalPhoto, matching: .images) {
+                                    Label("Add Another Photo", systemImage: "plus.rectangle.on.rectangle")
+                                        .font(.footnote)
+                                }
+                                HStack {
+                                    Button("Enter Manually") {
+                                        addManualPiece()
+                                        dismissPossiblePiece(hint.id)
+                                    }
+                                    Spacer()
+                                    Button("Dismiss", role: .destructive) {
+                                        dismissPossiblePiece(hint.id)
+                                    }
+                                }
+                                .font(.footnote)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        Text("A possible piece is not a detected one and is never saved automatically. Choose another photo or enter it by hand to confirm it.")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    } header: {
+                        Text("Possible Missing Piece")
                     }
                 }
 
@@ -347,6 +388,17 @@ struct ImportReviewView: View {
                 didStartPieceDetection = true
                 detectPieces()
             }
+            .onChange(of: additionalPhoto) { _, item in
+                guard let item else { return }
+                Task {
+                    defer { additionalPhoto = nil }
+                    guard let data = try? await item.loadTransferable(type: Data.self),
+                          UIImage(data: data) != nil else { return }
+                    detectionTask?.cancel()
+                    onAnotherPhoto?(ReviewImage(id: UUID().uuidString, data: data,
+                                                source: "Photo Library", isShared: false))
+                }
+            }
             .onDisappear {
                 detectionTask?.cancel()
                 SharedImportDraftStore.removeAutomaticCutouts(for: candidates)
@@ -366,21 +418,26 @@ struct ImportReviewView: View {
         detectionTask = Task {
             defer { isDetectingPieces = false }
             do {
-                let found = try await AutomaticImportSuggestions.detect(imageData: image.data, importID: image.id)
+                let result = try await AutomaticImportSuggestions.review(imageData: image.data, importID: image.id)
                 guard !Task.isCancelled else {
-                    SharedImportDraftStore.removeAutomaticCutouts(for: found)
+                    SharedImportDraftStore.removeAutomaticCutouts(for: result.candidates)
                     return
                 }
                 let previous = Dictionary(uniqueKeysWithValues: candidates.map { ($0.id, $0) })
                 let manual = candidates.filter { $0.suggestionSource == nil }
-                candidates = found.map { previous[$0.id] ?? $0 } + manual
-                if found.isEmpty {
+                candidates = result.candidates.map { previous[$0.id] ?? $0 } + manual
+                possibleMissing = result.possibleMissing
+                if result.candidates.isEmpty {
                     detectionMessage = "No separate clothing pieces found. You can enter one piece manually below."
                 }
             } catch {
                 detectionMessage = "Could not find pieces automatically. You can enter one manually below."
             }
         }
+    }
+
+    private func dismissPossiblePiece(_ id: String) {
+        possibleMissing.removeAll { $0.id == id }
     }
 
     private func addManualPiece() {

@@ -34,6 +34,12 @@ class Handler(BaseHTTPRequestHandler):
             if self.fixture is None:
                 raise RuntimeError("service has no response source")
             result = parse_response(self.fixture, import_id)
+            # Optional demo hints for P18: a fixture may attach a "clues" list so
+            # the app can show distinct "possible missing piece" states. This is a
+            # synthetic contract check, not a provider result.
+            clues = self.fixture.get("clues") if isinstance(self.fixture, dict) else None
+            if isinstance(clues, list) and clues:
+                result["possibleMissing"] = clues
             encoded = json.dumps(result).encode()
             self.send_response(200)
         except (ValueError, RuntimeError) as error:
