@@ -3,12 +3,21 @@ import Vision
 
 // Body landmarks suggest separate review regions when a worn outfit is visible.
 // They are not garment segmentation or product recognition; every result starts unselected.
-enum OnDeviceGarmentRegions {
-    static func detect(imageData: Data, importID: String) async throws -> [ImportCandidate] {
-        let regions = try await Task.detached(priority: .userInitiated) {
+nonisolated enum OnDeviceGarmentRegions {
+    static func detect(imageData: Data, importID: String,
+                       images: RecognitionImageSession? = nil,
+                       metrics: RecognitionMetrics? = nil) async throws -> [ImportCandidate] {
+        let regions = try await RecognitionExecution.offMain {
             try Task.checkCancellation()
             let request = VNDetectHumanBodyPoseRequest()
-            try VNImageRequestHandler(data: imageData).perform([request])
+            do {
+                let start = ProcessInfo.processInfo.systemUptime
+                defer { metrics?.record("body pose", since: start) }
+                try VNImageRequestHandler(data: imageData).perform([request])
+            } catch {
+                metrics?.warning("Vision body pose failed; using whole-image fallback.", error: error)
+                throw error
+            }
             try Task.checkCancellation()
             guard let person = request.results?.first else { return [(String, NormalizedImageRegion)]() }
 
@@ -36,7 +45,7 @@ enum OnDeviceGarmentRegions {
                 found.append(("lower", lower))
             }
             return found
-        }.value
+        }
 
         var candidates: [ImportCandidate] = []
         for (part, region) in regions {
@@ -53,8 +62,9 @@ enum OnDeviceGarmentRegions {
                 tags: [],
                 suggestedTags: []
             )
-            let crop = try SharedImportDraftStore.imageData(for: prototype, in: imageData)
-            let suggestion = try? await PrototypeGarmentRecognition.analyze(crop)
+            let crop = try images?.crop(prototype) ?? SharedImportDraftStore.imageData(for: prototype, in: imageData)
+            let suggestion = try? await PrototypeGarmentRecognition.analyze(crop, metrics: metrics)
+            try Task.checkCancellation()
             var candidate = prototype
             if let suggestion {
                 candidate.name = suggestion.name

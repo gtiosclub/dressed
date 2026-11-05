@@ -5,6 +5,7 @@ struct SharedImportReviewView: View {
     let image: ReviewImage
     let ownerId: String
     @ObservedObject var closet: PrototypeClosetStore
+    let recognizer: any GarmentRecognitionService
     let onLater: () -> Void
     let onDiscard: () -> Void
     let onSaved: () -> Void
@@ -15,16 +16,19 @@ struct SharedImportReviewView: View {
     @State private var isProcessing = false
     @State private var isSaving = false
     @State private var detectionTask: Task<Void, Never>?
+    @State private var detectionID = UUID()
     @State private var errorMessage: String?
     @State private var cropCandidateID: String?
     @State private var confirmsDiscard = false
 
     init(image: ReviewImage, ownerId: String, closet: PrototypeClosetStore,
+         recognizer: any GarmentRecognitionService = OnDeviceImportRecognitionService(),
          onLater: @escaping () -> Void, onDiscard: @escaping () -> Void,
          onSaved: @escaping () -> Void) {
         self.image = image
         self.ownerId = ownerId
         self.closet = closet
+        self.recognizer = recognizer
         self.onLater = onLater
         self.onDiscard = onDiscard
         self.onSaved = onSaved
@@ -160,8 +164,14 @@ struct SharedImportReviewView: View {
                 }
             }
             .interactiveDismissDisabled(isSaving)
-            .task { loadDraft() }
-            .onDisappear { detectionTask?.cancel() }
+            .task {
+                if draft == nil { loadDraft() }
+                else if draft?.status == .processing { processImage() }
+            }
+            .onDisappear {
+                detectionTask?.cancel()
+                isProcessing = false
+            }
         }
     }
 
@@ -169,12 +179,12 @@ struct SharedImportReviewView: View {
         guard draft == nil else { return }
         do {
             var loaded = try SharedImportDraftStore.loadOrCreate(image: image, ownerId: ownerId)
-            if loaded.status == .saving || loaded.status == .processing {
+            if loaded.status == .saving {
                 loaded.status = loaded.candidates.isEmpty ? .received : .review
                 try SharedImportDraftStore.save(loaded)
             }
             draft = loaded
-            if loaded.status == .received || (loaded.status == .review && loaded.candidates.isEmpty) {
+            if SharedImportDraftStore.shouldRecognize(loaded) {
                 processImage()
             }
         } catch {
@@ -192,18 +202,19 @@ struct SharedImportReviewView: View {
         draft = current
         isProcessing = true
         detectionTask?.cancel()
+        let attempt = UUID()
+        detectionID = attempt
         detectionTask = Task {
+            defer { if detectionID == attempt { isProcessing = false } }
             do {
-                let found = try await AutomaticImportSuggestions.detect(imageData: image.data, importID: image.id)
+                let found = try await recognizer.detect(imageData: image.data, importID: image.id)
                 guard !Task.isCancelled else {
                     SharedImportDraftStore.removeAutomaticCutouts(for: found)
                     return
                 }
                 mutateDraft { value in
                     // A retry retains manual pieces and prior user edits.
-                    let existing = Dictionary(uniqueKeysWithValues: value.candidates.map { ($0.id, $0) })
-                    let manual = value.candidates.filter { $0.suggestionSource == nil }
-                    value.candidates = found.map { existing[$0.id] ?? $0 } + manual
+                    value.candidates = SharedImportDraftStore.mergingSuggestions(found, into: value.candidates)
                     value.status = .review
                 }
             } catch is CancellationError {
@@ -213,7 +224,6 @@ struct SharedImportReviewView: View {
                 mutateDraft { $0.status = .review }
                 errorMessage = "Automatic suggestions are unavailable. Add pieces manually or try again."
             }
-            isProcessing = false
         }
     }
 
@@ -229,7 +239,7 @@ struct SharedImportReviewView: View {
                                         destination: .closet, temporaryCutoutPath: nil,
                                         region: nil, suggestionSource: nil, selected: false,
                                         tags: [], suggestedTags: [])
-        mutateDraft { $0.candidates.append(candidate); $0.status = .review }
+        mutateDraft { $0.candidates.append(candidate); $0.status = isProcessing ? .processing : .review }
         cropCandidateID = id
     }
 

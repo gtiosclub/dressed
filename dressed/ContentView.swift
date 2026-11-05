@@ -158,6 +158,7 @@ private struct AppTabs: View {
                 image: image,
                 ownerId: userId,
                 closet: closet,
+                recognizer: sharedRecognitionService,
                 onLater: {
                     deferredSharedId = image.id
                     pendingSharedImage = nil
@@ -205,7 +206,8 @@ private struct AppTabs: View {
                 do {
                     try SharedImageInbox.seedFixture(
                         id: arguments[marker + 1], ownerId: userId,
-                        withCandidates: arguments.contains("-seedTwoCandidates")
+                        withCandidates: arguments.contains("-seedTwoCandidates"),
+                        interruptedManual: arguments.contains("-seedInterruptedManual")
                     )
                 } catch {
                     sharedImageError = error.localizedDescription
@@ -217,6 +219,15 @@ private struct AppTabs: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { presentNextShare() }
         }
+    }
+
+    private var sharedRecognitionService: any GarmentRecognitionService {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-delaySharedRecognition") {
+            return DelayedImportRecognitionTestService()
+        }
+        #endif
+        return OnDeviceImportRecognitionService()
     }
 
     @ToolbarContentBuilder

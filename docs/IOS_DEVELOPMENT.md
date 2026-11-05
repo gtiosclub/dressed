@@ -21,17 +21,20 @@ Launch the app without `-mockSignedIn` or `-mockSession`. These launch flags byp
 
 The iOS 27 simulator Photos library has three product photos for import checks: a [blue Uniqlo merino sweater](https://www.uniqlo.com/us/en/products/E469395-000/00), a [Uniqlo wide straight jeans outfit shot](https://www.uniqlo.com/us/en/products/E470542-000/01), and a [Nike Air Force 1 Low shoe](https://www.nike.com/t/air-force-1-low-mens-shoes-XVPIszaq). They are simulator-only test media; the images are not part of the repository. The outfit shot is useful for checking review of multiple visible garments.
 
-## Camera recognition test service
+## On-device recognition and speed test
 
-The Camera and shared-image review screens look for pieces as soon as a new image opens. In Debug they first try a fixture service on this Mac at `127.0.0.1:8765`; if it is unavailable, they fall back to on-device Vision. The service has no paid or live provider mode. Billing is disabled on the separate `dressed-511821` recognition project; the app's `out-fitted` Firebase project is also unbilled. To check the UI, start the fixture service:
+Camera and shared-image review start on-device recognition when a new image opens,
+in both Debug and Release. They do not call the legacy loopback fixture service.
+Use **Camera → On-device speed test** in Debug, or launch with `-recognitionLab`
+for the isolated diagnostic. See [the #208 demo guide](recognition-speed-demo.md)
+for Release comparisons, exported timings, regression tests and remaining phone checks.
 
-```sh
-python3 backend/recognition/local_service.py --fixture backend/recognition/fixtures/object-localization-response.json
-```
+The Python fixture service and Google response adapters remain separate developer
+tools; starting that service no longer changes the app's recognition results.
+See [the recognition prototype guide](../backend/recognition/README.md) for those
+legacy experiments. Historical observations below are dated explicitly.
 
-Fixture labels are predetermined and may not match the photo. Only run one service on port 8765 at a time. Confirm it is listening with `lsof -nP -iTCP:8765 -sTCP:LISTEN`; then open a new photo review or tap **Find Pieces Again**. A suggestion should appear unselected. On a physical iPhone, `127.0.0.1` points at the phone, so the Debug bridge will be unavailable and on-device suggestions will run. See [the recognition prototype guide](../backend/recognition/README.md) for limits and troubleshooting.
-
-For a shared image, return to Dressed after finishing the iOS share sheet. The extension cannot force the app to open; Dressed presents the queued review when it becomes active. Recognition begins automatically. The app tries Apple's foreground-instance mask on each suggested crop, then a local edge flood fill for plain product-photo backgrounds. A mask can include skin, miss fabric or retain a shadow, so inspect it before selecting. **Add Piece Manually** opens the region editor. Choose **Draw Outline**, trace with a finger or tap several points and **Close Outline**, then **Use Outline** to replace an inaccurate cutout. A transparent cutout saves as PNG; a rectangle keeps JPEG. Release builds use only on-device suggestions.
+For a shared image, return to Dressed after finishing the iOS share sheet. The extension cannot force the app to open; Dressed presents the queued review when it becomes active. Recognition begins automatically. The app tries Apple's foreground-instance mask on each suggested crop, then a local edge flood fill for plain product-photo backgrounds. A mask can include skin, miss fabric or retain a shadow, so inspect it before selecting. **Add Piece Manually** opens the region editor. Choose **Draw Outline**, trace with a finger or tap several points and **Close Outline**, then **Use Outline** to replace an inaccurate cutout. A transparent cutout saves as PNG; a rectangle keeps JPEG. Both build configurations use only on-device suggestions.
 
 On October 16, a real public shoe photo selected from Photos on the iOS 27 simulator opened review and automatically produced one unselected candidate. The background fallback made a 1620×785 transparent PNG; its alpha ranged from 0 to 1 and the shoe was visibly isolated. The simulator's on-device classifier returned an Espresso context error, so the candidate kept the generic name **Piece**. This verifies one plain-background cutout, not general garment segmentation or category accuracy.
 
