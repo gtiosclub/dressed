@@ -5,7 +5,11 @@ import UIKit
 struct PrototypeImportView: View {
     @ObservedObject var closet: PrototypeClosetStore
     let ownerId: String
-    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var selectedPhotos: [PhotosPickerItem] = []
+    @State private var selectedPhotoPreviews: [SelectedLibraryPhoto] = []
+    @State private var importMode: ImportMode = .oneItem
+    @State private var isLoadingSelectedPhotos = false
+    @State private var photoLoadingTask: Task<Void, Never>?
     @State private var review: ReviewImage?
     @State private var showsCamera = false
     @State private var capturedImage: UIImage?
@@ -26,11 +30,81 @@ struct PrototypeImportView: View {
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
 
-            PhotosPicker(selection: $selectedPhoto, matching: .images) {
+            Picker("Import mode", selection: $importMode) {
+                Text("One Item").tag(ImportMode.oneItem)
+                Text("Full Outfit").tag(ImportMode.oneOutfit)
+            }
+            .pickerStyle(.segmented)
+
+            Text(importMode == .oneItem
+                 ? "Choose several views of the same garment."
+                 : "Choose photos of the same outfit.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            PhotosPicker(selection: $selectedPhotos, maxSelectionCount: 8, matching: .images) {
                 Label("Choose from Photos", systemImage: "photo.on.rectangle")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
+
+            if isLoadingSelectedPhotos {
+                ProgressView("Loading selected photos…")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if !selectedPhotoPreviews.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Selected Photos (\(selectedPhotoPreviews.count))")
+                        .font(.headline)
+
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+                        ForEach(selectedPhotoPreviews) { selectedPhoto in
+                            ZStack(alignment: .topTrailing) {
+                                Group {
+                                    if let data = selectedPhoto.reviewImage?.data,
+                                       let image = UIImage(data: data) {
+                                        Image(uiImage: image)
+                                            .resizable()
+                                            .scaledToFill()
+                                    } else {
+                                        Image(systemName: "photo")
+                                            .font(.title2)
+                                            .foregroundStyle(.secondary)
+                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                            .background(Color(.secondarySystemGroupedBackground))
+                                    }
+                                }
+                                .frame(height: 112)
+                                .frame(maxWidth: .infinity)
+                                .clipped()
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                                Button {
+                                    removeSelectedPhoto(selectedPhoto)
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.title3)
+                                        .symbolRenderingMode(.palette)
+                                        .foregroundStyle(.white, .black.opacity(0.65))
+                                }
+                                .buttonStyle(.plain)
+                                .padding(4)
+                                .accessibilityLabel("Remove photo")
+                            }
+                        }
+                    }
+
+                    if selectedPhotoPreviews.count == 1,
+                       let image = selectedPhotoPreviews.first?.reviewImage {
+                        Button("Review Photo") { review = image }
+                            .buttonStyle(.bordered)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
 
             Button {
                 if UIImagePickerController.isSourceTypeAvailable(.camera) {
@@ -81,20 +155,9 @@ struct PrototypeImportView: View {
             .frame(maxWidth: .infinity)
         }
         .navigationTitle("Camera")
-        .onChange(of: selectedPhoto) { _, photo in
-            guard let photo else { return }
-            Task {
-                defer { selectedPhoto = nil }
-                do {
-                    guard let data = try await photo.loadTransferable(type: Data.self),
-                          UIImage(data: data) != nil else {
-                        throw PrototypeImportError.invalidImage
-                    }
-                    review = ReviewImage(id: UUID().uuidString, data: data, source: "Photo Library", isShared: false)
-                } catch {
-                    importError = error.localizedDescription
-                }
-            }
+        .onChange(of: selectedPhotos) { _, photos in
+            photoLoadingTask?.cancel()
+            photoLoadingTask = Task { await loadSelectedPhotos(photos) }
         }
         .sheet(isPresented: $showsCamera, onDismiss: {
             guard let capturedImage else { return }
@@ -135,6 +198,59 @@ struct PrototypeImportView: View {
             Text(importError ?? "Please try again.")
         }
     }
+
+    private func loadSelectedPhotos(_ photos: [PhotosPickerItem]) async {
+        guard !photos.isEmpty else {
+            selectedPhotoPreviews = []
+            isLoadingSelectedPhotos = false
+            return
+        }
+
+        isLoadingSelectedPhotos = true
+        var previews: [SelectedLibraryPhoto] = []
+        var failedCount = 0
+
+        for photo in photos {
+            guard !Task.isCancelled else { return }
+            let id = photo.itemIdentifier ?? UUID().uuidString
+            do {
+                guard let data = try await photo.loadTransferable(type: Data.self),
+                      UIImage(data: data) != nil else {
+                    throw PrototypeImportError.invalidImage
+                }
+                let reviewImage = ReviewImage(
+                    id: id,
+                    data: data,
+                    source: "Photo Library",
+                    isShared: false
+                )
+                previews.append(SelectedLibraryPhoto(id: id, pickerItem: photo, reviewImage: reviewImage))
+            } catch {
+                previews.append(SelectedLibraryPhoto(id: id, pickerItem: photo, reviewImage: nil))
+                failedCount += 1
+            }
+        }
+
+        guard !Task.isCancelled else { return }
+        selectedPhotoPreviews = previews
+        isLoadingSelectedPhotos = false
+        if failedCount > 0 {
+            importError = failedCount == 1
+                ? "One selected photo could not be loaded. Remove it or choose it again."
+                : "Some selected photos could not be loaded. Remove them or choose them again."
+        }
+    }
+
+    private func removeSelectedPhoto(_ photo: SelectedLibraryPhoto) {
+        selectedPhotos.removeAll { $0 == photo.pickerItem }
+        selectedPhotoPreviews.removeAll { $0.id == photo.id }
+    }
+}
+
+private struct SelectedLibraryPhoto: Identifiable {
+    let id: String
+    let pickerItem: PhotosPickerItem
+    let reviewImage: ReviewImage?
 }
 
 struct ImportReviewView: View {

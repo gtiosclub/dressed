@@ -26,4 +26,29 @@ final class NavigationUITests: XCTestCase {
         app.buttons["Open studio"].tap()
         XCTAssertTrue(app.navigationBars["Avatar Studio"].waitForExistence(timeout: 10))
     }
+
+    func testPhotoLibraryImportModeAndPickerEntry() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-mockSignedIn", "-showCamera"]
+        app.launch()
+
+        let modePicker = app.segmentedControls.firstMatch
+        XCTAssertTrue(modePicker.waitForExistence(timeout: 10))
+        let fullOutfit = modePicker.buttons["Full Outfit"]
+        fullOutfit.tap()
+        XCTAssertTrue(fullOutfit.isSelected)
+        XCTAssertTrue(app.staticTexts["Choose photos of the same outfit."].exists)
+
+        let oneItem = modePicker.buttons["One Item"]
+        oneItem.tap()
+        XCTAssertTrue(oneItem.isSelected)
+
+        let choosePhotos = app.buttons["Choose from Photos"]
+        XCTAssertTrue(choosePhotos.exists)
+        choosePhotos.tap()
+        let cancelPicker = app.buttons["Cancel"]
+        XCTAssertTrue(cancelPicker.waitForExistence(timeout: 5))
+        cancelPicker.tap()
+        XCTAssertTrue(choosePhotos.waitForExistence(timeout: 5))
+    }
 }
