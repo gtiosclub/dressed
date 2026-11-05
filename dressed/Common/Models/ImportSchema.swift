@@ -40,6 +40,21 @@ struct ImportDraft: Codable, Identifiable {
     var expiresAt: Date
 }
 
+enum ImportMode: String, Codable {
+    case oneItem, oneOutfit
+}
+
+struct CandidateSighting: Codable, Identifiable {
+    var id: String
+    var photoId: String
+    var region: NormalizedImageRegion
+    var outline: [NormalizedImagePoint]? = nil
+    var category: ClothingCategory
+    var name: String
+    var confidence: Double? = nil
+    var source: String? = nil
+}
+
 struct ImportCandidate: Codable, Identifiable {
     var id: String
     var name: String
@@ -50,6 +65,7 @@ struct ImportCandidate: Codable, Identifiable {
     // Optional user-drawn contour in full-image coordinates. A rectangle remains
     // the fallback when no contour has been drawn.
     var outline: [NormalizedImagePoint]? = nil
+    var sightings: [CandidateSighting]? = nil
     var suggestionSource: String?
     var selected: Bool
     var tags: [String]
