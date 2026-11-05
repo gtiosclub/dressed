@@ -38,9 +38,7 @@ struct ExpandablePostCaption: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(actionTitle)
-                .accessibilityHint(isExpanded
-                                   ? "Collapses the caption to three lines"
-                                   : "Shows the full caption")
+                .accessibilityHint(accessibilityHint)
             }
         }
     }
@@ -54,6 +52,12 @@ struct ExpandablePostCaption: View {
  
     private var actionTitle: String {
         isExpanded ? "Less" : "More"
+    }
+ 
+    private var accessibilityHint: String {
+        guard isExpanded else { return "Shows the full caption" }
+        let unit = collapsedLineLimit == 1 ? "line" : "lines"
+        return "Collapses the caption to \(collapsedLineLimit) \(unit)"
     }
 }
  
