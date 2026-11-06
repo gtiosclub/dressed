@@ -1,4 +1,6 @@
 import XCTest
+import UIKit
+import Vision
 @testable import dressed
 
 final class MultiPhotoCandidateGrouperTests: XCTestCase {
@@ -67,11 +69,75 @@ final class MultiPhotoCandidateGrouperTests: XCTestCase {
         XCTAssertEqual(candidates.count, 2)
     }
 
+    func testSplitSightingCreatesUnselectedStablePiece() {
+        let observations = [
+            observation(photoId: "front", name: "Jacket", category: .outerwear),
+            observation(photoId: "back", name: "Jacket", category: .outerwear)
+        ]
+        let candidate = try! XCTUnwrap(
+            MultiPhotoCandidateGrouper.outfitCandidates(from: observations, importID: "test-import").first
+        )
+        let sighting = try! XCTUnwrap(candidate.sightings?.last)
+
+        let split = try! XCTUnwrap(
+            MultiPhotoCandidateGrouper.splitSighting(sighting, from: candidate, importID: "test-import")
+        )
+
+        XCTAssertEqual(split.updated.sightings?.count, 1)
+        XCTAssertEqual(split.separated.sightings?.count, 1)
+        XCTAssertEqual(split.separated.name, sighting.name)
+        XCTAssertFalse(split.separated.selected)
+        XCTAssertNotEqual(split.updated.id, split.separated.id)
+        XCTAssertNil(
+            MultiPhotoCandidateGrouper.splitSighting(sighting, from: split.separated, importID: "test-import")
+        )
+    }
+
+    func testMergeCandidatesKeepsTargetIdentityAndCombinesSightings() {
+        let observations = [
+            observation(photoId: "photo-a", name: "Jacket", category: .outerwear),
+            observation(photoId: "photo-b", name: "Coat", category: .outerwear)
+        ]
+        var candidates = MultiPhotoCandidateGrouper.outfitCandidates(from: observations, importID: "test-import")
+        let target = candidates[0]
+        candidates[1].selected = true
+
+        let merged = try! XCTUnwrap(MultiPhotoCandidateGrouper.mergeCandidates(candidates[1], into: target))
+
+        XCTAssertEqual(merged.id, target.id)
+        XCTAssertEqual(merged.name, target.name)
+        XCTAssertEqual(merged.sightings?.count, 2)
+        XCTAssertTrue(merged.selected)
+    }
+
+    func testOutfitUsesFeaturePrintAcrossDifferentNamesButNotCategories() async throws {
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 120, height: 120)).image { context in
+            UIColor.systemRed.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 120, height: 120))
+            UIColor.systemBlue.setFill()
+            context.fill(CGRect(x: 20, y: 20, width: 80, height: 80))
+        }
+        let imageData = try XCTUnwrap(image.pngData())
+        let featurePrint = try XCTUnwrap(await MultiPhotoCandidateGrouper.featurePrint(from: imageData))
+        let observations = [
+            observation(photoId: "front", name: "Jacket", category: .outerwear, featurePrint: featurePrint),
+            observation(photoId: "back", name: "Coat", category: .outerwear, featurePrint: featurePrint),
+            observation(photoId: "detail", name: "Shirt", category: .tops, featurePrint: featurePrint)
+        ]
+
+        let candidates = MultiPhotoCandidateGrouper.outfitCandidates(from: observations, importID: "test-import")
+
+        XCTAssertEqual(candidates.count, 2)
+        XCTAssertEqual(candidates.first(where: { $0.category == .outerwear })?.sightings?.count, 2)
+        XCTAssertEqual(candidates.first(where: { $0.category == .tops })?.sightings?.count, 1)
+    }
+
     private func observation(
         photoId: String,
         name: String,
         category: ClothingCategory,
-        confidence: Double? = nil
+        confidence: Double? = nil,
+        featurePrint: VNFeaturePrintObservation? = nil
     ) -> PhotoCandidateObservation {
         PhotoCandidateObservation(
             photoId: photoId,
@@ -87,7 +153,8 @@ final class MultiPhotoCandidateGrouperTests: XCTestCase {
                 tags: [],
                 suggestedTags: []
             ),
-            confidence: confidence
+            confidence: confidence,
+            featurePrint: featurePrint
         )
     }
 }

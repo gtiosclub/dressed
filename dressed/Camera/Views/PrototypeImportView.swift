@@ -7,6 +7,7 @@ struct PrototypeImportView: View {
     let ownerId: String
     @State private var selectedPhotos: [PhotosPickerItem] = []
     @State private var selectedPhotoPreviews: [SelectedLibraryPhoto] = []
+    @State private var multiPhotoReview: MultiPhotoReviewSession?
     @State private var importMode: ImportMode = .oneItem
     @State private var isLoadingSelectedPhotos = false
     @State private var photoLoadingTask: Task<Void, Never>?
@@ -102,6 +103,30 @@ struct PrototypeImportView: View {
                             .buttonStyle(.bordered)
                             .frame(maxWidth: .infinity, alignment: .trailing)
                     }
+
+                    if selectedPhotoPreviews.count > 1 {
+                        Button("Review \(selectedPhotoPreviews.count) Photos") {
+                            let photos = selectedPhotoPreviews.compactMap(\.reviewImage)
+                            guard photos.count == selectedPhotoPreviews.count else {
+                                importError = "Remove any photo that could not be loaded, then try again."
+                                return
+                            }
+                            let selectionKey = ([importMode.rawValue] + photos.map(\.id).sorted())
+                                .joined(separator: ":")
+                            let importID = SharedImportDraftStore.stableID(
+                                importID: selectionKey,
+                                part: "multi-photo-import"
+                            )
+                            multiPhotoReview = MultiPhotoReviewSession(
+                                id: importID,
+                                mode: importMode,
+                                photos: photos
+                            )
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .disabled(isLoadingSelectedPhotos)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -181,6 +206,19 @@ struct PrototypeImportView: View {
                 onSaved: { review = nil }
             )
         }
+        .sheet(item: $multiPhotoReview) { session in
+            MultiPhotoImportReviewView(
+                mode: session.mode,
+                importID: session.id,
+                photos: session.photos,
+                closet: closet,
+                onCancel: { multiPhotoReview = nil },
+                onSaved: {
+                    multiPhotoReview = nil
+                    selectedPhotos = []
+                }
+            )
+        }
         .sheet(item: $productLink) { link in
             ProductLinkReviewView(link: link, ownerId: ownerId,
                                   onLater: { productLink = nil },
@@ -251,6 +289,12 @@ private struct SelectedLibraryPhoto: Identifiable {
     let id: String
     let pickerItem: PhotosPickerItem
     let reviewImage: ReviewImage?
+}
+
+private struct MultiPhotoReviewSession: Identifiable {
+    let id: String
+    let mode: ImportMode
+    let photos: [ReviewImage]
 }
 
 struct ImportReviewView: View {
