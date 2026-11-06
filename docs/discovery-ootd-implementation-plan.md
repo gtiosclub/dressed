@@ -2,6 +2,8 @@
 
 October 18 update: the designer's newer OOTD prototype supersedes the post-detail steps below. OOTD post cards stay in the feed; pins, Find items, comments and likes are direct controls. Find items opens a sheet of published pieces. The Debug create/share flow adds a local preview; backend publication and persistent engagement remain TBD.
 
+November update: Save joined the card's direct controls, and the feed header opens Saved Posts (#186). Saved posts still need the owner-only rules in #94 before they work live.
+
 Status: implementation in progress, October 18, 2026. This document retains the planned release gates; it does not authorize new GitHub tickets, backend services, or publication.
 
 ## Goal and working assumptions

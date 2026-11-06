@@ -6,6 +6,37 @@
 //
 
 import FirebaseFirestore
+import Foundation
+
+// What the saved-post screens need from the backend, so previews and tests can use the demo version.
+// The caller supplies the signed-in user's ID; Firestore rules enforce ownership (#94).
+protocol SavedPostFunctions {
+    func save(postId: String, ownerId: String) async throws
+    func remove(postId: String, ownerId: String) async throws
+    func fetchSavedIds(ownerId: String) async throws -> [String]
+}
+
+struct FirebaseSavedPostFunctions: SavedPostFunctions {
+    func save(postId: String, ownerId: String) async throws {
+        guard isValidFirestoreDocumentId(postId) else { throw SavedPostFunctionsError.invalidPostId }
+        // The document ID, id and postId stay equal, so each post has exactly one saved document.
+        try await savePost(SavedPost(id: postId, schemaVersion: 1, ownerId: ownerId, postId: postId,
+                                     createdAt: Date()))
+    }
+
+    func remove(postId: String, ownerId: String) async throws {
+        guard isValidFirestoreDocumentId(postId) else { throw SavedPostFunctionsError.invalidPostId }
+        try await removeSavedPost(ownerId: ownerId, postId: postId)
+    }
+
+    func fetchSavedIds(ownerId: String) async throws -> [String] {
+        try await fetchSavedPostIds(ownerId: ownerId)
+    }
+}
+
+enum SavedPostFunctionsError: Error {
+    case invalidPostId
+}
 
 // bookmarks an existing post for one user.
 // writes users/{ownerId}/savedPosts/{postId}
