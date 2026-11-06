@@ -182,6 +182,17 @@ final class MultiPhotoCandidateGrouperTests: XCTestCase {
         XCTAssertEqual(split.updated.sightings?.map(\.photoId), ["back"])
     }
 
+    func testWholeImageClassifierRunsOnSimulatorWithoutVisionError() async throws {
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 120, height: 120)).image { context in
+            UIColor.systemTeal.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 120, height: 120))
+        }
+        let imageData = try XCTUnwrap(image.pngData())
+
+        // A plain square may not map to a garment; the call must still succeed.
+        _ = try await PrototypeGarmentRecognition.analyze(imageData)
+    }
+
     private func observation(
         photoId: String,
         name: String,

@@ -7,8 +7,7 @@ enum OnDeviceGarmentRegions {
     static func detect(imageData: Data, importID: String) async throws -> [ImportCandidate] {
         let regions = try await Task.detached(priority: .userInitiated) {
             try Task.checkCancellation()
-            let request = VNDetectHumanBodyPoseRequest()
-            try VNImageRequestHandler(data: imageData).perform([request])
+            let request = try VisionRequestRunner.perform({ VNDetectHumanBodyPoseRequest() }, on: imageData)
             try Task.checkCancellation()
             guard let person = request.results?.first else { return [(String, NormalizedImageRegion)]() }
 

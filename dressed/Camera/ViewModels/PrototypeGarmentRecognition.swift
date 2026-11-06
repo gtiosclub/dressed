@@ -13,8 +13,7 @@ enum PrototypeGarmentRecognition {
     static func analyze(_ imageData: Data) async throws -> Suggestion? {
         try await Task.detached(priority: .userInitiated) {
             try Task.checkCancellation()
-            let request = VNClassifyImageRequest()
-            try VNImageRequestHandler(data: imageData).perform([request])
+            let request = try VisionRequestRunner.perform({ VNClassifyImageRequest() }, on: imageData)
             try Task.checkCancellation()
 
             // Vision's general classifier is often uncertain about clothing.
