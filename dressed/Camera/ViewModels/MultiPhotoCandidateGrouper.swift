@@ -37,7 +37,10 @@ enum MultiPhotoCandidateGrouper {
         for (index, observation) in observations.enumerated() {
             let identity = identityKey(for: observation.candidate)
             let matchingIndex = candidates.indices.first { candidateIndex in
-                guard candidates[candidateIndex].category == observation.candidate.category,
+                // Generic placeholders ("Piece") are whole-photo fallbacks, not
+                // garment detections, so they never merge, even on similar prints.
+                guard identity != nil, candidateIdentities[candidateIndex] != nil,
+                      candidates[candidateIndex].category == observation.candidate.category,
                       !candidatePhotoIds[candidateIndex].contains(observation.photoId) else { return false }
                 if let featurePrint = observation.featurePrint,
                    candidateFeaturePrints[candidateIndex].contains(where: {

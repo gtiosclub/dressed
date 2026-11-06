@@ -193,6 +193,24 @@ final class MultiPhotoCandidateGrouperTests: XCTestCase {
         _ = try await PrototypeGarmentRecognition.analyze(imageData)
     }
 
+    func testGenericFallbacksStaySeparateEvenWithMatchingFeaturePrints() async throws {
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 120, height: 120)).image { context in
+            UIColor.systemGreen.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 120, height: 120))
+        }
+        let imageData = try XCTUnwrap(image.pngData())
+        let generatedPrint = await MultiPhotoCandidateGrouper.featurePrint(from: imageData)
+        let featurePrint = try XCTUnwrap(generatedPrint)
+        let observations = [
+            observation(photoId: "first", name: "Piece", category: .other, featurePrint: featurePrint),
+            observation(photoId: "second", name: "Piece", category: .other, featurePrint: featurePrint)
+        ]
+
+        let candidates = MultiPhotoCandidateGrouper.outfitCandidates(from: observations, importID: "test-import")
+
+        XCTAssertEqual(candidates.count, 2)
+    }
+
     private func observation(
         photoId: String,
         name: String,

@@ -11,13 +11,22 @@ struct MultiPhotoImportReviewView: View {
     let onSaved: () -> Void
 
     @State private var candidates: [ImportCandidate] = []
-    @State private var detectedCandidates: [ImportCandidate] = []
+    // Per-photo results, so a retry or photo removal never re-runs the others.
+    @State private var resultsByPhoto: [String: [PhotoCandidateObservation]] = [:]
+    @State private var cutoutsByPhoto: [String: [ImportCandidate]] = [:]
+    @State private var failedPhotoIds: Set<String> = []
+    @State private var removedPhotoIds: Set<String> = []
     @State private var isAnalyzing = true
     @State private var isSaving = false
     @State private var analysisAttempt = 0
     @State private var currentPhotoIndex = 0
+    @State private var pendingPhotoCount = 0
     @State private var analysisError: String?
     @State private var saveError: String?
+
+    private var activePhotos: [ReviewImage] {
+        photos.filter { !removedPhotoIds.contains($0.id) }
+    }
 
     var body: some View {
         NavigationStack {
@@ -25,25 +34,50 @@ struct MultiPhotoImportReviewView: View {
                 Section("Selected Photos") {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 10) {
-                            ForEach(Array(photos.enumerated()), id: \.element.id) { index, photo in
+                            ForEach(activePhotos) { photo in
                                 photoThumbnail(photo.data)
                                     .overlay(alignment: .bottomLeading) {
-                                        Text("Photo \(index + 1)")
+                                        Text(failedPhotoIds.contains(photo.id)
+                                             ? "Photo \(photoNumber(photo.id)) · Not recognized"
+                                             : "Photo \(photoNumber(photo.id))")
                                             .font(.caption2.weight(.semibold))
                                             .padding(.horizontal, 6)
                                             .padding(.vertical, 3)
                                             .background(.ultraThinMaterial, in: Capsule())
                                             .padding(5)
                                     }
+                                    .overlay(alignment: .topTrailing) {
+                                        if activePhotos.count > 1 {
+                                            Button {
+                                                removePhoto(photo.id)
+                                            } label: {
+                                                Image(systemName: "xmark.circle.fill")
+                                                    .symbolRenderingMode(.palette)
+                                                    .foregroundStyle(.white, .black.opacity(0.65))
+                                            }
+                                            .buttonStyle(.plain)
+                                            .padding(4)
+                                            .disabled(isAnalyzing || isSaving)
+                                            .accessibilityLabel("Remove photo \(photoNumber(photo.id))")
+                                        }
+                                    }
                             }
                         }
                     }
                     .frame(height: 116)
+
+                    if !failedPhotoIds.isEmpty, !isAnalyzing {
+                        Button(failedPhotoIds.count == 1
+                               ? "Retry Unrecognized Photo"
+                               : "Retry \(failedPhotoIds.count) Unrecognized Photos",
+                               action: retryAnalysis)
+                            .disabled(isSaving)
+                    }
                 }
 
                 Section(mode == .oneItem ? "One Item Guess" : "Outfit Pieces") {
                     if isAnalyzing {
-                        ProgressView("Analyzing photo \(currentPhotoIndex) of \(photos.count)…")
+                        ProgressView("Analyzing photo \(currentPhotoIndex) of \(pendingPhotoCount)…")
                     } else if candidates.isEmpty {
                         Text("No suggestions were produced. Try again or close this review.")
                             .foregroundStyle(.secondary)
@@ -60,6 +94,12 @@ struct MultiPhotoImportReviewView: View {
                 ForEach($candidates) { $candidate in
                     Section("Suggested Piece") {
                         Toggle("Select this piece", isOn: $candidate.selected)
+                        if mode == .oneItem, MultiPhotoCandidateGrouper.photosDisagree(candidate) {
+                            Label("Photos disagree on the category. Choose one below.",
+                                  systemImage: "exclamationmark.triangle")
+                                .font(.footnote)
+                                .foregroundStyle(.orange)
+                        }
                         TextField("Piece name", text: $candidate.name)
                         Picker("Category", selection: $candidate.category) {
                             ForEach(ClothingCategory.allCases, id: \.self) { category in
@@ -157,86 +197,139 @@ struct MultiPhotoImportReviewView: View {
                 await analyzePhotos()
             }
             .onDisappear {
-                SharedImportDraftStore.removeAutomaticCutouts(for: detectedCandidates)
+                SharedImportDraftStore.removeAutomaticCutouts(for: cutoutsByPhoto.values.flatMap { $0 })
             }
         }
     }
 
     private func analyzePhotos() async {
         isAnalyzing = true
-        currentPhotoIndex = 0
         analysisError = nil
         saveError = nil
-        candidates = []
-        SharedImportDraftStore.removeAutomaticCutouts(for: detectedCandidates)
-        detectedCandidates = []
+        let pending = activePhotos.filter { resultsByPhoto[$0.id] == nil || failedPhotoIds.contains($0.id) }
+        pendingPhotoCount = pending.count
+        currentPhotoIndex = 0
 
-        var observations: [PhotoCandidateObservation] = []
-        do {
-            for (index, photo) in photos.enumerated() {
-                try Task.checkCancellation()
-                currentPhotoIndex = index + 1
-                if mode == .oneItem {
-                    let suggestion = try? await PrototypeGarmentRecognition.analyze(photo.data)
-                    let candidate = ImportCandidate(
-                        id: SharedImportDraftStore.stableID(importID: photo.id, part: "one-item-source"),
-                        name: suggestion?.name ?? "Piece",
-                        category: suggestion?.category ?? .other,
-                        destination: .closet,
-                        temporaryCutoutPath: nil,
-                        region: nil,
-                        suggestionSource: suggestion == nil ? "Recognition unavailable" : "On-device suggestion",
-                        selected: false,
-                        tags: [],
-                        suggestedTags: []
-                    )
-                    observations.append(PhotoCandidateObservation(
-                        photoId: photo.id,
-                        candidate: candidate,
-                        confidence: suggestion?.confidence
-                    ))
-                } else {
-                    let found = try await AutomaticImportSuggestions.detect(
-                        imageData: photo.data,
-                        importID: photo.id
-                    )
-                    detectedCandidates.append(contentsOf: found)
-                    for candidate in found {
-                        try Task.checkCancellation()
-                        let crop = try? SharedImportDraftStore.imageData(for: candidate, in: photo.data)
-                        let featurePrint: VNFeaturePrintObservation?
-                        if let crop {
-                            featurePrint = await MultiPhotoCandidateGrouper.featurePrint(from: crop)
-                        } else {
-                            featurePrint = nil
-                        }
-                        observations.append(PhotoCandidateObservation(
-                            photoId: photo.id,
-                            candidate: candidate,
-                            confidence: nil,
-                            featurePrint: featurePrint
-                        ))
-                    }
-                }
+        // One photo at a time keeps the Debug recognition bridge under its rate limit.
+        for (index, photo) in pending.enumerated() {
+            guard !Task.isCancelled else { return }
+            currentPhotoIndex = index + 1
+            SharedImportDraftStore.removeAutomaticCutouts(for: cutoutsByPhoto[photo.id] ?? [])
+            let result = await analyze(photo)
+            guard !Task.isCancelled else {
+                SharedImportDraftStore.removeAutomaticCutouts(for: result.cutouts)
+                return
             }
-
-            try Task.checkCancellation()
-            if mode == .oneItem {
-                if let candidate = MultiPhotoCandidateGrouper.oneItemCandidate(from: observations, importID: importID) {
-                    candidates = [candidate]
-                }
+            resultsByPhoto[photo.id] = result.observations
+            cutoutsByPhoto[photo.id] = result.cutouts
+            if result.failed {
+                failedPhotoIds.insert(photo.id)
             } else {
-                candidates = MultiPhotoCandidateGrouper.outfitCandidates(from: observations, importID: importID)
+                failedPhotoIds.remove(photo.id)
             }
-            if candidates.isEmpty {
-                analysisError = "Recognition did not return suggestions for these photos."
-            }
-        } catch is CancellationError {
-            return
-        } catch {
-            analysisError = "Could not analyze the selected photos. Try again."
+        }
+
+        regroup()
+        if candidates.isEmpty {
+            analysisError = "Recognition did not return suggestions for these photos."
         }
         isAnalyzing = false
+    }
+
+    private func analyze(
+        _ photo: ReviewImage
+    ) async -> (observations: [PhotoCandidateObservation], cutouts: [ImportCandidate], failed: Bool) {
+        if mode == .oneItem {
+            let suggestion = try? await PrototypeGarmentRecognition.analyze(photo.data)
+            let candidate = ImportCandidate(
+                id: SharedImportDraftStore.stableID(importID: photo.id, part: "one-item-source"),
+                name: suggestion?.name ?? "Piece",
+                category: suggestion?.category ?? .other,
+                destination: .closet,
+                temporaryCutoutPath: nil,
+                region: nil,
+                suggestionSource: suggestion == nil ? "Recognition unavailable" : "On-device suggestion",
+                selected: false,
+                tags: [],
+                suggestedTags: []
+            )
+            let observation = PhotoCandidateObservation(
+                photoId: photo.id,
+                candidate: candidate,
+                confidence: suggestion?.confidence
+            )
+            return ([observation], [], suggestion == nil)
+        }
+
+        let found = (try? await AutomaticImportSuggestions.detect(imageData: photo.data, importID: photo.id)) ?? []
+        var observations: [PhotoCandidateObservation] = []
+        for candidate in found {
+            let crop = try? SharedImportDraftStore.imageData(for: candidate, in: photo.data)
+            let featurePrint: VNFeaturePrintObservation?
+            if let crop {
+                featurePrint = await MultiPhotoCandidateGrouper.featurePrint(from: crop)
+            } else {
+                featurePrint = nil
+            }
+            observations.append(PhotoCandidateObservation(
+                photoId: photo.id,
+                candidate: candidate,
+                confidence: nil,
+                featurePrint: featurePrint
+            ))
+        }
+        // Every detector stage fell through to the generic "Review this photo" piece.
+        let failed = found.allSatisfy { $0.suggestionSource == "Review this photo" }
+        return (observations, found, failed)
+    }
+
+    /// Rebuilds candidates from the cached per-photo results. Selection, and in
+    /// outfit mode edited names and categories, carry over by stable candidate ID.
+    /// Manual splits and merges are not replayed.
+    private func regroup() {
+        let observations = activePhotos.flatMap { resultsByPhoto[$0.id] ?? [] }
+        let previous = Dictionary(candidates.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        var regrouped: [ImportCandidate]
+        if mode == .oneItem {
+            regrouped = MultiPhotoCandidateGrouper.oneItemCandidate(from: observations, importID: importID)
+                .map { [$0] } ?? []
+        } else {
+            regrouped = MultiPhotoCandidateGrouper.outfitCandidates(from: observations, importID: importID)
+        }
+        for index in regrouped.indices {
+            guard let old = previous[regrouped[index].id] else { continue }
+            regrouped[index].selected = old.selected
+            if mode == .oneOutfit {
+                regrouped[index].name = old.name
+                regrouped[index].category = old.category
+            }
+        }
+        candidates = regrouped
+    }
+
+    private func removePhoto(_ photoId: String) {
+        guard activePhotos.count > 1 else { return }
+        removedPhotoIds.insert(photoId)
+        failedPhotoIds.remove(photoId)
+        SharedImportDraftStore.removeAutomaticCutouts(for: cutoutsByPhoto[photoId] ?? [])
+        cutoutsByPhoto[photoId] = nil
+        resultsByPhoto[photoId] = nil
+
+        if mode == .oneItem {
+            // Re-vote so the removed photo no longer influences the guess.
+            regroup()
+        } else {
+            // Keep the person's edits, splits and merges; drop only this photo's evidence.
+            candidates = candidates.compactMap { candidate in
+                var candidate = candidate
+                candidate.sightings = candidate.sightings?.filter { $0.photoId != photoId }
+                return (candidate.sightings ?? []).isEmpty ? nil : candidate
+            }
+        }
+    }
+
+    private func photoNumber(_ photoId: String) -> Int {
+        (photos.firstIndex(where: { $0.id == photoId }) ?? 0) + 1
     }
 
     private func retryAnalysis() {
