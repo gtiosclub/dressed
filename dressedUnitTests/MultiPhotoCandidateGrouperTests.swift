@@ -118,7 +118,8 @@ final class MultiPhotoCandidateGrouperTests: XCTestCase {
             context.fill(CGRect(x: 20, y: 20, width: 80, height: 80))
         }
         let imageData = try XCTUnwrap(image.pngData())
-        let featurePrint = try XCTUnwrap(await MultiPhotoCandidateGrouper.featurePrint(from: imageData))
+        let generatedPrint = await MultiPhotoCandidateGrouper.featurePrint(from: imageData)
+        let featurePrint = try XCTUnwrap(generatedPrint)
         let observations = [
             observation(photoId: "front", name: "Jacket", category: .outerwear, featurePrint: featurePrint),
             observation(photoId: "back", name: "Coat", category: .outerwear, featurePrint: featurePrint),

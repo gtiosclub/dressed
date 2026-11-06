@@ -190,8 +190,20 @@ enum MultiPhotoCandidateGrouper {
     static func featurePrint(from imageData: Data) async -> VNFeaturePrintObservation? {
         await Task.detached(priority: .userInitiated) {
             let request = VNGenerateImageFeaturePrintRequest()
-            guard (try? VNImageRequestHandler(data: imageData).perform([request])) != nil else { return nil }
-            return request.results?.first
+            if (try? VNImageRequestHandler(data: imageData).perform([request])) != nil,
+               let result = request.results?.first {
+                return result
+            }
+            // The simulator GPU cannot create a Vision inference context
+            // ("Failed to create espresso context"), so retry on the CPU.
+            let cpuRequest = VNGenerateImageFeaturePrintRequest()
+            guard let cpu = (try? cpuRequest.supportedComputeStageDevices[.main])?.first(where: {
+                if case .cpu = $0 { return true }
+                return false
+            }) else { return nil }
+            cpuRequest.setComputeDevice(cpu, for: .main)
+            guard (try? VNImageRequestHandler(data: imageData).perform([cpuRequest])) != nil else { return nil }
+            return cpuRequest.results?.first
         }.value
     }
 
