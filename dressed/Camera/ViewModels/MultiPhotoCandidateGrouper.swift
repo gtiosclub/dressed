@@ -23,12 +23,6 @@ struct PhotoCandidateObservation {
 enum MultiPhotoCandidateGrouper {
     static let defaultFeatureDistanceThreshold: Float = 0.5
 
-    private struct GuessGroup {
-        let identity: String
-        var observations: [PhotoCandidateObservation]
-        let firstIndex: Int
-    }
-
     static func outfitCandidates(
         from observations: [PhotoCandidateObservation],
         importID: String,
@@ -102,31 +96,25 @@ enum MultiPhotoCandidateGrouper {
     ) -> ImportCandidate? {
         guard !observations.isEmpty else { return nil }
 
-        var groups: [GuessGroup] = []
-        for (index, observation) in observations.enumerated() {
-            if let identity = identityKey(for: observation.candidate),
-               let groupIndex = groups.firstIndex(where: { $0.identity == identity }) {
-                groups[groupIndex].observations.append(observation)
-            } else {
-                let identity = identityKey(for: observation.candidate)
-                    ?? "unmatched:\(index):\(observation.candidate.id)"
-                groups.append(GuessGroup(identity: identity, observations: [observation], firstIndex: index))
-            }
+        // Generic fallbacks ("Piece") only vote when nothing was recognized.
+        let recognized = observations.filter { identityKey(for: $0.candidate) != nil }
+        let voters = recognized.isEmpty ? observations : recognized
+
+        // Confidence-weighted category vote, then a name vote inside the winning
+        // category. Ties keep the earliest photo's guess.
+        let winningCategory = weightedWinner(voters) { $0.candidate.category.rawValue }
+        let inCategory = voters.filter { $0.candidate.category.rawValue == winningCategory }
+        let winningName = weightedWinner(inCategory) { identityKey(for: $0.candidate) ?? $0.candidate.name }
+        let winningGroup = inCategory.filter {
+            (identityKey(for: $0.candidate) ?? $0.candidate.name) == winningName
         }
 
-        let winningGroup = groups.max { first, second in
-            let firstSupport = Set(first.observations.map(\.photoId)).count
-            let secondSupport = Set(second.observations.map(\.photoId)).count
-            if firstSupport != secondSupport { return firstSupport < secondSupport }
-
-            let firstConfidence = averageConfidence(in: first.observations)
-            let secondConfidence = averageConfidence(in: second.observations)
+        // Highest confidence stands in for "clearest"; larger region breaks ties.
+        let representative = winningGroup.max { first, second in
+            let firstConfidence = first.confidence ?? -1
+            let secondConfidence = second.confidence ?? -1
             if firstConfidence != secondConfidence { return firstConfidence < secondConfidence }
-            return first.firstIndex > second.firstIndex
-        }!
-
-        let representative = winningGroup.observations.max {
-            ($0.confidence ?? -1) < ($1.confidence ?? -1)
+            return regionArea(first.candidate.region) < regionArea(second.candidate.region)
         }!
         var candidate = representative.candidate
         candidate.id = SharedImportDraftStore.stableID(importID: importID, part: "one-item")
@@ -157,6 +145,12 @@ enum MultiPhotoCandidateGrouper {
         sightings.remove(at: index)
         var updated = candidate
         updated.sightings = sightings
+        if sameRegion(candidate.region, sighting.region), let remaining = sightings.first {
+            // The moved sighting supplied this candidate's image area.
+            updated.region = remaining.region
+            updated.outline = remaining.outline
+            updated.temporaryCutoutPath = nil
+        }
 
         var separated = candidate
         separated.id = SharedImportDraftStore.stableID(
@@ -221,8 +215,48 @@ enum MultiPhotoCandidateGrouper {
         }
     }
 
+    /// True when recognized photos point to more than one category, so review
+    /// should ask the person to choose instead of trusting the vote.
+    static func photosDisagree(_ candidate: ImportCandidate) -> Bool {
+        let categories = (candidate.sightings ?? [])
+            .filter { identityKey(name: $0.name, category: $0.category) != nil }
+            .map(\.category)
+        return Set(categories).count > 1
+    }
+
+    private static func weightedWinner(
+        _ observations: [PhotoCandidateObservation],
+        key: (PhotoCandidateObservation) -> String
+    ) -> String {
+        var weights: [String: Double] = [:]
+        var order: [String] = []
+        for observation in observations {
+            let value = key(observation)
+            if weights[value] == nil { order.append(value) }
+            // Missing confidence counts as a neutral half vote.
+            weights[value, default: 0] += observation.confidence ?? 0.5
+        }
+        let best = weights.values.max() ?? 0
+        return order.first { weights[$0] == best } ?? ""
+    }
+
+    private static func sameRegion(_ first: NormalizedImageRegion?, _ second: NormalizedImageRegion) -> Bool {
+        guard let first else { return false }
+        return first.x == second.x && first.y == second.y
+            && first.width == second.width && first.height == second.height
+    }
+
+    private static func regionArea(_ region: NormalizedImageRegion?) -> Double {
+        guard let region else { return 1 }
+        return region.width * region.height
+    }
+
     private static func identityKey(for candidate: ImportCandidate) -> String? {
-        let name = candidate.name
+        identityKey(name: candidate.name, category: candidate.category)
+    }
+
+    private static func identityKey(name rawName: String, category: ClothingCategory) -> String? {
+        let name = rawName
             .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
             .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
             .joined(separator: " ")
@@ -230,13 +264,7 @@ enum MultiPhotoCandidateGrouper {
               !["piece", "item", "garment", "clothing", "accessory"].contains(name) else {
             return nil
         }
-        return "\(candidate.category.rawValue.lowercased()):\(name)"
-    }
-
-    private static func averageConfidence(in observations: [PhotoCandidateObservation]) -> Double {
-        let confidenceValues = observations.compactMap(\.confidence)
-        guard !confidenceValues.isEmpty else { return 0 }
-        return confidenceValues.reduce(0, +) / Double(confidenceValues.count)
+        return "\(category.rawValue.lowercased()):\(name)"
     }
 
     private static func makeSighting(

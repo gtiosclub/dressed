@@ -133,12 +133,62 @@ final class MultiPhotoCandidateGrouperTests: XCTestCase {
         XCTAssertEqual(candidates.first(where: { $0.category == .tops })?.sightings?.count, 1)
     }
 
+    func testOneItemWeightsVoteByConfidenceNotPhotoCount() {
+        let observations = [
+            observation(photoId: "front", name: "T-Shirt", category: .tops, confidence: 0.2),
+            observation(photoId: "side", name: "T-Shirt", category: .tops, confidence: 0.2),
+            observation(photoId: "back", name: "Jacket", category: .outerwear, confidence: 0.9)
+        ]
+
+        let candidate = MultiPhotoCandidateGrouper.oneItemCandidate(from: observations, importID: "test-import")
+
+        XCTAssertEqual(candidate?.category, .outerwear)
+        XCTAssertEqual(candidate?.name, "Jacket")
+        XCTAssertEqual(candidate?.sightings?.first?.photoId, "back")
+        XCTAssertTrue(candidate.map(MultiPhotoCandidateGrouper.photosDisagree) == true)
+    }
+
+    func testOneItemAgreementAndGenericFallbacksDoNotFlagDisagreement() {
+        let observations = [
+            observation(photoId: "front", name: "Jacket", category: .outerwear, confidence: 0.7),
+            observation(photoId: "back", name: "Piece", category: .other)
+        ]
+
+        let candidate = try! XCTUnwrap(
+            MultiPhotoCandidateGrouper.oneItemCandidate(from: observations, importID: "test-import")
+        )
+
+        XCTAssertEqual(candidate.category, .outerwear)
+        XCTAssertFalse(MultiPhotoCandidateGrouper.photosDisagree(candidate))
+    }
+
+    func testSplittingRepresentativeSightingMovesCandidateRegion() {
+        let observations = [
+            observation(photoId: "front", name: "Jacket", category: .outerwear,
+                        region: NormalizedImageRegion(x: 0.1, y: 0.1, width: 0.5, height: 0.5)),
+            observation(photoId: "back", name: "Jacket", category: .outerwear,
+                        region: NormalizedImageRegion(x: 0.3, y: 0.2, width: 0.4, height: 0.6))
+        ]
+        let candidate = try! XCTUnwrap(
+            MultiPhotoCandidateGrouper.outfitCandidates(from: observations, importID: "test-import").first
+        )
+        let representative = try! XCTUnwrap(candidate.sightings?.first)
+
+        let split = try! XCTUnwrap(
+            MultiPhotoCandidateGrouper.splitSighting(representative, from: candidate, importID: "test-import")
+        )
+
+        XCTAssertEqual(split.updated.region?.x, 0.3)
+        XCTAssertEqual(split.updated.sightings?.map(\.photoId), ["back"])
+    }
+
     private func observation(
         photoId: String,
         name: String,
         category: ClothingCategory,
         confidence: Double? = nil,
-        featurePrint: VNFeaturePrintObservation? = nil
+        featurePrint: VNFeaturePrintObservation? = nil,
+        region: NormalizedImageRegion = NormalizedImageRegion(x: 0.1, y: 0.1, width: 0.8, height: 0.8)
     ) -> PhotoCandidateObservation {
         PhotoCandidateObservation(
             photoId: photoId,
@@ -148,7 +198,7 @@ final class MultiPhotoCandidateGrouperTests: XCTestCase {
                 category: category,
                 destination: .closet,
                 temporaryCutoutPath: nil,
-                region: NormalizedImageRegion(x: 0.1, y: 0.1, width: 0.8, height: 0.8),
+                region: region,
                 suggestionSource: "Test",
                 selected: false,
                 tags: [],
