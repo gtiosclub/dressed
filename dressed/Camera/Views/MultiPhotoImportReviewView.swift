@@ -23,6 +23,8 @@ struct MultiPhotoImportReviewView: View {
     @State private var pendingPhotoCount = 0
     @State private var analysisError: String?
     @State private var saveError: String?
+    @State private var latencyByPhoto: [String: Double] = [:]
+    @State private var evaluationExportMessage: String?
 
     private var activePhotos: [ReviewImage] {
         photos.filter { !removedPhotoIds.contains($0.id) }
@@ -177,6 +179,20 @@ struct MultiPhotoImportReviewView: View {
                     }
                 }
 
+                #if DEBUG
+                if !isAnalyzing, !resultsByPhoto.isEmpty {
+                    Section("Developer") {
+                        Button("Export Evaluation JSON", action: exportEvaluation)
+                        if let evaluationExportMessage {
+                            Text(evaluationExportMessage)
+                                .font(.caption2.monospaced())
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                        }
+                    }
+                }
+                #endif
+
                 if !candidates.isEmpty {
                     Section {
                         Button(isSaving ? "Saving…" : "Save Selected Pieces", action: saveSelectedPieces)
@@ -215,7 +231,9 @@ struct MultiPhotoImportReviewView: View {
             guard !Task.isCancelled else { return }
             currentPhotoIndex = index + 1
             SharedImportDraftStore.removeAutomaticCutouts(for: cutoutsByPhoto[photo.id] ?? [])
+            let started = ContinuousClock.now
             let result = await analyze(photo)
+            latencyByPhoto[photo.id] = milliseconds(ContinuousClock.now - started)
             guard !Task.isCancelled else {
                 SharedImportDraftStore.removeAutomaticCutouts(for: result.cutouts)
                 return
@@ -328,6 +346,59 @@ struct MultiPhotoImportReviewView: View {
         }
     }
 
+    private func milliseconds(_ duration: Duration) -> Double {
+        Double(duration.components.seconds) * 1_000 + Double(duration.components.attoseconds) / 1e15
+    }
+
+    #if DEBUG
+    /// Writes the automatic grouping (before any manual edits) in the format read by
+    /// backend/recognition/evaluate_multiphoto.py. Labels and boxes only, no images.
+    private func exportEvaluation() {
+        let observations = activePhotos.flatMap { resultsByPhoto[$0.id] ?? [] }
+        let automatic = mode == .oneItem
+            ? MultiPhotoCandidateGrouper.oneItemCandidate(from: observations, importID: importID).map { [$0] } ?? []
+            : MultiPhotoCandidateGrouper.outfitCandidates(from: observations, importID: importID)
+        let export = MultiPhotoEvaluationExport(
+            method: "in-house",
+            importId: importID,
+            mode: mode.rawValue,
+            photos: activePhotos.map { .init(photoId: $0.id) },
+            latencyMs: Int(activePhotos.compactMap { latencyByPhoto[$0.id] }.reduce(0, +).rounded()),
+            photosAnalyzed: activePhotos.count,
+            candidates: automatic.map { candidate in
+                .init(
+                    category: candidate.category.rawValue,
+                    name: candidate.name,
+                    sightings: (candidate.sightings ?? []).map { sighting in
+                        .init(
+                            photoId: sighting.photoId,
+                            category: sighting.category.rawValue,
+                            name: sighting.name,
+                            confidence: sighting.confidence,
+                            source: sighting.source,
+                            boundingBox: mode == .oneOutfit ? sighting.region : nil
+                        )
+                    }
+                )
+            }
+        )
+        do {
+            let folder = try FileManager.default
+                .url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+                .appendingPathComponent("MultiPhotoEvaluation", isDirectory: true)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            let file = folder.appendingPathComponent("\(mode.rawValue)-\(importID).json")
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            try encoder.encode(export).write(to: file, options: .atomic)
+            evaluationExportMessage = "Saved \(file.path)"
+            print("[MultiPhotoEvaluation] \(file.path)")
+        } catch {
+            evaluationExportMessage = "Export failed: \(error.localizedDescription)"
+        }
+    }
+    #endif
+
     private func photoNumber(_ photoId: String) -> Int {
         (photos.firstIndex(where: { $0.id == photoId }) ?? 0) + 1
     }
@@ -432,3 +503,35 @@ struct MultiPhotoImportReviewView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
+
+#if DEBUG
+// Predictions-file shape for backend/recognition/evaluate_multiphoto.py.
+private struct MultiPhotoEvaluationExport: Encodable {
+    struct Photo: Encodable {
+        let photoId: String
+    }
+
+    struct Sighting: Encodable {
+        let photoId: String
+        let category: String
+        let name: String
+        let confidence: Double?
+        let source: String?
+        let boundingBox: NormalizedImageRegion?
+    }
+
+    struct Candidate: Encodable {
+        let category: String
+        let name: String
+        let sightings: [Sighting]
+    }
+
+    let method: String
+    let importId: String
+    let mode: String
+    let photos: [Photo]
+    let latencyMs: Int
+    let photosAnalyzed: Int
+    let candidates: [Candidate]
+}
+#endif

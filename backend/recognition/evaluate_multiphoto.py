@@ -63,7 +63,7 @@ def _load_predictions(path: Path, photo_ids: set[str]) -> dict:
             "name": item.get("name", ""),
             "sightings": [_validated_sighting(s, photo_ids, path.name) for s in item["sightings"]],
         })
-    cost = {key: raw[key] for key in ("latencyMs", "visionCalls", "modelCalls") if key in raw}
+    cost = {key: raw[key] for key in ("latencyMs", "visionCalls", "modelCalls", "photosAnalyzed") if key in raw}
     return {"candidates": candidates, "cost": cost}
 
 
