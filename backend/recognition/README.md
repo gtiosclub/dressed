@@ -74,6 +74,22 @@ The evaluation example has three annotated garments and two fixture detections, 
 
 The `importId` should be the existing private draft ID. Candidate IDs are deterministic for the same response after sorting boxes, but a changed provider response can change the set or order. A future import coordinator must persist the first response for safe retries and require explicit selection before saving. The similarity score is only a ranking hint. It never proves exact identity, and product URLs must come from a reviewed catalog source.
 
+### Multi-photo evaluation (issue #210 spike)
+
+`evaluate_multiphoto.py` scores grouped multi-photo results against manual annotations. It is method-agnostic: each import in the manifest maps a method name (for example `in-house`, later `joint`) to a predictions file of grouped candidates, each with the per-photo sightings it came from. It reports two modes:
+
+- **One outfit:** found and missed garments, duplicates, wrong groupings (garments seen in two or more photos that were split or merged with another garment), extra candidates and category accuracy. The first-photo baseline is derived from the same output by treating each first-photo sighting as its own piece, which is what a one-photo import would show.
+- **One item:** category and name accuracy for the combined guess, the first photo alone and the best single photo (an oracle across photos).
+
+Sightings pair with annotated boxes in the same photo at IoU ≥ 0.5. Grouping fields on the first-photo baseline are not meaningful, because one photo cannot group. The 5% duplicate and 10% wrong-grouping limits are the proposal's proposed thresholds, pending lead sign-off. Optional `latencyMs`, `visionCalls` and `modelCalls` in a predictions file are summed per method. When replaying saved responses, record the original latency at capture time.
+
+```sh
+python3 backend/recognition/evaluate_multiphoto.py \
+  --manifest backend/recognition/fixtures/multiphoto/manifest.json
+```
+
+The fixtures are synthetic and only check the scoring code. One-item mode in the app currently uses the whole-photo classifier, not the box detector (decision recorded November 6, 2026), so one-item sightings have no boxes. Keep real photos, annotations and responses outside Git.
+
 ## Next integration gates
 
 1. Assemble a small consented set of single garments, worn outfits, flat lays, and overlapping clothes. Record missed pieces and incorrect boxes against manual annotations.

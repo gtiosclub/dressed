@@ -1,0 +1,10 @@
+{
+  "method": "in-house",
+  "visionCalls": 2,
+  "candidates": [
+    {"category": "outerwear", "name": "Jacket", "sightings": [
+      {"photoId": "back", "category": "outerwear", "name": "Jacket", "confidence": 0.81},
+      {"photoId": "front", "category": "tops", "name": "Shirt", "confidence": 0.42}
+    ]}
+  ]
+}
