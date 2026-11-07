@@ -1,12 +1,13 @@
-<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g id="message-circle 1" clip-path="url(#clip0_0_65)">
-<g id="Vector">
-</g>
-<path id="Vector_2" d="M2.75 18.3333L3.94167 14.7583C1.81133 11.6078 2.6345 7.54233 5.86667 5.24883C9.09883 2.95625 13.7408 3.14417 16.7246 5.68883C19.7083 8.23442 20.1117 12.3493 17.6678 15.3148C15.224 18.2802 10.6874 19.1785 7.05833 17.4167L2.75 18.3333Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="black"/>
-</g>
-<defs>
-<clipPath id="clip0_0_65">
-<rect width="22" height="22" fill="white"/>
-</clipPath>
-</defs>
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="#000000"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="M3 20l1.3 -3.9c-2.324 -3.437 -1.426 -7.872 2.1 -10.374c3.526 -2.501 8.59 -2.296 11.845 .48c3.255 2.777 3.695 7.266 1.029 10.501c-2.666 3.235 -7.615 4.215 -11.574 2.293l-4.7 1" />
 </svg>

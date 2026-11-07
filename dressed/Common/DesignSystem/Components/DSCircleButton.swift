@@ -20,10 +20,8 @@ struct DSCircleButton: View {
                         .font(DSFont.bodyEmphasis)
                         .foregroundStyle(DSColor.textMuted)
                 case .icon(let name):
-                    Image(name)
-                        .resizable()
-                        .frame(width: 24, height: 24)
-                        .foregroundStyle(DSColor.textPrimary)
+                    DSIcon(name, size: 24)
+                        .foregroundStyle(DSColor.iconMuted)
                 }
             }
             .frame(width: 43, height: 43)

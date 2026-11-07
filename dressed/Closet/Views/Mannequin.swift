@@ -8,7 +8,7 @@ enum AvatarGender: Int, CaseIterable {
     case female, male
 
     var title: String { self == .female ? "Female" : "Male" }
-    var symbol: String { self == .female ? "figure.stand.dress" : "figure.stand" }
+    var symbol: String { self == .female ? "TablerWoman" : "TablerMan" }
 }
 
 struct BodyShape {

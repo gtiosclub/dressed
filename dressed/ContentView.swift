@@ -33,6 +33,8 @@ private struct AppTabs: View {
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var selectedTab: Int
+    @State private var isKeyboardVisible = false
+    @State private var isCreatingPost = false
     @State private var discoverySection = 0
     @State private var signOutError: String?
     @State private var pendingSharedImage: ReviewImage?
@@ -65,84 +67,102 @@ private struct AppTabs: View {
     }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
+        // The system tab bar is hidden; DSTabBar sits below the tabs so their content ends above it.
+        VStack(spacing: 0) {
+            TabView(selection: $selectedTab) {
 
-            // MARK: - My Closet
+                // MARK: - My Closet
 
-            NavigationStack {
-                PrototypeClosetView(
-                    closet: closet,
-                    ownerId: userId
-                )
-            }
-            .tabItem { Label("My Closet", image: selectedTab == 0 ? "TablerHanger2Filled" : "TablerHanger2") }
-            .tag(0)
-
-            // MARK: - Discovery
-
-            NavigationStack {
-                VStack(spacing: 0) {
-                    Picker("Discovery", selection: $discoverySection) {
-                        Text("Discovery").tag(0)
-                        Text("OOTD").tag(1)
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 12)
-                    .padding(.bottom, 8)
-                    .accessibilityIdentifier("discovery.sectionPicker")
-
-                    if discoverySection == 0 {
-                        DiscoveryIdeasView { selectedTab = 3 }
-                    } else {
-                        OOTDFeedView()
-                    }
+                NavigationStack {
+                    PrototypeClosetView(
+                        closet: closet,
+                        ownerId: userId
+                    )
                 }
-                .toolbar(.hidden, for: .navigationBar)
-            }
-            .tabItem { Label("Discovery", image: selectedTab == 1 ? "TablerCompassFilled" : "TablerCompass") }
-            .tag(1)
+                .toolbar(.hidden, for: .tabBar)
+                .tag(0)
 
-            // MARK: - Camera
+                // MARK: - Discovery
 
-            NavigationStack {
-                PrototypeImportView(
-                    closet: closet,
-                    ownerId: userId
-                )
-                .toolbar {
-                    if deferredSharedId != nil ||
-                        deferredSharedLinkId != nil {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button("Review Share") {
-                                deferredSharedId = nil
-                                deferredSharedLinkId = nil
-                                presentNextShare()
+                NavigationStack {
+                    VStack(spacing: 0) {
+                        DiscoveryHeader(
+                            section: $discoverySection,
+                            onProfile: { selectedTab = 3 },
+                            onCreatePost: {
+                                discoverySection = 1
+                                isCreatingPost = true
+                            }
+                        )
+
+                        if discoverySection == 0 {
+                            DiscoveryIdeasView()
+                        } else {
+                            OOTDFeedView(showingCreate: $isCreatingPost)
+                        }
+                    }
+                    .toolbar(.hidden, for: .navigationBar)
+                }
+                .toolbar(.hidden, for: .tabBar)
+                .tag(1)
+
+                // MARK: - Camera
+
+                NavigationStack {
+                    PrototypeImportView(
+                        closet: closet,
+                        ownerId: userId
+                    )
+                    .toolbar {
+                        if deferredSharedId != nil ||
+                            deferredSharedLinkId != nil {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button("Review Share") {
+                                    deferredSharedId = nil
+                                    deferredSharedLinkId = nil
+                                    presentNextShare()
+                                }
                             }
                         }
                     }
                 }
+                .toolbar(.hidden, for: .tabBar)
+                .tag(2)
+
+                // MARK: - Avatar
+
+                NavigationStack {
+                    ProfileView(
+                        username: userId,
+                        items: closet.items,
+                        model: studio,
+                        closet: closet,
+                        onSignOut: signOut,
+                        image: { photo(for: $0) },
+                        uiImage: { closet.image(for: $0) }
+                    )
+                }
+                .toolbar(.hidden, for: .tabBar)
+                .tag(3)
             }
-            .tabItem { Label("Camera", image: selectedTab == 2 ? "TablerCameraFilled" : "TablerCamera") }
-            .tag(2)
-
-            // MARK: - Avatar
-
-            NavigationStack {
-                ProfileView(
-                    username: userId,
-                    items: closet.items,
-                    model: studio,
-                    closet: closet,
-                    onSignOut: signOut,
-                    image: { photo(for: $0) },
-                    uiImage: { closet.image(for: $0) }
+            // Hidden while typing, like the system tab bar.
+            if !isKeyboardVisible {
+                DSTabBar(
+                    items: [
+                        .init(tag: 0, title: "Closet", icon: "TablerHanger2", accessibilityIdentifier: "tab.closet"),
+                        .init(tag: 1, title: "Discovery", icon: "TablerCompass", accessibilityIdentifier: "tab.discovery"),
+                        .init(tag: 3, title: "Avatar", icon: "TablerUser", accessibilityIdentifier: "tab.avatar"),
+                        .init(tag: 2, title: "Camera", icon: "TablerCamera", accessibilityIdentifier: "tab.camera")
+                    ],
+                    selection: $selectedTab
                 )
             }
-            .tabItem {
-                Label("Avatar", systemImage: "person.crop.circle")
-            }
-            .tag(3)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            isKeyboardVisible = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            isKeyboardVisible = false
         }
 
         // MARK: - Sign Out Error
@@ -302,7 +322,7 @@ private struct AppTabs: View {
     private func photo(for item: ClothingItem) -> Image {
         closet.image(for: item).map {
             Image(uiImage: $0)
-        } ?? Image(systemName: "photo")
+        } ?? Image("TablerPhoto")
     }
 
     // MARK: - Shared Content Presentation

@@ -26,8 +26,7 @@ struct ImportCandidateRow: View {
             Button {
                 isSelected.toggle()
             } label: {
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.title2)
+                DSIcon(isSelected ? "TablerCircleCheckFilled" : "TablerCircle", size: 26)
                     .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
@@ -44,7 +43,7 @@ struct ImportCandidateRow: View {
     @Previewable @State var isSelected = true
     ImportCandidateRow(
         name: "Blue shirt",
-        thumbnail: Image(systemName: "tshirt"),
+        thumbnail: Image("TablerShirt"),
         isSelected: $isSelected
     )
     .padding()
@@ -54,7 +53,7 @@ struct ImportCandidateRow: View {
     @Previewable @State var isSelected = false
     ImportCandidateRow(
         name: "Blue shirt",
-        thumbnail: Image(systemName: "tshirt"),
+        thumbnail: Image("TablerShirt"),
         isSelected: $isSelected
     )
     .padding()

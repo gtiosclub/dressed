@@ -6,9 +6,11 @@ final class ShareImportUITests: XCTestCase {
         app.launchArguments = ["-mockSignedIn", "-showDiscovery"]
         app.launch()
 
-        let search = app.textFields["searchField.textField"]
-        XCTAssertTrue(search.waitForExistence(timeout: 10))
-        search.tap()
+        // Search opens from the floating "Search Styles" button and focuses its field.
+        let searchButton = app.buttons["discovery.searchButton"]
+        XCTAssertTrue(searchButton.waitForExistence(timeout: 10))
+        searchButton.tap()
+        XCTAssertTrue(app.textFields["searchField.textField"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["discovery.style.select.Y2K"].waitForExistence(timeout: 5))
         app.buttons["discovery.style.select.Y2K"].tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
@@ -39,7 +41,7 @@ final class ShareImportUITests: XCTestCase {
         discoveryScreenshot.lifetime = .keepAlways
         add(discoveryScreenshot)
 
-        app.segmentedControls.buttons["OOTD"].tap()
+        app.buttons["Friends"].tap()
         XCTAssertTrue(app.buttons["ootd.findItems.demo_post_1"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["discovery.idea.idea_top_1"].exists)
         let ootdScreenshot = XCTAttachment(screenshot: app.screenshot())
@@ -115,7 +117,7 @@ final class ShareImportUITests: XCTestCase {
         XCTAssertTrue(app.images["Outfit preview image"].exists)
         XCTAssertTrue(app.buttons["ootd.newPost.Audio"].exists)
         XCTAssertTrue(app.buttons["ootd.newPost.Outfit details"].exists)
-        XCTAssertTrue(app.tabBars.buttons["Discovery"].exists)
+        XCTAssertTrue(app.buttons["tab.discovery"].exists)
         let createScreenshot = XCTAttachment(screenshot: app.screenshot())
         createScreenshot.name = "New post creation"
         createScreenshot.lifetime = .keepAlways
@@ -168,7 +170,7 @@ final class ShareImportUITests: XCTestCase {
         )
         XCTAssertEqual(XCTWaiter.wait(for: [reviewDismissed], timeout: 5), .completed)
 
-        app.buttons["My Closet"].tap()
+        app.buttons["tab.closet"].tap()
         let wishlist = app.buttons["Wishlist"]
         XCTAssertTrue(wishlist.waitForExistence(timeout: 5))
         wishlist.tap()
@@ -207,7 +209,7 @@ final class ShareImportUITests: XCTestCase {
         app.collectionViews.firstMatch.swipeUp()
         app.buttons["Save Pieces and Outfit"].tap()
 
-        app.buttons["My Closet"].tap()
+        app.buttons["tab.closet"].tap()
         XCTAssertTrue(app.staticTexts["Blue sweater"].waitForExistence(timeout: 5))
     }
 
@@ -256,8 +258,8 @@ final class ShareImportUITests: XCTestCase {
         nameField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: "Shared outfit".count) + outfitName)
         app.buttons["Save Pieces and Outfit"].tap()
 
-        XCTAssertTrue(app.buttons["My Closet"].waitForExistence(timeout: 5))
-        app.buttons["My Closet"].tap()
+        XCTAssertTrue(app.buttons["tab.closet"].waitForExistence(timeout: 5))
+        app.buttons["tab.closet"].tap()
         app.segmentedControls.buttons["Outfits"].tap()
         XCTAssertTrue(app.staticTexts[outfitName].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["2 pieces"].exists)

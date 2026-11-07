@@ -55,7 +55,7 @@ struct AvatarStudioView: View {
                     model.saveCurrentOutfit()
                     outfitSavedAlert = true
                 } label: {
-                    Label("Save Outfit", systemImage: "heart")
+                    Label("Save Outfit", tabler: "TablerHeart")
                 }
                 .disabled(model.worn.isEmpty)
             }
@@ -64,7 +64,7 @@ struct AvatarStudioView: View {
                 Button {
                     showingTakePic = true
                 } label: {
-                    Image(systemName: "camera")
+                    DSIcon("TablerCamera", size: 22)
                 }
                 .accessibilityLabel("Take photo of avatar")
             }
@@ -132,8 +132,7 @@ struct AvatarStudioView: View {
                                             .frame(width: 20, height: 20)
                                         Text(wornItem.name)
                                             .font(.caption.weight(.medium))
-                                        Image(systemName: "xmark.circle.fill")
-                                            .font(.caption2)
+                                        DSIcon("TablerCircleXFilled", size: 12)
                                     }
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 5)
@@ -434,7 +433,7 @@ private struct StudioTakePicView: View {
                         item: Image(uiImage: snapshot),
                         preview: SharePreview("My 3D Outfit", image: Image(uiImage: snapshot))
                     ) {
-                        Label("Share", systemImage: "square.and.arrow.up")
+                        Label("Share", tabler: "TablerUpload")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
@@ -442,7 +441,7 @@ private struct StudioTakePicView: View {
                     Button {
                         UIImageWriteToSavedPhotosAlbum(snapshot, nil, nil, nil)
                     } label: {
-                        Label("Save Photo", systemImage: "square.and.arrow.down")
+                        Label("Save Photo", tabler: "TablerDownload")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)

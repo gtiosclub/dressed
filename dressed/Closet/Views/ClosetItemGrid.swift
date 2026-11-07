@@ -16,7 +16,7 @@ struct ClosetItemGrid: View {
 
     init(
         items: [ClothingItem],
-        image: @escaping (ClothingItem) -> Image = { _ in Image(systemName: "photo") },
+        image: @escaping (ClothingItem) -> Image = { _ in Image("TablerPhoto") },
         uiImage: ((ClothingItem) -> UIImage?)? = nil,
         onSelect: @escaping (String) -> Void
     ) {

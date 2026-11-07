@@ -58,7 +58,7 @@ struct PrototypeOutfitEditorView: View {
                                 }
                                 Spacer()
                                 if placements.contains(where: { $0.itemId == item.id }) {
-                                    Image(systemName: "checkmark.circle.fill")
+                                    DSIcon("TablerCircleCheckFilled", size: 22)
                                         .foregroundStyle(.tint)
                                 }
                             }
@@ -96,11 +96,11 @@ struct PrototypeOutfitEditorView: View {
                                         .frame(width: 44, alignment: .trailing)
                                 }
                                 HStack {
-                                    Button("Send backward", systemImage: "arrow.down") {
+                                    Button("Send backward", tabler: "TablerArrowDown") {
                                         moveLayer(itemId: selectedItemId, direction: -1)
                                     }
                                     .disabled(index == 0)
-                                    Button("Bring forward", systemImage: "arrow.up") {
+                                    Button("Bring forward", tabler: "TablerArrowUp") {
                                         moveLayer(itemId: selectedItemId, direction: 1)
                                     }
                                     .disabled(index == placements.count - 1)
@@ -193,9 +193,9 @@ struct PrototypeOutfitDetailView: View {
                     .font(.title2.bold())
                 ForEach(outfit.placements, id: \.itemId) { placement in
                     if let item = closet.item(id: placement.itemId) {
-                        Label(item.name, systemImage: "checkmark.circle")
+                        Label(item.name, tabler: "TablerCircleCheck")
                     } else {
-                        Label("Piece no longer in closet", systemImage: "exclamationmark.triangle")
+                        Label("Piece no longer in closet", tabler: "TablerAlertTriangle")
                             .foregroundStyle(.orange)
                     }
                 }
@@ -229,7 +229,7 @@ private struct OutfitCanvasView: View {
                                     .resizable()
                                     .scaledToFit()
                             } else {
-                                Image(systemName: "photo")
+                                Image("TablerPhoto")
                                     .resizable()
                                     .scaledToFit()
                                     .padding()
@@ -261,8 +261,10 @@ private struct OutfitCanvasView: View {
                             })
                         .allowsHitTesting(editable)
                     } else {
-                        Image(systemName: "exclamationmark.triangle")
+                        DSIcon("TablerAlertTriangle", size: 20)
                             .foregroundStyle(.orange)
+                            .accessibilityHidden(false)
+                            .accessibilityLabel("Missing piece")
                             .position(x: geometry.size.width * placement.centerX,
                                       y: geometry.size.height * placement.centerY)
                     }

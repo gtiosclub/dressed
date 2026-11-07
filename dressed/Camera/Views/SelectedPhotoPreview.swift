@@ -35,7 +35,7 @@ struct SelectedPhotoPreview: View {
     // Local sample image: no Firebase or photo-library access.
     // Uses an SF Symbol rendered to a UIImage so no asset is required.
     // Swap in UIImage(named: "SampleShirt") if you add one to the asset catalog.
-    let sample = UIImage(systemName: "tshirt.fill")?
+    let sample = UIImage(named: "TablerShirtFilled")?
         .withTintColor(.systemBlue, renderingMode: .alwaysOriginal)
         ?? UIImage()
 

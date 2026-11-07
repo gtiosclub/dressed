@@ -11,7 +11,7 @@ enum DSColor {
     static let textStrong = Color(hex: 0x222222)
     static let textMuted = Color(hex: 0x808080)
     static let textPlaceholder = Color(hex: 0xBDBDBD)
-    static let tabInactive = Color(hex: 0x6D6D6D)
+    static let iconMuted = Color(hex: 0x6D6D6D) // inactive tabs, circle-button icons
 
     // Surfaces
     static let background = Color.white

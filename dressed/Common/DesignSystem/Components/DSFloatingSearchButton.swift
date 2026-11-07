@@ -3,6 +3,9 @@ import SwiftUI
 // Floating pill above the tab bar ("Search Your Closet", "Search Styles"). Tapping opens search;
 // use SearchField for the text entry itself.
 struct DSFloatingSearchButton: View {
+    /// Scrolling content behind the button should add this much bottom padding.
+    static let height: CGFloat = 56
+
     let title: String
     let action: () -> Void
 
@@ -19,7 +22,7 @@ struct DSFloatingSearchButton: View {
             }
             .foregroundStyle(DSColor.textPrimary)
             .frame(maxWidth: .infinity)
-            .frame(height: 56)
+            .frame(height: Self.height)
             .background {
                 RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous)
                     .fill(DSColor.background)

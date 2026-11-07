@@ -19,7 +19,7 @@ struct ProductLinkReviewView: View {
                 Section("Product source") {
                     LabeledContent("Website", value: link.url.host ?? "Unknown")
                     Link(destination: link.url) {
-                        Label("Open product page", systemImage: "arrow.up.right.square")
+                        Label("Open product page", tabler: "TablerExternalLink")
                     }
                     Text(link.url.absoluteString)
                         .font(.footnote)

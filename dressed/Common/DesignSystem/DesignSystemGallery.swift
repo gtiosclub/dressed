@@ -6,6 +6,7 @@ struct DesignSystemGallery: View {
     @State private var chip = "Shirts"
     @State private var feed = "For You"
     @State private var liked = false
+    @State private var tab = 0
 
     var body: some View {
         ScrollView {
@@ -69,6 +70,28 @@ struct DesignSystemGallery: View {
                             Image(name).resizable().scaledToFit()
                         }
                     }
+                }
+
+                section("Icons") {
+                    HStack(spacing: DSSpacing.md) {
+                        ForEach(["TablerSearch", "TablerHeart", "TablerMessageCircle", "TablerBuildingStore",
+                                 "TablerShirt", "TablerFilter", "TablerAlertTriangle"], id: \.self) { name in
+                            DSIcon(name)
+                        }
+                    }
+                    Label("View at Store", tabler: "TablerArrowUpRight", size: 12).font(.caption)
+                }
+
+                section("Tab bar") {
+                    DSTabBar(
+                        items: [
+                            .init(tag: 0, title: "Closet", icon: "TablerHanger2"),
+                            .init(tag: 1, title: "Discovery", icon: "TablerCompass"),
+                            .init(tag: 2, title: "Avatar", icon: "TablerUser"),
+                            .init(tag: 3, title: "Camera", icon: "TablerCamera")
+                        ],
+                        selection: $tab
+                    )
                 }
 
                 section("Post card") {

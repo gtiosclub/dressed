@@ -1,5 +1,27 @@
 # Architecture and shared contracts
 
+## Discovery header and search (November 7, 2026)
+
+The Discovery tab follows the "for u" Figma frame. `DiscoveryHeader` replaces the
+segmented picker with a profile button, a **For You / Friends** switch and a create-post
+button. For You is the existing clothing-ideas grid; Friends is the existing OOTD feed.
+The profile button moved from a floating button into the header, and OOTD's create button
+moved from the feed into the header. Search is a floating "Search Styles" button above the
+tab bar; tapping it opens the existing style search and suggestions. Behavior, data sources
+and accessibility identifiers are unchanged apart from the labels and the new
+`discovery.searchButton`.
+
+## Navigation bar and icons (November 7, 2026)
+
+The signed-in shell now hides the system tab bar and shows the design system's
+`DSTabBar` below the `TabView`, matching the dressed-design Figma bar: Closet,
+Discovery, Avatar, Camera, with the purple active tab. Tab tags and launch flags are
+unchanged. The bar hides while the keyboard is visible. UI tests locate tabs by
+`tab.closet`, `tab.discovery`, `tab.avatar` and `tab.camera`. All app icons are now
+Tabler icons from `Assets.xcassets`; SF Symbols are no longer used. The product scope's
+three-tab description predates the Avatar tab and is unchanged. See
+[the design system README](../dressed/Common/DesignSystem/README.md).
+
 ## Discovery and OOTD navigation update (October 18, 2026)
 
 The signed-in Discovery tab now uses a Discovery / OOTD switch based on the

@@ -8,12 +8,14 @@ final class NavigationUITests: XCTestCase {
         if app.buttons["Later"].waitForExistence(timeout: 2) {
             app.buttons["Later"].tap()
         }
-        app.tabBars.buttons["My Closet"].tap()
-
-        XCTAssertTrue(app.tabBars.buttons["My Closet"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.tabBars.buttons["Discovery"].exists)
-        XCTAssertTrue(app.tabBars.buttons["Camera"].exists)
-        XCTAssertEqual(app.tabBars.buttons.count, 3)
+        // DSTabBar replaces the system tab bar, so tabs are found by identifier.
+        XCTAssertTrue(app.buttons["tab.closet"].waitForExistence(timeout: 10))
+        app.buttons["tab.closet"].tap()
+        XCTAssertTrue(app.buttons["tab.closet"].isSelected)
+        XCTAssertTrue(app.buttons["tab.discovery"].exists)
+        XCTAssertTrue(app.buttons["tab.avatar"].exists)
+        XCTAssertTrue(app.buttons["tab.camera"].exists)
+        XCTAssertEqual(app.buttons["tab.closet"].label, "Closet")
 
         XCTAssertTrue(app.segmentedControls.buttons["Pieces"].waitForExistence(timeout: 5))
         app.segmentedControls.buttons["Outfits"].tap()

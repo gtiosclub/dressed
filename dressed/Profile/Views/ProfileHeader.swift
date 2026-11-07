@@ -39,7 +39,7 @@ struct ProfileHeader: View {
 }
 
 #Preview {
-    ProfileHeader(avatar: Image(systemName: "person.circle.fill"),
+    ProfileHeader(avatar: Image("TablerUserCircle"),
         name: "Alexandra Elizabeth Montgomery-Williams",
         username: "@alexandra")
 }

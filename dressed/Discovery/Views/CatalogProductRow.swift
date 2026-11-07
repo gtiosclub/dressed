@@ -27,7 +27,7 @@ struct CatalogProductRow: View {
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.primary)
                     }
-                    Label("View at \(product.sourceName)", systemImage: "arrow.up.right")
+                    Label("View at \(product.sourceName)", tabler: "TablerArrowUpRight", size: 12)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -74,12 +74,12 @@ struct CatalogProductImage: View {
                 image.resizable().scaledToFill()
             } else {
                 GarmentArtwork(category: product.category)
-                    .padding(10)
+                    .padding(DSSpacing.md)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemGray5))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .background(DSColor.tile)
+        .clipShape(RoundedRectangle(cornerRadius: DSRadius.md, style: .continuous))
         .accessibilityHidden(true)
     }
 }

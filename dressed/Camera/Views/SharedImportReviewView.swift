@@ -65,9 +65,9 @@ struct SharedImportReviewView: View {
                              ? "No pieces found. Add one manually or try again."
                              : "Check each suggested piece and its cutout. Select only what you want to save.")
                             .foregroundStyle(.secondary)
-                        Button("Add Piece Manually", systemImage: "plus", action: addManualCandidate)
+                        Button("Add Piece Manually", tabler: "TablerPlus", action: addManualCandidate)
                         if !isProcessing {
-                            Button("Find Pieces Again", systemImage: "arrow.clockwise", action: processImage)
+                            Button("Find Pieces Again", tabler: "TablerReload", action: processImage)
                         }
                     } header: {
                         Text("Pieces in Image")
@@ -272,7 +272,7 @@ struct SharedImportReviewView: View {
            let preview = UIImage(data: data) {
             return Image(uiImage: preview)
         }
-        return Image(systemName: "photo")
+        return Image("TablerPhoto")
     }
 
     private func confirm() {

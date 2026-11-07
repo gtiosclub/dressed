@@ -30,7 +30,7 @@ struct SearchField: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
+            DSIcon("TablerSearch", size: 18)
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
 
@@ -54,7 +54,7 @@ struct SearchField: View {
                         query = ""
                     }
                 } label: {
-                    Image(systemName: "xmark.circle.fill")
+                    DSIcon("TablerCircleXFilled", size: 18)
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)

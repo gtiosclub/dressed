@@ -14,7 +14,7 @@ For architecture, vendor, library, or build-versus-buy decisions, use the in-rep
 
 ## Design system
 
-For SwiftUI view, styling or Figma-to-code work, use the in-repo [dressed-design-system skill](.agents/skills/dressed-design-system/SKILL.md). Tokens and shared components live in `dressed/Common/DesignSystem/`; use them instead of literal colors, spacing, radii and fonts.
+For SwiftUI view, styling or Figma-to-code work, use the in-repo [dressed-design-system skill](.agents/skills/dressed-design-system/SKILL.md). Tokens and shared components live in `dressed/Common/DesignSystem/`; use them instead of literal colors, spacing, radii and fonts. All icons come from [Tabler](https://tabler.io/icons); do not use SF Symbols. The bottom navigation is the custom `DSTabBar`.
 
 ## Repository layout
 
