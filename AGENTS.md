@@ -12,6 +12,10 @@ The proposed top-level tabs are My Closet, Discovery and Camera. Discovery conta
 
 For architecture, vendor, library, or build-versus-buy decisions, use the in-repo [design-proposal skill](.agents/skills/design-proposal/SKILL.md). It produces a five-minute decision page with key architecture points first, a sourced comparison of in-house, open-source, and paid options including time and money, and a concise technical implementation section. Prefer the established project Notion location when available. A proposal does not authorize implementation, purchasing, deployment, or student assignments.
 
+## Design system
+
+For SwiftUI view, styling or Figma-to-code work, use the in-repo [dressed-design-system skill](.agents/skills/dressed-design-system/SKILL.md). Tokens and shared components live in `dressed/Common/DesignSystem/`; use them instead of literal colors, spacing, radii and fonts.
+
 ## Repository layout
 
 - Open `dressed.xcodeproj` at the repository root.

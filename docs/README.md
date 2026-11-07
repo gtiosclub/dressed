@@ -17,6 +17,7 @@ Working scope based on the team's feature notes and attached setup/backlog plan,
 - [Backend schema templates](../backend/schemas/README.md): canonical types, examples and storage map.
 - [Local catalog prototype](../backend/catalog/README.md): fixture ingestion, SQLite state, read-only demo API, and test commands.
 - [Recognition experiment](../backend/recognition/README.md): live development Object Localization bridge plus fixture-backed Product Search adapter; no live product matching.
+- [Design system](../dressed/Common/DesignSystem/README.md): tokens and SwiftUI components from the high-fidelity Figma mockups, with a Debug gallery.
 - [SwiftLint guide](linting.md): local lint command, CI behavior, and fix workflow.
 - [iOS development and agent testing](IOS_DEVELOPMENT.md): simulator automation, hot reload setup, verification and troubleshooting.
 - [Agent instructions](../AGENTS.md): repository-specific guidance for coding agents.

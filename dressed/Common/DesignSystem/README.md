@@ -15,6 +15,22 @@ The Figma file has no published variables, so token values were read from the fr
 | `DSFont` | 16 regular/medium, 14 medium button, 13 medium search, 10 tab |
 | `DSShadow` | raised, floating, card, brand glow, and two inner shadows |
 
+### Replacing literals
+
+| Instead of | Use |
+| --- | --- |
+| `Color(hex: 0x9D83EB)`, purple accents | `DSColor.brand` |
+| `.secondary`, grey captions and dates | `DSColor.textMuted` |
+| `Color(.secondarySystemBackground)`, grey tile fill | `DSColor.tile` |
+| `.padding(.horizontal, 16)` screen margins | `.padding(.horizontal, DSSpacing.lg)` (20 in the mockups) |
+| `spacing: 8` between rows or chips | `DSSpacing.sm` |
+| `.cornerRadius(12)` on tiles and cards | `RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous)` |
+| `.font(.headline)` for titles and handles | `DSFont.bodyEmphasis` |
+| `.shadow(radius: 4)` | `.dsShadow(.raised)` or `.dsShadow(.card)` |
+
+Agents should load the `/dressed-design-system` skill
+(`.agents/skills/dressed-design-system/SKILL.md`) before UI work.
+
 ## Components
 
 Each file has `#Preview` blocks; open it in Xcode's canvas. `DesignSystemGallery`
