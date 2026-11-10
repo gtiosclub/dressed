@@ -25,6 +25,10 @@ struct SavedProductLink: Codable, Identifiable {
 }
 
 // Private local draft. Temporary paths are not public Storage references.
+enum ImportSaveMode: String, Codable, CaseIterable {
+    case outfit, individualPieces
+}
+
 struct ImportDraft: Codable, Identifiable {
     enum Status: String, Codable {
         case received, processing, review, saving, failed, saved
@@ -38,6 +42,12 @@ struct ImportDraft: Codable, Identifiable {
     var candidates: [ImportCandidate]
     var createdAt: Date
     var expiresAt: Date
+    // Optional fields keep existing on-device drafts readable.
+    var outfitName: String? = nil
+    var saveMode: ImportSaveMode? = nil
+    var reviewedCandidateIDs: [String]? = nil
+    var removedCandidateIDs: [String]? = nil
+    var hasFinishedPieceReview: Bool? = nil
 }
 
 struct ImportCandidate: Codable, Identifiable {

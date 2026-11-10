@@ -11,7 +11,6 @@ struct SharedImportReviewView: View {
 
     @StateObject private var outfits: PrototypeOutfitStore
     @State private var draft: ImportDraft?
-    @State private var outfitName = "Shared outfit"
     @State private var isProcessing = false
     @State private var isSaving = false
     @State private var detectionTask: Task<Void, Never>?
@@ -32,101 +31,124 @@ struct SharedImportReviewView: View {
     }
 
     private var selectedCount: Int { draft?.candidates.filter(\.selected).count ?? 0 }
+    private var reviewedCount: Int {
+        let reviewed = Set(draft?.reviewedCandidateIDs ?? [])
+        return draft?.candidates.filter { reviewed.contains($0.id) }.count ?? 0
+    }
+    private var mode: ImportSaveMode { draft?.saveMode ?? .outfit }
+    private var currentCandidate: ImportCandidate? {
+        guard let draft, draft.hasFinishedPieceReview != true else { return nil }
+        let reviewed = Set(draft.reviewedCandidateIDs ?? [])
+        return draft.candidates.first { !reviewed.contains($0.id) }
+    }
+    private var canSave: Bool {
+        guard let draft else { return false }
+        return !isSaving && !isProcessing && selectedCount > 0
+            && draft.candidates.filter(\.selected).allSatisfy {
+                !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            }
+            && (mode == .individualPieces
+                || !(draft.outfitName ?? "Shared outfit").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+    }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    if let original = UIImage(data: image.data) {
-                        Image(uiImage: original)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxWidth: .infinity)
-                            .frame(maxHeight: 180)
-                            .accessibilityLabel("Shared image to review")
-                    }
-                    Text("Private shared image. Nothing enters your closet until you confirm.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-
                 if isProcessing {
                     Section {
-                        HStack {
-                            ProgressView()
-                            Text("Finding possible pieces…")
-                        }
+                        ProgressView("Finding possible pieces…")
                     }
                 }
-
-                if let draft {
+                if let candidate = currentCandidate {
                     Section {
-                        Text(draft.candidates.isEmpty
-                             ? "No pieces found. Add one manually or try again."
-                             : "Check each suggested piece and its cutout. Select only what you want to save.")
-                            .foregroundStyle(.secondary)
-                        Button("Add Piece Manually", systemImage: "plus", action: addManualCandidate)
-                        if !isProcessing {
-                            Button("Find Pieces Again", systemImage: "arrow.clockwise", action: processImage)
-                        }
+                        candidateImage(candidate)
+                            .resizable().scaledToFit()
+                            .frame(maxWidth: .infinity, maxHeight: 280)
+                            .accessibilityLabel("Detected piece preview")
+                        candidateDetails(candidate)
+                        Button("Approve") { review(candidate, selected: true) }
+                            .accessibilityIdentifier("sharedImport.approve")
+                            .disabled(candidate.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        Button("Skip") { review(candidate, selected: false) }
+                            .accessibilityIdentifier("sharedImport.skip")
                     } header: {
-                        Text("Pieces in Image")
+                        Text("Review piece \(reviewedCount + 1) of \(draft?.candidates.count ?? 0)")
                     }
-
+                } else if let draft {
+                    Section {
+                        if let original = UIImage(data: image.data) {
+                            Image(uiImage: original)
+                                .resizable().scaledToFit()
+                                .frame(maxWidth: .infinity, maxHeight: 180)
+                                .accessibilityLabel("Shared image to review")
+                        }
+                        Text("Nothing enters your closet until you confirm the import.")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
+                    Section("Pieces in Image") {
+                        if draft.candidates.isEmpty {
+                            Text("No pieces found. Use Find more to add one with lasso, or try recognition again.")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("\(selectedCount) of \(draft.candidates.count) pieces selected")
+                                .foregroundStyle(.secondary)
+                        }
+                        Button("Find more", systemImage: "lasso", action: addManualCandidate)
+                            .accessibilityIdentifier("sharedImport.findMore")
+                            .disabled(isProcessing)
+                        if draft.candidates.isEmpty {
+                            Button("Try Recognition Again", systemImage: "arrow.clockwise", action: processImage)
+                                .disabled(isProcessing)
+                        }
+                    }
                     ForEach(draft.candidates) { candidate in
                         Section {
-                            ImportCandidateRow(
-                                name: candidate.name,
-                                thumbnail: candidateImage(candidate),
-                                isSelected: selectedBinding(for: candidate.id)
-                            )
-                            TextField("Piece name", text: nameBinding(for: candidate.id))
-                            Picker("Category", selection: categoryBinding(for: candidate.id)) {
-                                ForEach(ClothingCategory.allCases, id: \.self) { category in
-                                    Text(category.rawValue.capitalized).tag(category)
-                                }
-                            }
-                            HStack {
-                                Button("Adjust Image Region") { cropCandidateID = candidate.id }
-                                Spacer()
-                                Button("Remove", role: .destructive) {
-                                    SharedImportDraftStore.removeAutomaticCutouts(for: [candidate])
-                                    mutateDraft { $0.candidates.removeAll { $0.id == candidate.id } }
-                                }
-                            }
-                            if let source = candidate.suggestionSource {
-                                Text(source).font(.caption).foregroundStyle(.secondary)
-                            }
-                        } header: {
-                            Text("Piece \((draft.candidates.firstIndex { $0.id == candidate.id } ?? 0) + 1)")
+                            ImportCandidateRow(name: candidate.name,
+                                               thumbnail: candidateImage(candidate),
+                                               isSelected: selectedBinding(for: candidate.id))
+                            candidateDetails(candidate)
+                            Button("Remove", role: .destructive) { remove(candidate) }
                         }
                     }
-
                     Section("Save Reviewed Selection") {
-                        TextField("Outfit name", text: $outfitName)
-                        Text("\(selectedCount) of \(draft.candidates.count) pieces selected")
-                            .foregroundStyle(.secondary)
-                        Button(isSaving ? "Saving…" : "Save Pieces and Outfit", action: confirm)
-                            .disabled(isSaving || isProcessing || selectedCount == 0
-                                      || outfitName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        Picker("Import", selection: Binding(
+                            get: { mode },
+                            set: { value in mutateDraft { $0.saveMode = value } }
+                        )) {
+                            Text("As outfit").tag(ImportSaveMode.outfit)
+                            Text("As individual pieces").tag(ImportSaveMode.individualPieces)
+                        }
+                        .accessibilityIdentifier("sharedImport.saveMode")
+                        if mode == .outfit {
+                            TextField("Outfit name", text: Binding(
+                                get: { self.draft?.outfitName ?? "Shared outfit" },
+                                set: { name in mutateDraft { $0.outfitName = name } }
+                            ))
+                            Text("Saves selected pieces to your closet and groups them in an outfit.")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        }
+                        Button(isSaving ? "Saving…" : (mode == .outfit ? "Import as outfit" : "Import as individual pieces"),
+                               action: confirm)
+                            .accessibilityIdentifier("sharedImport.confirm")
+                            .disabled(!canSave)
                     }
                 }
-
                 if let errorMessage {
                     Section {
                         Text(errorMessage).foregroundStyle(.red)
+                        if draft == nil {
+                            Button("Retry", action: loadDraft)
+                        }
                     }
                 }
             }
+            .disabled(isSaving)
             .navigationTitle("Review Shared Image")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Later") {
-                        detectionTask?.cancel()
-                        onLater()
-                    }
-                    .disabled(isSaving)
+                    Button("Later") { detectionTask?.cancel(); onLater() }
+                        .disabled(isSaving)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Discard", role: .destructive) { confirmsDiscard = true }
@@ -134,10 +156,7 @@ struct SharedImportReviewView: View {
                 }
             }
             .confirmationDialog("Discard this shared image?", isPresented: $confirmsDiscard) {
-                Button("Discard Image", role: .destructive) {
-                    detectionTask?.cancel()
-                    onDiscard()
-                }
+                Button("Discard Image", role: .destructive) { detectionTask?.cancel(); onDiscard() }
             } message: {
                 Text("The draft and its temporary image will be removed.")
             }
@@ -149,13 +168,10 @@ struct SharedImportReviewView: View {
                    let candidate = draft?.candidates.first(where: { $0.id == id }) {
                     SharedImageRegionEditor(imageData: image.data, initial: candidate.region,
                                             initialOutline: candidate.outline) { region, outline in
-                        SharedImportDraftStore.removeAutomaticCutouts(for: [candidate])
-                        mutateCandidate(id: id) {
-                            $0.region = region
-                            $0.outline = outline
-                            $0.temporaryCutoutPath = nil
+                        if mutateCandidate(id: id, { $0.region = region; $0.outline = outline; $0.temporaryCutoutPath = nil }) {
+                            SharedImportDraftStore.removeAutomaticCutouts(for: [candidate])
+                            cropCandidateID = nil
                         }
-                        cropCandidateID = nil
                     }
                 }
             }
@@ -165,87 +181,111 @@ struct SharedImportReviewView: View {
         }
     }
 
+    @ViewBuilder
+    private func candidateDetails(_ candidate: ImportCandidate) -> some View {
+        TextField("Piece name", text: Binding(
+            get: { draft?.candidates.first(where: { $0.id == candidate.id })?.name ?? "" },
+            set: { name in mutateCandidate(id: candidate.id) { $0.name = name } }
+        ))
+        Picker("Category", selection: Binding(
+            get: { draft?.candidates.first(where: { $0.id == candidate.id })?.category ?? .other },
+            set: { category in mutateCandidate(id: candidate.id) { $0.category = category } }
+        )) {
+            ForEach(ClothingCategory.allCases, id: \.self) { category in
+                Text(category.rawValue.capitalized).tag(category)
+            }
+        }
+        Button("Adjust Image Region") { cropCandidateID = candidate.id }
+        if let source = candidate.suggestionSource {
+            Text(source).font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    private func review(_ candidate: ImportCandidate, selected: Bool) {
+        mutateDraft { SharedImportReviewState.review(candidate.id, selected: selected, in: &$0) }
+    }
+
+    private func remove(_ candidate: ImportCandidate) {
+        if mutateDraft({ SharedImportReviewState.remove(candidate.id, from: &$0) }) {
+            SharedImportDraftStore.removeAutomaticCutouts(for: [candidate])
+        }
+    }
+
     private func loadDraft() {
         guard draft == nil else { return }
         do {
             var loaded = try SharedImportDraftStore.loadOrCreate(image: image, ownerId: ownerId)
+            if loaded.status == .saved { onSaved(); return }
             if loaded.status == .saving || loaded.status == .processing {
                 loaded.status = loaded.candidates.isEmpty ? .received : .review
                 try SharedImportDraftStore.save(loaded)
             }
             draft = loaded
-            if loaded.status == .received || (loaded.status == .review && loaded.candidates.isEmpty) {
-                processImage()
-            }
-        } catch {
-            errorMessage = error.localizedDescription
-        }
+            errorMessage = nil
+            if loaded.status == .received { processImage() }
+        } catch { errorMessage = error.localizedDescription }
     }
 
     private func processImage() {
-        guard var current = draft, !isProcessing else { return }
-        current.status = .processing
-        do { try SharedImportDraftStore.save(current) } catch {
-            errorMessage = error.localizedDescription
-            return
-        }
-        draft = current
+        guard !isProcessing, draft?.candidates.isEmpty == true,
+              mutateDraft({ $0.status = .processing }) else { return }
         isProcessing = true
         detectionTask?.cancel()
         detectionTask = Task {
+            defer { isProcessing = false }
             do {
+                // Consume the existing recognition service; background recovery and
+                // pipeline changes belong to #208 / #228.
                 let found = try await AutomaticImportSuggestions.detect(imageData: image.data, importID: image.id)
                 guard !Task.isCancelled else {
                     SharedImportDraftStore.removeAutomaticCutouts(for: found)
                     return
                 }
-                mutateDraft { value in
-                    // A retry retains manual pieces and prior user edits.
-                    let existing = Dictionary(uniqueKeysWithValues: value.candidates.map { ($0.id, $0) })
-                    let manual = value.candidates.filter { $0.suggestionSource == nil }
-                    value.candidates = found.map { existing[$0.id] ?? $0 } + manual
-                    value.status = .review
+                let removed = Set(draft?.removedCandidateIDs ?? [])
+                let usable = found.filter {
+                    !removed.contains($0.id) && $0.suggestionSource != "Review this photo"
+                }
+                let usableIDs = Set(usable.map(\.id))
+                SharedImportDraftStore.removeAutomaticCutouts(for: found.filter { !usableIDs.contains($0.id) })
+                if !mutateDraft({ SharedImportReviewState.merge(usable, into: &$0) }) {
+                    SharedImportDraftStore.removeAutomaticCutouts(for: usable)
                 }
             } catch is CancellationError {
-                return
+                // The processing status is recovered on the next open.
             } catch {
                 guard !Task.isCancelled else { return }
                 mutateDraft { $0.status = .review }
-                errorMessage = "Automatic suggestions are unavailable. Add pieces manually or try again."
+                errorMessage = "Could not recognize pieces. Use Find more to add them with lasso, or try again."
             }
-            isProcessing = false
         }
     }
 
     private func addManualCandidate() {
-        guard let draft else { return }
-        var ordinal = 0
-        var id = SharedImportDraftStore.stableID(importID: draft.id, part: "manual-\(ordinal)")
-        while draft.candidates.contains(where: { $0.id == id }) {
-            ordinal += 1
-            id = SharedImportDraftStore.stableID(importID: draft.id, part: "manual-\(ordinal)")
-        }
-        let candidate = ImportCandidate(id: id, name: "", category: .other,
+        guard draft != nil else { return }
+        let candidate = ImportCandidate(id: UUID().uuidString, name: "", category: .other,
                                         destination: .closet, temporaryCutoutPath: nil,
                                         region: nil, suggestionSource: nil, selected: false,
                                         tags: [], suggestedTags: [])
-        mutateDraft { $0.candidates.append(candidate); $0.status = .review }
-        cropCandidateID = id
+        if mutateDraft({ $0.candidates.append(candidate); $0.status = .review }) {
+            // Keep the combined review visible while correcting a missed piece.
+            cropCandidateID = candidate.id
+        }
     }
 
-    private func mutateDraft(_ change: (inout ImportDraft) -> Void) {
-        guard var updated = draft else { return }
+    @discardableResult
+    private func mutateDraft(_ change: (inout ImportDraft) -> Void) -> Bool {
+        guard var updated = draft else { return false }
         change(&updated)
         do {
             try SharedImportDraftStore.save(updated)
             draft = updated
             errorMessage = nil
-        } catch {
-            errorMessage = error.localizedDescription
-        }
+            return true
+        } catch { errorMessage = error.localizedDescription; return false }
     }
 
-    private func mutateCandidate(id: String, _ change: (inout ImportCandidate) -> Void) {
+    @discardableResult
+    private func mutateCandidate(id: String, _ change: (inout ImportCandidate) -> Void) -> Bool {
         mutateDraft { value in
             guard let index = value.candidates.firstIndex(where: { $0.id == id }) else { return }
             change(&value.candidates[index])
@@ -257,35 +297,23 @@ struct SharedImportReviewView: View {
                 set: { selection in mutateCandidate(id: id) { $0.selected = selection } })
     }
 
-    private func nameBinding(for id: String) -> Binding<String> {
-        Binding(get: { draft?.candidates.first(where: { $0.id == id })?.name ?? "" },
-                set: { name in mutateCandidate(id: id) { $0.name = name } })
-    }
-
-    private func categoryBinding(for id: String) -> Binding<ClothingCategory> {
-        Binding(get: { draft?.candidates.first(where: { $0.id == id })?.category ?? .other },
-                set: { category in mutateCandidate(id: id) { $0.category = category } })
-    }
-
     private func candidateImage(_ candidate: ImportCandidate) -> Image {
         if let data = try? SharedImportDraftStore.imageData(for: candidate, in: image.data),
-           let preview = UIImage(data: data) {
-            return Image(uiImage: preview)
-        }
+           let preview = UIImage(data: data) { return Image(uiImage: preview) }
         return Image(systemName: "photo")
     }
 
     private func confirm() {
-        guard let current = draft, !isSaving else { return }
+        guard let current = draft, canSave else { return }
         isSaving = true
+        defer { isSaving = false }
         do {
             let coordinator = SharedImportSaveCoordinator(closet: closet, outfits: outfits)
-            _ = try coordinator.confirm(draft: current, imageData: image.data, outfitName: outfitName)
+            _ = try coordinator.confirm(draft: current, imageData: image.data,
+                                        outfitName: current.outfitName ?? "Shared outfit", mode: mode)
+            guard mutateDraft({ $0.status = .saved }) else { return }
             onSaved()
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-        isSaving = false
+        } catch { errorMessage = error.localizedDescription }
     }
 }
 
