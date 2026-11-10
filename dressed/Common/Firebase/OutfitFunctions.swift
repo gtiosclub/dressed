@@ -9,6 +9,9 @@ protocol OutfitFunctions {
 
     /// Read and decode users/{ownerId}/outfits; throw on read or decoding failure.
     func fetchOutfits(ownerId: String) async throws -> [Outfit]
+
+    /// Read and decode users/{ownerId}/outfits/{outfitId}; nil if absent; throw on read or decoding failure.
+    func fetchOutfit(ownerId: String, outfitId: String) async throws -> Outfit?
 }
 
 extension OutfitFunctions {
@@ -44,5 +47,19 @@ extension OutfitFunctions {
         return try snapshot.documents.map { document in
             try document.data(as: Outfit.self)
         }
+    }
+
+    /// Default Firestore implementation; returns nil only when the document is absent.
+    func fetchOutfit(ownerId: String, outfitId: String) async throws -> Outfit? {
+        let snapshot = try await Firestore.firestore()
+            .collection("users")
+            .document(ownerId)
+            .collection("outfits")
+            .document(outfitId)
+            .getDocument(source: .server)
+
+        // Absent document → nil. A present document that fails to decode throws.
+        guard snapshot.exists else { return nil }
+        return try snapshot.data(as: Outfit.self)
     }
 }
