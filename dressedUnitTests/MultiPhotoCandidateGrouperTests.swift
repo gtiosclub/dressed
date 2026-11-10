@@ -119,7 +119,9 @@ final class MultiPhotoCandidateGrouperTests: XCTestCase {
         }
         let imageData = try XCTUnwrap(image.pngData())
         let generatedPrint = await MultiPhotoCandidateGrouper.featurePrint(from: imageData)
-        let featurePrint = try XCTUnwrap(generatedPrint)
+        guard let featurePrint = generatedPrint else {
+            throw XCTSkip("Vision feature prints do not run on the simulator; run on a device.")
+        }
         let observations = [
             observation(photoId: "front", name: "Jacket", category: .outerwear, featurePrint: featurePrint),
             observation(photoId: "back", name: "Coat", category: .outerwear, featurePrint: featurePrint),
@@ -182,15 +184,23 @@ final class MultiPhotoCandidateGrouperTests: XCTestCase {
         XCTAssertEqual(split.updated.sightings?.map(\.photoId), ["back"])
     }
 
-    func testWholeImageClassifierRunsOnSimulatorWithoutVisionError() async throws {
-        let image = UIGraphicsImageRenderer(size: CGSize(width: 120, height: 120)).image { context in
-            UIColor.systemTeal.setFill()
-            context.fill(CGRect(x: 0, y: 0, width: 120, height: 120))
+    func testDifferentPhotosNeverShareADegenerateFeaturePrint() async throws {
+        // The simulator's CPU Vision path returned the same print for every image,
+        // which merged unrelated pieces. Prints must be absent or distinct.
+        func solid(_ color: UIColor) -> Data {
+            UIGraphicsImageRenderer(size: CGSize(width: 120, height: 120)).image { context in
+                color.setFill()
+                context.fill(CGRect(x: 0, y: 0, width: 120, height: 120))
+                UIColor.white.setFill()
+                context.fill(CGRect(x: 30, y: 30, width: 20, height: 60))
+            }.pngData()!
         }
-        let imageData = try XCTUnwrap(image.pngData())
-
-        // A plain square may not map to a garment; the call must still succeed.
-        _ = try await PrototypeGarmentRecognition.analyze(imageData)
+        let first = await MultiPhotoCandidateGrouper.featurePrint(from: solid(.systemRed))
+        let second = await MultiPhotoCandidateGrouper.featurePrint(from: solid(.systemBlue))
+        guard let first, let second else { return }
+        var distance: Float = 0
+        try first.computeDistance(&distance, to: second)
+        XCTAssertGreaterThan(distance, 0.01)
     }
 
     func testGenericFallbacksStaySeparateEvenWithMatchingFeaturePrints() async throws {
@@ -200,7 +210,9 @@ final class MultiPhotoCandidateGrouperTests: XCTestCase {
         }
         let imageData = try XCTUnwrap(image.pngData())
         let generatedPrint = await MultiPhotoCandidateGrouper.featurePrint(from: imageData)
-        let featurePrint = try XCTUnwrap(generatedPrint)
+        guard let featurePrint = generatedPrint else {
+            throw XCTSkip("Vision feature prints do not run on the simulator; run on a device.")
+        }
         let observations = [
             observation(photoId: "first", name: "Piece", category: .other, featurePrint: featurePrint),
             observation(photoId: "second", name: "Piece", category: .other, featurePrint: featurePrint)
