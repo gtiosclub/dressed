@@ -92,12 +92,15 @@ final class PostDetailViewModel: ObservableObject {
     private let postId: String
     private let service: any PostFunctions
     private var task: Task<Void, Never>?
+    private var needsRefresh = false
 
-    /// Opened from the feed, which already has the post. No read is needed.
+    /// Opened from the feed. Shows the feed's copy right away, then re-checks
+    /// Firestore so a post deleted since the feed loaded shows as removed.
     init(post: Post, service: any PostFunctions = DiscoveryPostSource.current) {
         postId = post.id
         self.service = service
         state = .loaded(PostDetailContent(post: post))
+        needsRefresh = true
     }
 
     /// Opened by ID (for example, from Saved Posts). Reads the post on `load()`.
@@ -108,9 +111,32 @@ final class PostDetailViewModel: ObservableObject {
     }
 
     func loadIfNeeded() {
-        if case .loading = state { load() }
+        if case .loading = state {
+            load()
+        } else if needsRefresh {
+            needsRefresh = false
+            refresh()
+        }
     }
 
+    /// Quietly re-reads the post without showing a spinner. If the read fails
+    /// (for example, offline), the feed's copy stays on screen.
+    private func refresh() {
+        task?.cancel()
+        task = Task {
+            do {
+                let post = try await service.fetchPost(id: postId)
+                guard !Task.isCancelled else { return }
+                if let post {
+                    state = .loaded(PostDetailContent(post: post))
+                } else {
+                    state = .removed
+                }
+            } catch {
+                return
+            }
+        }
+    }
     func load() {
         task?.cancel()
         state = .loading
