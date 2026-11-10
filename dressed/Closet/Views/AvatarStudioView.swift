@@ -488,8 +488,14 @@ private struct StudioUndoRedoButtons: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            button("arrow.uturn.backward", label: "Undo outfit change", id: "studio.undo", enabled: canUndo, action: undo)
-            button("arrow.uturn.forward", label: "Redo outfit change", id: "studio.redo", enabled: canRedo, action: redo)
+            button(
+                "arrow.uturn.backward", label: "Undo outfit change", id: "studio.undo",
+                enabled: canUndo, action: undo
+            )
+            button(
+                "arrow.uturn.forward", label: "Redo outfit change", id: "studio.redo",
+                enabled: canRedo, action: redo
+            )
         }
     }
 
