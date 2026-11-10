@@ -19,6 +19,11 @@ enum PrototypeOutfitError: LocalizedError {
     }
 }
 
+extension Outfit {
+    /// Ids of the closet items in this outfit. Two outfits with the same set are the same outfit.
+    var itemIds: Set<String> { Set(placements.map(\.itemId)) }
+}
+
 @MainActor
 final class PrototypeOutfitStore: ObservableObject {
     @Published private(set) var outfits: [Outfit] = []
@@ -96,5 +101,30 @@ final class PrototypeOutfitStore: ObservableObject {
         try JSONEncoder().encode(updated).write(to: file, options: .atomic)
         outfits = updated
         return outfit
+    }
+
+    /// Saved outfits made of exactly these closet items, whatever their names or order.
+    func outfits(matching itemIds: Set<String>) -> [Outfit] {
+        guard !itemIds.isEmpty else { return [] }
+        return outfits.filter { $0.itemIds == itemIds }
+    }
+
+    /// Removes one saved outfit. An id that isn't saved is not an error.
+    func delete(id: String) throws {
+        try delete { $0.id == id }
+    }
+
+    /// Removes every saved outfit made of exactly these closet items, including duplicates.
+    func deleteOutfits(matching itemIds: Set<String>) throws {
+        guard !itemIds.isEmpty else { return }
+        try delete { $0.itemIds == itemIds }
+    }
+
+    private func delete(where shouldDelete: (Outfit) -> Bool) throws {
+        guard error == nil else { throw PrototypeOutfitError.unavailableStorage }
+        let remaining = outfits.filter { !shouldDelete($0) }
+        guard remaining.count != outfits.count else { return }
+        try JSONEncoder().encode(remaining).write(to: file, options: .atomic)
+        outfits = remaining
     }
 }
