@@ -57,9 +57,18 @@ The local product-link flow accepts pasted HTTPS links in Camera and URL shares 
 the Share Extension. Both reach review, where the user enters a name and
 category and explicitly confirms Wishlist. The separate owner-scoped
 `SavedProductLink` record persists on-device without a photo; it does not alter
-the six-field `ClothingItem`. Dressed does not fetch retailer page metadata or
-infer exact identity from a photo. Shared link drafts expire after 24 hours;
-Wishlist storage is not backend-enforced or synced across devices.
+the six-field `ClothingItem`. Dressed does not infer exact identity from a photo.
+Shared link drafts expire after 24 hours; Wishlist storage is not backend-enforced
+or synced across devices.
+
+P19 prototype (not deployed): in Debug, link review asks the loopback-only
+`backend/links/local_service.py` (port 8767) to read the page and return a draft.
+Each field carries its source. Name and category prefill only when the page states
+them; price, availability and image appear as optional details the person can turn
+off; variant stays open unless the link names one. A blocked, failed or missing
+service leaves the manual form with the link filled in. The app never fetches store
+pages and holds no keys. A hosted, authenticated endpoint and the Dressed category
+list are TBD. Real-store accuracy has not been measured; see `backend/links/README.md`.
 
 `backend/catalog/catalog.py` ingests a synthetic fixture feed into local
 SQLite and serves a read-only API on loopback. It records stable product IDs,

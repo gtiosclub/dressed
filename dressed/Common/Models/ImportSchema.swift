@@ -22,6 +22,49 @@ struct SavedProductLink: Codable, Identifiable {
     var category: ClothingCategory
     var productURL: URL
     var createdAt: Date
+    // Optional details the person confirmed from a read page. Older saved
+    // links decode without them. Price and availability are never guessed.
+    var retailer: String? = nil
+    var imageURL: URL? = nil
+    var price: ProductPrice? = nil
+    var availability: String? = nil
+    var variant: String? = nil
+    var importId: String? = nil
+}
+
+struct ProductPrice: Codable {
+    var amount: String
+    var currency: String
+}
+
+// Draft returned by the product link reader (backend/links). Every field says
+// where its value came from; state is from_page, from_link, suggested or open.
+// A draft is review input, not a saved record.
+struct ProductImportField<Value: Codable>: Codable {
+    var value: Value?
+    var source: String?
+    var evidence: String?
+    var state: String
+}
+
+struct ProductImportDraft: Codable {
+    struct Fields: Codable {
+        var name: ProductImportField<String>
+        var retailer: ProductImportField<String>
+        var image: ProductImportField<String>
+        var category: ProductImportField<String>
+        var link: ProductImportField<String>
+        var price: ProductImportField<ProductPrice>
+        var availability: ProductImportField<String>
+        var variant: ProductImportField<String>
+    }
+
+    var importId: String
+    var status: String // ready, blocked or failed
+    var message: String?
+    var fields: Fields
+    var canonicalLink: String?
+    var elapsedMs: Int
 }
 
 // Private local draft. Temporary paths are not public Storage references.
