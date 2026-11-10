@@ -250,12 +250,15 @@ struct PrototypeImportView: View {
 
         for photo in photos {
             guard !Task.isCancelled else { return }
-            let id = photo.itemIdentifier ?? UUID().uuidString
+            // Failed loads never reach review or saving, so a random ID is fine there.
+            var id = UUID().uuidString
             do {
                 guard let data = try await photo.loadTransferable(type: Data.self),
                       UIImage(data: data) != nil else {
                     throw PrototypeImportError.invalidImage
                 }
+                id = ImportPhotoID.make(for: data)
+                guard !previews.contains(where: { $0.id == id }) else { continue }
                 let reviewImage = ReviewImage(
                     id: id,
                     data: data,

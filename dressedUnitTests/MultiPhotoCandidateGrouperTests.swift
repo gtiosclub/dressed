@@ -211,6 +211,13 @@ final class MultiPhotoCandidateGrouperTests: XCTestCase {
         XCTAssertEqual(candidates.count, 2)
     }
 
+    func testPhotoIDIsStableForSameBytesAndDiffersForOtherPhotos() {
+        let first = Data([1, 2, 3, 4])
+        XCTAssertEqual(ImportPhotoID.make(for: first), ImportPhotoID.make(for: Data([1, 2, 3, 4])))
+        XCTAssertNotEqual(ImportPhotoID.make(for: first), ImportPhotoID.make(for: Data([4, 3, 2, 1])))
+        XCTAssertEqual(ImportPhotoID.make(for: first).count, 32)
+    }
+
     private func observation(
         photoId: String,
         name: String,
