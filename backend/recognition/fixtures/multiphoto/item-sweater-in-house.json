@@ -1,0 +1,10 @@
+{
+  "method": "in-house",
+  "visionCalls": 2,
+  "candidates": [
+    {"category": "tops", "name": "Sweater", "sightings": [
+      {"photoId": "flat", "category": "tops", "name": "Sweater", "confidence": 0.7},
+      {"photoId": "worn", "category": "tops", "name": "Sweater", "confidence": 0.55}
+    ]}
+  ]
+}

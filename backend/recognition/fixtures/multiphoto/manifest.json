@@ -1,0 +1,38 @@
+{
+  "imports": [
+    {
+      "importId": "synthetic-outfit-3-photos",
+      "mode": "oneOutfit",
+      "photos": [{"photoId": "front"}, {"photoId": "side"}, {"photoId": "back"}],
+      "garments": [
+        {"category": "outerwear", "name": "Jacket", "sightings": [
+          {"photoId": "front", "boundingBox": {"x": 0.2, "y": 0.1, "width": 0.6, "height": 0.4}},
+          {"photoId": "back", "boundingBox": {"x": 0.25, "y": 0.1, "width": 0.55, "height": 0.42}}
+        ]},
+        {"category": "pants", "name": "Jeans", "sightings": [
+          {"photoId": "front", "boundingBox": {"x": 0.3, "y": 0.5, "width": 0.4, "height": 0.45}},
+          {"photoId": "side", "boundingBox": {"x": 0.35, "y": 0.5, "width": 0.3, "height": 0.45}},
+          {"photoId": "back", "boundingBox": {"x": 0.3, "y": 0.52, "width": 0.4, "height": 0.43}}
+        ]},
+        {"category": "accessories", "name": "Necklace", "sightings": [
+          {"photoId": "side", "boundingBox": {"x": 0.45, "y": 0.15, "width": 0.1, "height": 0.08}}
+        ]}
+      ],
+      "predictions": {"in-house": "outfit-in-house.json"}
+    },
+    {
+      "importId": "synthetic-jacket-front-back",
+      "mode": "oneItem",
+      "photos": [{"photoId": "front"}, {"photoId": "back"}],
+      "garments": [{"category": "outerwear", "name": "Jacket", "sightings": []}],
+      "predictions": {"in-house": "item-jacket-in-house.json"}
+    },
+    {
+      "importId": "synthetic-sweater-two-views",
+      "mode": "oneItem",
+      "photos": [{"photoId": "flat"}, {"photoId": "worn"}],
+      "garments": [{"category": "tops", "name": "Sweater", "sightings": []}],
+      "predictions": {"in-house": "item-sweater-in-house.json"}
+    }
+  ]
+}
