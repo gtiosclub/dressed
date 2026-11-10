@@ -310,6 +310,7 @@ final class ShareImportUITests: XCTestCase {
     }
 
     private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
+        for _ in 0..<12 where !element.exists { app.swipeUp() }
         XCTAssertTrue(element.waitForExistence(timeout: 5))
         for _ in 0..<12 where !element.isHittable { app.swipeUp() }
         XCTAssertTrue(element.isHittable)
