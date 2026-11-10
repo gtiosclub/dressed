@@ -10,6 +10,9 @@
    <TestAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv="YES" shouldAutocreateTestPlan="YES">
       <Testables>
          <TestableReference skipped="NO">
+            <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="D20800000000000000000001" BuildableName="dressedTests.xctest" BlueprintName="dressedTests" ReferencedContainer="container:dressed.xcodeproj"/>
+         </TestableReference>
+         <TestableReference skipped="NO">
             <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="B20600000000000000000001" BuildableName="dressedUITests.xctest" BlueprintName="dressedUITests" ReferencedContainer="container:dressed.xcodeproj"/>
          </TestableReference>
       </Testables>
@@ -23,6 +26,7 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument argument="-mockSession" isEnabled="NO"/>
+         <CommandLineArgument argument="-recognitionLab" isEnabled="NO"/>
       </CommandLineArguments>
    </LaunchAction>
    <ProfileAction buildConfiguration="Release" shouldUseLaunchSchemeArgsEnv="YES" savedToolIdentifier="" useCustomWorkingDirectory="NO" debugDocumentVersioning="YES">

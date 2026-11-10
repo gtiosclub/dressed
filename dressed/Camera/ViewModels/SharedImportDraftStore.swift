@@ -2,7 +2,7 @@ import CryptoKit
 import Foundation
 import UIKit
 
-enum SharedImportDraftError: LocalizedError {
+nonisolated enum SharedImportDraftError: LocalizedError {
     case unavailable
     case invalidDraft
     case noSelection
@@ -18,7 +18,19 @@ enum SharedImportDraftError: LocalizedError {
     }
 }
 
-enum SharedImportDraftStore {
+nonisolated enum SharedImportDraftStore {
+    static func shouldRecognize(_ draft: ImportDraft) -> Bool {
+        draft.status == .processing || draft.status == .received
+            || (draft.status == .review && draft.candidates.isEmpty)
+    }
+
+    static func mergingSuggestions(_ found: [ImportCandidate], into existing: [ImportCandidate]) -> [ImportCandidate] {
+        let previous = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+        let foundIDs = Set(found.map(\.id))
+        // Keep edits/selection and pieces missed by a retry, including all manual pieces.
+        return found.map { previous[$0.id] ?? $0 } + existing.filter { !foundIDs.contains($0.id) }
+    }
+
     static func stableID(importID: String, part: String) -> String {
         let digest = SHA256.hash(data: Data("\(importID):\(part)".utf8))
         let hex = digest.prefix(16).map { String(format: "%02X", $0) }.joined()
@@ -73,7 +85,8 @@ enum SharedImportDraftStore {
         try JSONEncoder().encode(draft).write(to: file, options: .atomic)
     }
 
-    static func imageData(for candidate: ImportCandidate, in source: Data) throws -> Data {
+    static func imageData(for candidate: ImportCandidate, in source: Data,
+                          nativeScale: Bool = true) throws -> Data {
         guard let image = UIImage(data: source) else { throw SharedImportDraftError.unavailable }
         if let outline = candidate.outline {
             guard outline.count >= 3, outline.allSatisfy(\.isValid) else {
@@ -121,7 +134,9 @@ enum SharedImportDraftStore {
             return jpeg
         }
         guard region.isValid else { throw SharedImportDraftError.invalidCrop }
-        let renderer = UIGraphicsImageRenderer(size: image.size)
+        let format = UIGraphicsImageRendererFormat()
+        if nativeScale { format.scale = 1 }
+        let renderer = UIGraphicsImageRenderer(size: image.size, format: format)
         let upright = renderer.image { _ in
             image.draw(in: CGRect(origin: .zero, size: image.size))
         }
@@ -153,7 +168,7 @@ enum SharedImportDraftStore {
             guard candidate.outline == nil,
                   candidate.temporaryCutoutPath == nil,
                   let crop = try? Self.imageData(for: candidate, in: imageData),
-                  let png = await AutomaticGarmentCutout.png(from: crop) else { continue }
+                  let png = try? await AutomaticGarmentCutout.png(from: crop) else { continue }
             let path = "Cutouts/\(candidate.id).png"
             do {
                 try png.write(to: root.appendingPathComponent(path), options: .atomic)
