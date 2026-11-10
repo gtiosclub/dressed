@@ -298,6 +298,10 @@ private struct AppTabs: View {
                     sharedImageError = error.localizedDescription
                 }
             }
+
+            if arguments.contains("-seedClosetFixture") {
+                try? ClosetFixture.seed(into: closet, clearing: outfits)
+            }
             #endif
 
             presentNextShare()

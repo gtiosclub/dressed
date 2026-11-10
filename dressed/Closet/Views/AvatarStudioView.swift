@@ -6,7 +6,7 @@ struct AvatarStudioView: View {
     @Bindable var model: OutfitStudioModel
     var closet: PrototypeClosetStore?
     let items: [ClothingItem]
-    let outfits: PrototypeOutfitStore
+    @ObservedObject var outfits: PrototypeOutfitStore
     let image: (ClothingItem) -> Image
     var uiImage: ((ClothingItem) -> UIImage?)?
 
@@ -27,7 +27,7 @@ struct AvatarStudioView: View {
     @State private var activeTab: StudioTab = .tryOn
     @State private var showingTakePic = false
     @State private var itemDetailSheet: ItemDetailSheet?
-    @State private var outfitSavedAlert = false
+    @State private var saveError: String?
     
     var body: some View {
         VStack(spacing: 0) {
@@ -62,50 +62,6 @@ struct AvatarStudioView: View {
 
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    let placements: [OutfitPlacement] =
-                        ClothingCategory.layerOrder.enumerated().compactMap { layer, category in
-                            guard let item = model.worn[category] else {
-                                return nil
-                            }
-
-                            return OutfitPlacement(
-                                itemId: item.id,
-                                centerX: 0.5,
-                                centerY: 0.5,
-                                width: 0.5,
-                                rotationDegrees: 0,
-                                layer: layer
-                            )
-                        }
-
-                    let typedName = draftOutfitName.trimmingCharacters(
-                        in: .whitespacesAndNewlines
-                    )
-
-                    let outfitName = typedName.isEmpty
-                        ? "Unnamed Outfit \(outfits.outfits.count + 1)"
-                        : typedName
-
-                    do {
-                        try outfits.save(
-                            name: outfitName,
-                            placements: placements,
-                            availableItems: items
-                        )
-
-                        draftOutfitName = ""
-                        outfitSavedAlert = true
-                    } catch {
-                        print("Could not save outfit: \(error.localizedDescription)")
-                    }
-                } label: {
-                    Label("Save Outfit", systemImage: "heart")
-                }
-                .disabled(model.worn.isEmpty)
-            }
-
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
                     showingTakePic = true
                 } label: {
                     Image(systemName: "camera")
@@ -113,10 +69,13 @@ struct AvatarStudioView: View {
                 .accessibilityLabel("Take photo of avatar")
             }
         }
-        .alert("Outfit Saved", isPresented: $outfitSavedAlert) {
-            Button("OK", role: .cancel) { outfitSavedAlert = false }
+        .alert(
+            "Could not update saved outfits",
+            isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })
+        ) {
+            Button("OK", role: .cancel) { saveError = nil }
         } message: {
-            Text("Find it under Saved Fits in Try On.")
+            Text(saveError ?? "Please try again.")
         }
         .sheet(isPresented: $showingTakePic) {
             NavigationStack {
@@ -438,6 +397,88 @@ struct AvatarStudioView: View {
             }
             .padding(12)
         }
+        .overlay(alignment: .bottom) {
+            HStack(spacing: 16) {
+                StudioBarButton(
+                    symbol: isCurrentOutfitSaved ? "heart.fill" : "heart",
+                    tint: isCurrentOutfitSaved ? .red : .primary,
+                    label: isCurrentOutfitSaved ? "Remove from saved outfits" : "Save outfit",
+                    value: isCurrentOutfitSaved ? "Saved" : "Not saved",
+                    id: "studio.heart",
+                    action: toggleSavedOutfit
+                )
+                .disabled(model.worn.isEmpty)
+                .symbolEffect(.bounce, value: isCurrentOutfitSaved)
+
+                StudioBarButton(
+                    symbol: "camera.viewfinder",
+                    tint: .primary,
+                    label: "Screenshot",
+                    value: nil,
+                    id: "studio.screenshot",
+                    action: { showingTakePic = true }
+                )
+            }
+            .padding(.bottom, 16)
+        }
+    }
+
+    // MARK: - Heart (save outfit)
+
+    private var wornItemIds: Set<String> { Set(model.worn.values.map(\.id)) }
+
+    /// The outfit being worn is a saved outfit when one with exactly the same pieces exists.
+    private var isCurrentOutfitSaved: Bool {
+        !outfits.outfits(matching: wornItemIds).isEmpty
+    }
+
+    /// Saves the worn outfit, or removes it from the saved outfits if it is already there.
+    private func toggleSavedOutfit() {
+        guard !model.worn.isEmpty else { return }
+        do {
+            if isCurrentOutfitSaved {
+                try outfits.deleteOutfits(matching: wornItemIds)
+                return
+            }
+            let placements = ClothingCategory.layerOrder.enumerated().compactMap { layer, category in
+                model.worn[category].map { item in
+                    OutfitPlacement(
+                        itemId: item.id, centerX: 0.5, centerY: 0.5, width: 0.5, rotationDegrees: 0, layer: layer
+                    )
+                }
+            }
+            let typedName = draftOutfitName.trimmingCharacters(in: .whitespacesAndNewlines)
+            let name = typedName.isEmpty ? "Unnamed Outfit \(outfits.outfits.count + 1)" : typedName
+            try outfits.save(name: name, placements: placements, availableItems: items)
+            draftOutfitName = ""
+        } catch {
+            saveError = error.localizedDescription
+        }
+    }
+}
+
+// MARK: - Full Body bottom bar button
+
+private struct StudioBarButton: View {
+    let symbol: String
+    let tint: Color
+    let label: String
+    let value: String?
+    let id: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(tint)
+                .frame(width: 56, height: 56)
+                .background(.thinMaterial, in: Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+        .accessibilityValue(value ?? "")
+        .accessibilityIdentifier(id)
     }
 }
 
