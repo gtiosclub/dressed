@@ -21,6 +21,7 @@
 		B20100000000000000000003 /* NavigationUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20200000000000000000003 /* NavigationUITests.swift */; };
 		C10100000000000000000001 /* InjectionNext in Frameworks */ = {isa = PBXBuildFile; productRef = C10300000000000000000001 /* InjectionNext */; };
 		C10100000000000000000002 /* Inject in Frameworks */ = {isa = PBXBuildFile; productRef = C10300000000000000000002 /* Inject */; };
+		B20100000000000000000004 /* OutfitUndoRedoUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20200000000000000000004 /* OutfitUndoRedoUITests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -72,6 +73,7 @@
 		B20200000000000000000001 /* ShareImportUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareImportUITests.swift; sourceTree = "<group>"; };
 		B20200000000000000000002 /* dressedUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = dressedUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B20200000000000000000003 /* NavigationUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationUITests.swift; sourceTree = "<group>"; };
+		B20200000000000000000004 /* OutfitUndoRedoUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutfitUndoRedoUITests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -167,6 +169,7 @@
 			children = (
 				B20200000000000000000001 /* ShareImportUITests.swift */,
 				B20200000000000000000003 /* NavigationUITests.swift */,
+				B20200000000000000000004 /* OutfitUndoRedoUITests.swift */,
 			);
 			path = dressedUITests;
 			sourceTree = "<group>";
@@ -380,6 +383,7 @@
 			files = (
 				B20100000000000000000001 /* ShareImportUITests.swift in Sources */,
 				B20100000000000000000003 /* NavigationUITests.swift in Sources */,
+				B20100000000000000000004 /* OutfitUndoRedoUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
