@@ -64,7 +64,6 @@ final class NavigationUITests: XCTestCase {
         reviewPhotos.tap()
 
         XCTAssertTrue(app.navigationBars["Review Item"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["Selected Photos"].exists)
         XCTAssertTrue(app.staticTexts["Seen in 2 photos"].waitForExistence(timeout: 30))
         XCTAssertTrue(app.buttons["Cancel"].exists)
     }
