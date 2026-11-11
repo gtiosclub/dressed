@@ -298,6 +298,7 @@ struct SharedImageRegionEditor: View {
     @State private var drawing: [NormalizedImagePoint] = []
     @State private var isDrawingOutline = false
     @State private var zoom = 1.0
+    @State private var viewportSize = CGSize(width: 320, height: 360)
     @State private var panOffset = CGPoint.zero
     @State private var dragOffset = CGPoint.zero
 
@@ -392,6 +393,8 @@ struct SharedImageRegionEditor: View {
                             })
                         }
                         .frame(height: 360)
+                        .onAppear { viewportSize = geometry.size }
+                        .onChange(of: geometry.size) { _, newSize in viewportSize = newSize }
                         .accessibilityLabel("Zoomable image region editor")
 
                         HStack(alignment: .top, spacing: 12) {
@@ -400,8 +403,7 @@ struct SharedImageRegionEditor: View {
                                     image: previewImage,
                                     region: region,
                                     viewport: visibleViewport(
-                                        imageSize: CGSize(width: image.size.width * min(1, 360 / image.size.width),
-                                                          height: image.size.height * min(1, 360 / image.size.height)),
+                                        imageSize: fittedImageSize(for: image, in: viewportSize),
                                         zoom: zoom,
                                         offset: panOffset
                                     )
@@ -496,6 +498,11 @@ struct SharedImageRegionEditor: View {
         let limitY = imageSize.height * CGFloat(max(0, zoom - 1)) / 2
         return CGPoint(x: min(max(offset.x, -limitX), limitX),
                        y: min(max(offset.y, -limitY), limitY))
+    }
+
+    private func fittedImageSize(for image: UIImage, in viewport: CGSize) -> CGSize {
+        let scale = min(viewport.width / image.size.width, viewport.height / image.size.height)
+        return CGSize(width: image.size.width * scale, height: image.size.height * scale)
     }
 
     private func visibleViewport(imageSize: CGSize, zoom: Double, offset: CGPoint) -> NormalizedImageRegion {
