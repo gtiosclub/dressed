@@ -7,6 +7,8 @@ Working scope based on the team's feature notes and attached setup/backlog plan,
 - [Delivery plan and ownership](delivery-plan.md): milestones, team handoffs, open decisions.
 - [Data roadmap and feature spec](data-roadmap.md): My Closet pieces and outfits, plus Share to Dressed recognition, review, and save flows.
 - [Retail catalog and recognition spec](catalog-and-recognition-spec.md): proposed source connectors, product freshness, garment detection, provider evaluation, and catalog matching.
+- [Photo-to-product search plan](photo-product-search-plan.md): proposed SerpAPI-first native flow, catalog comparison, folder responsibilities, costs, and evidence gates for DATA-P14.
+- [Product-search prototype and testing](../backend/product_search/README.md): Debug simulator crop review, backend-only SerpAPI adapter, fixture tests, catalog baseline comparison, and local setup.
 - [Viz roadmap and feature spec](viz-roadmap.md): Closet cards, details, outfit views, and import-result presentation.
 - [Social roadmap and feature spec](social-roadmap.md): OOTD posts, post breakdown, saved posts, Discovery search, and publication handoffs.
 - [Discovery clothing ideas and OOTD implementation plan](discovery-ootd-implementation-plan.md): proposed move from outfit posts in Discovery to item ideas, with a separate OOTD page.

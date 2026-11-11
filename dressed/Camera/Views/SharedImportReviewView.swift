@@ -81,6 +81,7 @@ struct SharedImportReviewView: View {
                                 isSelected: selectedBinding(for: candidate.id)
                             )
                             TextField("Piece name", text: nameBinding(for: candidate.id))
+                            FindSimilarProductsButton(candidate: candidate, sourceImage: image.data, ownerId: ownerId)
                             Picker("Category", selection: categoryBinding(for: candidate.id)) {
                                 ForEach(ClothingCategory.allCases, id: \.self) { category in
                                     Text(category.rawValue.capitalized).tag(category)

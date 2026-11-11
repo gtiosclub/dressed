@@ -1,5 +1,23 @@
 # Architecture and shared contracts
 
+## Product-search development slice (November 10, 2026)
+
+Debug simulator builds offer **Find similar products** on individual candidates
+in both Camera and shared-image review. A separate sheet previews the crop and
+requires **Search this crop** before sending it to the loopback Python bridge at
+`127.0.0.1:8767`. The bridge uploads bytes to SerpAPI and requests Lens visual
+matches; its key stays in the backend environment. Transient
+`ProductSearchResponse` records are separate from `CatalogProduct` and
+`ClothingItem`. Results always say Similar, and Wishlist uses existing explicit
+product-link review. Release and physical-device builds do not expose this action.
+
+The bridge has fixture/live modes, retailer-domain filtering, an attempt limit,
+and a short retry cache. It is not a hosted or Firebase-authenticated service.
+`compare.py` pairs fresh Lens queries with the existing catalog category/name
+baseline; OpenCLIP ranking remains proposed. No key or approved live feed was
+available during implementation, so fixture tests do not establish real matching
+quality. See [setup and verification](../backend/product_search/README.md).
+
 ## Discovery and OOTD navigation update (October 18, 2026)
 
 The signed-in Discovery tab now uses a Discovery / OOTD switch based on the

@@ -1,0 +1,19 @@
+{
+  "search_metadata": {"status": "Success"},
+  "visual_matches": [
+    {
+      "title": "Demo blue sweater",
+      "source": "Example retailer",
+      "link": "https://shop.example/products/blue-sweater",
+      "price": {"value": "$49.00"}
+    },
+    {
+      "title": "Demo navy cardigan — different style",
+      "link": "https://shop.example/products/navy-cardigan"
+    },
+    {
+      "title": "Non-retailer result excluded from shopping results",
+      "link": "https://social.example/post/123"
+    }
+  ]
+}

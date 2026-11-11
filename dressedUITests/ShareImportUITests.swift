@@ -1,6 +1,62 @@
 import XCTest
 
 final class ShareImportUITests: XCTestCase {
+    // Uses the real HTTP bridge with explicitly synthetic responses, not real authentication.
+    private func openProductSearch(port: Int) -> XCUIApplication {
+        let app = XCUIApplication()
+        let suffix = String(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(12))
+        app.launchArguments = ["-mockSignedIn", "-showCamera", "-seedShareFixture",
+                               "00000000-0000-4000-8000-\(suffix)", "-seedTwoCandidates",
+                               "-productSearchPort", String(port)]
+        app.launch()
+        XCTAssertTrue(app.navigationBars["Review Shared Image"].waitForExistence(timeout: 10))
+        let search = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "productSearch.open.")).firstMatch
+        for _ in 0..<5 where !search.isHittable { app.swipeUp() }
+        XCTAssertTrue(search.isHittable)
+        search.tap()
+        XCTAssertTrue(app.buttons["productSearch.search"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Demo blue sweater"].exists)
+        app.buttons["productSearch.search"].tap()
+        return app
+    }
+
+    func testProductSearchResultsRequireWishlistReview() {
+        let app = openProductSearch(port: 8767)
+        XCTAssertTrue(app.staticTexts["Demo blue sweater"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Fixture — not live shopping results"].exists)
+        XCTAssertTrue(app.staticTexts["Listed price: $49.00"].exists)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Similar products — fixture HTTP response"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        let review = app.buttons["Review for Wishlist"].firstMatch
+        for _ in 0..<4 where !review.isHittable { app.swipeUp() }
+        review.tap()
+        XCTAssertTrue(app.navigationBars["Review Product Link"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Save to Wishlist"].isEnabled)
+        app.buttons["Cancel"].tap()
+        app.buttons["Close"].tap()
+        XCTAssertTrue(app.navigationBars["Review Shared Image"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons["Top"].value as? String, "Not selected")
+    }
+
+    func testProductSearchEmptyResults() {
+        let app = openProductSearch(port: 8768)
+        XCTAssertTrue(app.staticTexts["No similar products found"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["Review for Wishlist"].exists)
+        app.buttons["Close"].tap()
+        XCTAssertTrue(app.navigationBars["Review Shared Image"].waitForExistence(timeout: 5))
+    }
+
+    func testProductSearchUnavailableCanRetryAndClose() {
+        let app = openProductSearch(port: 8769) // Deliberately no server on this port.
+        XCTAssertTrue(app.buttons["Retry search"].waitForExistence(timeout: 10))
+        app.buttons["Retry search"].tap()
+        XCTAssertTrue(app.buttons["Retry search"].waitForExistence(timeout: 10))
+        app.buttons["Close"].tap()
+        XCTAssertTrue(app.navigationBars["Review Shared Image"].waitForExistence(timeout: 5))
+    }
+
     func testDiscoveryStyleSearchMatchesPrototype() {
         let app = XCUIApplication()
         app.launchArguments = ["-mockSignedIn", "-showDiscovery"]

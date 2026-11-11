@@ -114,6 +114,7 @@ struct PrototypeImportView: View {
             ImportReviewView(
                 image: image,
                 closet: closet,
+                ownerId: ownerId,
                 onCancel: { review = nil },
                 onSaved: { review = nil }
             )
@@ -140,6 +141,7 @@ struct PrototypeImportView: View {
 struct ImportReviewView: View {
     let image: ReviewImage
     @ObservedObject var closet: PrototypeClosetStore
+    let ownerId: String
     let onCancel: () -> Void
     let onSaved: () -> Void
 
@@ -278,6 +280,7 @@ struct ImportReviewView: View {
                                 }
                             }
                             Button("Adjust Image Region") { editingCandidateID = candidate.id }
+                            FindSimilarProductsButton(candidate: candidate, sourceImage: image.data, ownerId: ownerId)
                             Button("Remove Piece", role: .destructive) {
                                 SharedImportDraftStore.removeAutomaticCutouts(for: [candidate])
                                 candidates.removeAll { $0.id == candidate.id }
