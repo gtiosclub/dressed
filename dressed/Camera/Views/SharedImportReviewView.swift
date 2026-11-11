@@ -391,10 +391,10 @@ struct SharedImageRegionEditor: View {
                                 guard isDrawingOutline else { return }
                                 appendOutlinePoint(value.location, origin: origin, display: display)
                             })
+                            .onAppear { viewportSize = geometry.size }
+                            .onChange(of: geometry.size) { _, newSize in viewportSize = newSize }
                         }
                         .frame(height: 360)
-                        .onAppear { viewportSize = geometry.size }
-                        .onChange(of: geometry.size) { _, newSize in viewportSize = newSize }
                         .accessibilityLabel("Zoomable image region editor")
 
                         HStack(alignment: .top, spacing: 12) {
