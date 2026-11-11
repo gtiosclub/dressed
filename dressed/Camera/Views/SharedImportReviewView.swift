@@ -404,8 +404,13 @@ struct SharedImageRegionEditor: View {
                                     region: region,
                                     viewport: visibleViewport(
                                         imageSize: fittedImageSize(for: image, in: viewportSize),
+                                        viewportSize: viewportSize,
                                         zoom: zoom,
-                                        offset: panOffset
+                                        offset: clampedOffset(
+                                            panOffset,
+                                            imageSize: fittedImageSize(for: image, in: viewportSize),
+                                            zoom: zoom
+                                        )
                                     )
                                 )
                                 .frame(width: 112, height: 96)
@@ -505,9 +510,14 @@ struct SharedImageRegionEditor: View {
         return CGSize(width: image.size.width * scale, height: image.size.height * scale)
     }
 
-    private func visibleViewport(imageSize: CGSize, zoom: Double, offset: CGPoint) -> NormalizedImageRegion {
-        let width = min(1, 1 / zoom)
-        let height = min(1, 1 / zoom)
+    private func visibleViewport(
+        imageSize: CGSize,
+        viewportSize: CGSize,
+        zoom: Double,
+        offset: CGPoint
+    ) -> NormalizedImageRegion {
+        let width = min(1, Double(viewportSize.width / (imageSize.width * zoom)))
+        let height = min(1, Double(viewportSize.height / (imageSize.height * zoom)))
         let x = min(max(0.5 - Double(offset.x / (imageSize.width * zoom)) - width / 2, 0), 1 - width)
         let y = min(max(0.5 - Double(offset.y / (imageSize.height * zoom)) - height / 2, 0), 1 - height)
         return NormalizedImageRegion(x: x, y: y, width: width, height: height)
