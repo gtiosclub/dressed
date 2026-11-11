@@ -151,6 +151,15 @@ struct AvatarStudioView: View {
                 )
                 StudioZoomSlider(zoom: $model.zoom).padding(.trailing, 8)
             }
+            .overlay(alignment: .bottomLeading) {
+                StudioUndoRedoButtons(
+                    canUndo: model.canUndo,
+                    canRedo: model.canRedo,
+                    undo: { model.undo(available: Set(items.map(\.id))) },
+                    redo: { model.redo(available: Set(items.map(\.id))) }
+                )
+                .padding(8)
+            }
 
             // Currently worn quick chips
             if !model.worn.isEmpty {
@@ -176,6 +185,7 @@ struct AvatarStudioView: View {
                                     .background(.ultraThinMaterial, in: Capsule())
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityIdentifier("studio.worn.\(cat.rawValue)")
                                 .contextMenu {
                                     Button("Inspect Details") {
                                         itemDetailSheet = ItemDetailSheet(id: wornItem.id)
@@ -447,6 +457,44 @@ private struct SavedFitThumbnail: View {
             allowsInteraction: false
         )
         .allowsHitTesting(false)
+    }
+}
+
+// MARK: - Undo / Redo
+
+private struct StudioUndoRedoButtons: View {
+    let canUndo: Bool
+    let canRedo: Bool
+    let undo: () -> Void
+    let redo: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            button(
+                "arrow.uturn.backward", label: "Undo outfit change", id: "studio.undo",
+                enabled: canUndo, action: undo
+            )
+            button(
+                "arrow.uturn.forward", label: "Redo outfit change", id: "studio.redo",
+                enabled: canRedo, action: redo
+            )
+        }
+    }
+
+    private func button(
+        _ symbol: String, label: String, id: String, enabled: Bool, action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.body.weight(.semibold))
+                .frame(width: 40, height: 40)
+                .background(.thinMaterial, in: Circle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+        .opacity(enabled ? 1 : 0.4)
+        .accessibilityLabel(label)
+        .accessibilityIdentifier(id)
     }
 }
 
