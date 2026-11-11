@@ -86,6 +86,19 @@ mobilebuildmcp simulator test --simulator-id <UDID> --derived-data-path /private
 
 Use the `ui-automation` tools to tap an element reference from a fresh `snapshot-ui` result. Refresh the snapshot after navigation. Build and test responses include artifact paths for full logs and useful diagnostics. Screenshots show appearance; use accessibility snapshots, interaction, and tests to check behavior. The share flow can require App Group signing and a device; see [project docs](README.md#local-import-prototype).
 
+### Repeatable Data feature UI checks
+
+Create a **disposable** simulator named `Dressed Data E2E` using an installed iOS runtime. For example, with iOS 18.6 installed:
+
+```sh
+xcrun simctl create 'Dressed Data E2E' \
+  com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro \
+  com.apple.CoreSimulator.SimRuntime.iOS-18-6
+SIMULATOR_ID=<UDID printed above> tests/run-data-feature-ui-tests.sh
+```
+
+The runner verifies the simulator name, erases that device, seeds two synthetic photos, and runs eight focused XCUITests covering photo picker handoff, multi-photo review, Share to Dressed review and persistence, and product-link Wishlist save/relaunch. It prints an `.xcresult` path and a `screenshots` directory with exported review screenshots. The test session uses `-mockSignedIn` to isolate import behavior; run the normal signed-in app separately for Firebase authentication. The synthetic photos prove picker and review wiring, not recognition accuracy. The reader service is not started by this runner, so the product-link test covers manual fallback.
+
 ## Hot reload loop
 
 1. Start `open -a InjectionNext`. For project file watching, use its **…or Watch Project** menu item and select this repository, or use the `watch_project` MCP tool. The Debug scheme sets `INJECTION_PROJECT_ROOT=$(SRCROOT)`, which also lets InjectionNext watch the project when the app connects.

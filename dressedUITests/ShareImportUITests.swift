@@ -152,6 +152,10 @@ final class ShareImportUITests: XCTestCase {
         app.buttons["Review Product Link"].tap()
 
         XCTAssertTrue(app.navigationBars["Review Product Link"].waitForExistence(timeout: 5))
+        let reviewScreenshot = XCTAttachment(screenshot: app.screenshot())
+        reviewScreenshot.name = "Product-link review"
+        reviewScreenshot.lifetime = .keepAlways
+        add(reviewScreenshot)
         let name = app.textFields["Product name"]
         name.tap()
         name.typeText(title)
@@ -180,6 +184,10 @@ final class ShareImportUITests: XCTestCase {
         XCTAssertTrue(wishlist.waitForExistence(timeout: 5))
         wishlist.tap()
         XCTAssertTrue(app.staticTexts[title].waitForExistence(timeout: 5))
+        let savedScreenshot = XCTAttachment(screenshot: app.screenshot())
+        savedScreenshot.name = "Wishlist item after relaunch"
+        savedScreenshot.lifetime = .keepAlways
+        add(savedScreenshot)
     }
 
     func testManualPieceWhenNoSuggestions() {
