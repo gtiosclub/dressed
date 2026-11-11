@@ -17,7 +17,7 @@ struct ClothingItemsList: View {
     let items: [ClothingItem]
     let outfits: [SavedOutfit]
     var look: [AvatarPart: Int] = [:]
-    
+
     let image: (ClothingItem) -> Image
     let uiImage: ((ClothingItem) -> UIImage?)?
     let onSelect: (String) -> Void

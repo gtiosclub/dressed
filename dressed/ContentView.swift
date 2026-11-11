@@ -47,12 +47,12 @@ private struct AppTabs: View {
     @State private var presentedSharedLinkId: String?
     @State private var deferredSharedLinkId: String?
 
-    @State private var studio: OutfitStudioModel
+    @StateObject private var studio: OutfitStudioModel
 
     init(session: SessionViewModel, userId: String) {
         self.session = session
         self.userId = userId
-        _studio = State(initialValue: OutfitStudioModel(ownerId: userId))
+        _studio = StateObject(wrappedValue: OutfitStudioModel(ownerId: userId))
 
         _closet = StateObject(
             wrappedValue: PrototypeClosetStore(ownerId: userId)

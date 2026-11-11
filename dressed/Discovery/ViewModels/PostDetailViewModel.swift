@@ -96,17 +96,17 @@ final class PostDetailViewModel: ObservableObject {
 
     /// Opened from the feed. Shows the feed's copy right away, then re-checks
     /// Firestore so a post deleted since the feed loaded shows as removed.
-    init(post: Post, service: any PostFunctions = DiscoveryPostSource.current) {
+    init(post: Post, service: (any PostFunctions)? = nil) {
         postId = post.id
-        self.service = service
+        self.service = service ?? DiscoveryPostSource.current
         state = .loaded(PostDetailContent(post: post))
         needsRefresh = true
     }
 
     /// Opened by ID (for example, from Saved Posts). Reads the post on `load()`.
-    init(postId: String, service: any PostFunctions = DiscoveryPostSource.current) {
+    init(postId: String, service: (any PostFunctions)? = nil) {
         self.postId = postId
-        self.service = service
+        self.service = service ?? DiscoveryPostSource.current
         state = .loading
     }
 
@@ -163,4 +163,3 @@ final class PostDetailViewModel: ObservableObject {
         task = nil
     }
 }
-

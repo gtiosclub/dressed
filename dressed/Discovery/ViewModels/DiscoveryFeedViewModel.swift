@@ -121,5 +121,3 @@ struct DemoPostFunctions: PostFunctions {
         try await fetchRecentPosts().first { $0.id == id }
     }
 }
-
-

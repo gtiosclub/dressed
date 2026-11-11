@@ -12,7 +12,7 @@ struct DiscoveryPostDetailView: View {
     }
 
     /// Opened by ID; reads `posts/{postId}`.
-    init(postId: String, service: any PostFunctions = DiscoveryPostSource.current) {
+    init(postId: String, service: (any PostFunctions)? = nil) {
         _model = StateObject(wrappedValue: PostDetailViewModel(postId: postId, service: service))
     }
 

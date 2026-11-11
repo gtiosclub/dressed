@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 
 struct SavedOutfit: Identifiable {
@@ -6,27 +7,26 @@ struct SavedOutfit: Identifiable {
     var worn: [ClothingCategory: ClothingItem]
 }
 
-@Observable
-final class OutfitStudioModel {
-    var look: [AvatarPart: Int] {
+nonisolated final class OutfitStudioModel: ObservableObject {
+    @Published var look: [AvatarPart: Int] {
         didSet { saveLook() }
     }
-    var worn: [ClothingCategory: ClothingItem] = [:] {
+    @Published var worn: [ClothingCategory: ClothingItem] = [:] {
         didSet { recordWornChange() }
     }
-    var savedOutfits: [SavedOutfit] = []
-    var zoom: Double = 1
-    private(set) var lookSaveError: String?
+    @Published var savedOutfits: [SavedOutfit] = []
+    @Published var zoom: Double = 1
+    @Published private(set) var lookSaveError: String?
 
     // Undo/redo for clothing selections. `worn` is changed from many places, so its didSet records
     // each change. In-memory only, like `worn` itself.
-    private(set) var canUndo = false
-    private(set) var canRedo = false
-    @ObservationIgnored private var history = UndoHistory(initial: OutfitSnapshot())
-    @ObservationIgnored private var isRestoring = false
+    @Published private(set) var canUndo = false
+    @Published private(set) var canRedo = false
+    private var history = UndoHistory(initial: OutfitSnapshot())
+    private var isRestoring = false
 
     // nil for previews, which should not read or write anyone's saved avatar.
-    @ObservationIgnored private let ownerId: String?
+    private let ownerId: String?
 
     init(ownerId: String? = nil) {
         self.ownerId = ownerId
@@ -47,17 +47,19 @@ final class OutfitStudioModel {
     /// Goes back one clothing change. `available` is the set of closet item ids that still exist; pieces
     /// outside it are left off. Does nothing when there is nothing to undo.
     func undo(available: Set<String>? = nil) {
-        step(available: available) { history.undo() }
+        step(available: available, direction: .undo)
     }
 
     /// Redoes the clothing change that was just undone. See `undo(available:)`.
     func redo(available: Set<String>? = nil) {
-        step(available: available) { history.redo() }
+        step(available: available, direction: .redo)
     }
 
-    private func step(available: Set<String>?, next: () -> OutfitSnapshot?) {
+    private enum HistoryDirection { case undo, redo }
+
+    private func step(available: Set<String>?, direction: HistoryDirection) {
         let before = OutfitSnapshot(worn)
-        while let snapshot = next() {
+        while let snapshot = direction == .undo ? history.undo() : history.redo() {
             let applied = available.map { snapshot.keeping(only: $0) } ?? snapshot
             // A step whose only change was a piece that no longer exists looks like nothing happened, so skip it.
             if applied == before { continue }
@@ -117,7 +119,7 @@ struct ProfileView: View {
     @State private var showsStudio = false
     let username: String
     let items: [ClothingItem]
-    let model: OutfitStudioModel
+    @ObservedObject var model: OutfitStudioModel
     @ObservedObject var outfits: PrototypeOutfitStore
     let openStudioOnPresent: Bool
 
@@ -140,11 +142,11 @@ struct ProfileView: View {
             _ in Image(systemName: "photo")
         },
         uiImage: ((ClothingItem) -> UIImage?)? = nil,
-        
+
     ) {
         self.username = username
         self.items = items
-        self.model = model
+        _model = ObservedObject(wrappedValue: model)
         self.closet = closet
         _outfits = ObservedObject(wrappedValue: outfits)
         self.openStudioOnPresent = openStudioOnPresent

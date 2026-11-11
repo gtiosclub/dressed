@@ -2,16 +2,20 @@
 
 ## Subteam integration (November 10, 2026)
 
-The data, viz, and social integration histories are combined on the data
-integration branch. The signed-in shell keeps My Closet, Discovery, and Camera
+The data, viz, and social integration histories are combined in this revision.
+The signed-in shell keeps My Closet, Discovery, and Camera
 as its three top-level tabs. Profile opens as a child sheet from My Closet or
 Discovery; Try On opens its Avatar Studio destination. The social team's
 `DiscoverySectionSwitch` now selects the current Discovery ideas and OOTD
 sections. Both the data team's multi-photo import and the viz team's outfit
 studio are present in the combined app.
+The studio model uses `ObservableObject` with a nonisolated type declaration:
+on the iOS 18.6 and 26.2 simulators, actor-isolated deallocation crashed all
+model tests, while the nonisolated declaration passed the 20-test viz suite.
 
-`PublishedPostImageView` and `SavePostToggle` are available as components but
-are not connected to live post media or saved-post state. The current Firestore
+`PublishedPostImageView`, `SavePostToggle`, and the social post-detail screen are
+available as components but are not connected to the current in-feed OOTD flow,
+live post media, or saved-post state. The current Firestore
 rules still deny saved-post writes, and the feed has no public media loader.
 Their presence in the project does not establish a production publication or
 bookmark flow. The local changes on `feat/camera-capture-screen` are separate

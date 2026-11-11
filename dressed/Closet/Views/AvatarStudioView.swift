@@ -3,7 +3,7 @@ import SwiftUI
 /// Main Avatar Studio view where the user tries on clothing pieces and outfits in 360 degrees,
 /// customizes avatar appearance, saves outfits, and captures photos.
 struct AvatarStudioView: View {
-    @Bindable var model: OutfitStudioModel
+    @ObservedObject var model: OutfitStudioModel
     var closet: PrototypeClosetStore?
     let items: [ClothingItem]
     let outfits: PrototypeOutfitStore
@@ -27,7 +27,7 @@ struct AvatarStudioView: View {
     @State private var activeTab: StudioTab = .tryOn
     @State private var itemDetailSheet: ItemDetailSheet?
     @State private var outfitSavedAlert = false
-    
+
     var body: some View {
         VStack(spacing: 0) {
             Picker("Mode", selection: $activeTab) {
@@ -109,7 +109,7 @@ struct AvatarStudioView: View {
         } message: {
             Text("Find it under Saved Fits in Try On.")
         }
-        
+
         .sheet(item: $itemDetailSheet) { sheet in
             if let closet {
                 NavigationStack {
@@ -515,7 +515,7 @@ private struct StudioZoomSlider: View {
 
 private struct StudioTakePicView: View {
     @Environment(\.dismiss) private var dismiss
-    @Bindable var model: OutfitStudioModel
+    @ObservedObject var model: OutfitStudioModel
     let image: (ClothingItem) -> Image
     var uiImage: ((ClothingItem) -> UIImage?)?
 
