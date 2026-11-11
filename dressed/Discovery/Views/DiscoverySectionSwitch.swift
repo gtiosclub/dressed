@@ -8,15 +8,15 @@
 import SwiftUI
 
 enum DiscoverySection: String, CaseIterable, Identifiable {
-    case feed
-    case search
+    case discovery
+    case ootd
 
     var id: Self { self }
 
     var title: String {
         switch self {
-        case .feed: "Feed"
-        case .search: "Search"
+        case .discovery: "Discovery"
+        case .ootd: "OOTD"
         }
     }
 }
@@ -58,7 +58,7 @@ private struct DiscoverySectionSwitchPreview: View {
     @State private var selection: DiscoverySection
     @State private var lastReported: DiscoverySection?
 
-    init(selection: DiscoverySection = .feed) {
+    init(selection: DiscoverySection = .discovery) {
         _selection = State(initialValue: selection)
     }
 
@@ -83,13 +83,13 @@ private struct DiscoverySectionSwitchPreview: View {
     }
 }
 
-#Preview("Feed selected") {
-    DiscoverySectionSwitch(selection: .feed, onSelect: { _ in })
+#Preview("Discovery selected") {
+    DiscoverySectionSwitch(selection: .discovery, onSelect: { _ in })
         .padding()
 }
 
-#Preview("Search selected") {
-    DiscoverySectionSwitch(selection: .search, onSelect: { _ in })
+#Preview("OOTD selected") {
+    DiscoverySectionSwitch(selection: .ootd, onSelect: { _ in })
         .padding()
 }
 

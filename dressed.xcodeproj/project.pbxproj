@@ -215,24 +215,6 @@
 			path = dressedUnitTests;
 			sourceTree = "<group>";
 		};
-		A10500000000000000000001 /* DressedShareExtension */ = {
-			isa = PBXGroup;
-			children = (
-				A10200000000000000000001 /* ShareViewController.swift */,
-				A10200000000000000000002 /* Info.plist */,
-				A10200000000000000000003 /* DressedShareExtension.entitlements */,
-			);
-			path = DressedShareExtension;
-			sourceTree = "<group>";
-		};
-		B20500000000000000000001 /* dressedUITests */ = {
-			isa = PBXGroup;
-			children = (
-				B20200000000000000000001 /* ShareImportUITests.swift */,
-			);
-			path = dressedUITests;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */

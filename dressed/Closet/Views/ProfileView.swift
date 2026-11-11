@@ -113,10 +113,13 @@ final class OutfitStudioModel {
 // MARK: - Avatar Studio
 
 struct ProfileView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var showsStudio = false
     let username: String
     let items: [ClothingItem]
     let model: OutfitStudioModel
     @ObservedObject var outfits: PrototypeOutfitStore
+    let openStudioOnPresent: Bool
 
     var closet: PrototypeClosetStore?
 
@@ -131,6 +134,7 @@ struct ProfileView: View {
         model: OutfitStudioModel,
         closet: PrototypeClosetStore? = nil,
         outfits: PrototypeOutfitStore,
+        openStudioOnPresent: Bool = false,
         onSignOut: @escaping () -> Void,
         image: @escaping (ClothingItem) -> Image = {
             _ in Image(systemName: "photo")
@@ -143,6 +147,8 @@ struct ProfileView: View {
         self.model = model
         self.closet = closet
         _outfits = ObservedObject(wrappedValue: outfits)
+        self.openStudioOnPresent = openStudioOnPresent
+        _showsStudio = State(initialValue: openStudioOnPresent)
         self.onSignOut = onSignOut
         self.image = image
         self.uiImage = uiImage
@@ -150,14 +156,33 @@ struct ProfileView: View {
 
     var body: some View {
         NavigationStack {
-            AvatarStudioView(
-                model: model,
-                closet: closet,
-                items: items,
-                outfits: outfits,
-                image: image,
-                uiImage: uiImage,
-            )
+            VStack(spacing: 20) {
+                Image(systemName: "person.crop.circle")
+                    .font(.system(size: 72))
+                    .accessibilityHidden(true)
+                Text(username).font(.title2.weight(.semibold))
+                Button("Open studio") { showsStudio = true }
+                    .buttonStyle(.borderedProminent)
+                Button("Sign Out", action: onSignOut)
+                    .buttonStyle(.bordered)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .navigationTitle("Profile")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .navigationDestination(isPresented: $showsStudio) {
+                AvatarStudioView(
+                    model: model,
+                    closet: closet,
+                    items: items,
+                    outfits: outfits,
+                    image: image,
+                    uiImage: uiImage
+                )
+            }
         }
         .alert(
             "Avatar not saved",

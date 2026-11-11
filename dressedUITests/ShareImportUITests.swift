@@ -39,7 +39,7 @@ final class ShareImportUITests: XCTestCase {
         discoveryScreenshot.lifetime = .keepAlways
         add(discoveryScreenshot)
 
-        app.segmentedControls.buttons["OOTD"].tap()
+        app.buttons["discoverySwitch.ootd"].tap()
         XCTAssertTrue(app.buttons["ootd.findItems.demo_post_1"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["discovery.idea.idea_top_1"].exists)
         let ootdScreenshot = XCTAttachment(screenshot: app.screenshot())

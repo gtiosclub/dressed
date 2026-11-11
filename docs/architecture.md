@@ -1,5 +1,22 @@
 # Architecture and shared contracts
 
+## Subteam integration (November 10, 2026)
+
+The data, viz, and social integration histories are combined on the data
+integration branch. The signed-in shell keeps My Closet, Discovery, and Camera
+as its three top-level tabs. Profile opens as a child sheet from My Closet or
+Discovery; Try On opens its Avatar Studio destination. The social team's
+`DiscoverySectionSwitch` now selects the current Discovery ideas and OOTD
+sections. Both the data team's multi-photo import and the viz team's outfit
+studio are present in the combined app.
+
+`PublishedPostImageView` and `SavePostToggle` are available as components but
+are not connected to live post media or saved-post state. The current Firestore
+rules still deny saved-post writes, and the feed has no public media loader.
+Their presence in the project does not establish a production publication or
+bookmark flow. The local changes on `feat/camera-capture-screen` are separate
+from this committed branch integration.
+
 ## Discovery and OOTD navigation update (October 18, 2026)
 
 The signed-in Discovery tab now uses a Discovery / OOTD switch based on the

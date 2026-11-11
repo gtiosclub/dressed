@@ -34,7 +34,9 @@ private struct AppTabs: View {
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var selectedTab: Int
-    @State private var discoverySection = 0
+    @State private var discoverySection: DiscoverySection
+    @State private var showingProfile = false
+    @State private var openStudioOnPresent = false
     @State private var signOutError: String?
     @State private var pendingSharedImage: ReviewImage?
     @State private var presentedSharedId: String?
@@ -63,9 +65,10 @@ private struct AppTabs: View {
         let arguments = ProcessInfo.processInfo.arguments
         _selectedTab = State(initialValue: arguments.contains("-showCamera") ? 2 :
             (arguments.contains("-showCatalog") || arguments.contains("-showDiscovery") ? 1 : 0))
-        _discoverySection = State(initialValue: arguments.contains("-showOOTD") ? 1 : 0)
+        _discoverySection = State(initialValue: arguments.contains("-showOOTD") ? .ootd : .discovery)
         #else
         _selectedTab = State(initialValue: 0)
+        _discoverySection = State(initialValue: .discovery)
         #endif
     }
 
@@ -81,7 +84,8 @@ private struct AppTabs: View {
                     ownerId: userId,
                     onTryOn: { item in
                         studio.worn[item.category] = item
-                        selectedTab = 3
+                        openStudioOnPresent = true
+                        showingProfile = true
                     },
                     onTryOutfit: { outfit in
                         var wornItems: [ClothingCategory: ClothingItem] = [:]
@@ -93,9 +97,19 @@ private struct AppTabs: View {
                         }
 
                         studio.worn = wornItems
-                        selectedTab = 3
+                        openStudioOnPresent = true
+                        showingProfile = true
                     }
                 )
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Profile", systemImage: "person.crop.circle") {
+                            openStudioOnPresent = false
+                            showingProfile = true
+                        }
+                            .accessibilityIdentifier("app.profileButton")
+                    }
+                }
             }
             .tabItem { Label("My Closet", image: selectedTab == 0 ? "TablerHanger2Filled" : "TablerHanger2") }
             .tag(0)
@@ -104,18 +118,16 @@ private struct AppTabs: View {
 
             NavigationStack {
                 VStack(spacing: 0) {
-                    Picker("Discovery", selection: $discoverySection) {
-                        Text("Discovery").tag(0)
-                        Text("OOTD").tag(1)
-                    }
-                    .pickerStyle(.segmented)
+                    DiscoverySectionSwitch(selection: discoverySection) { discoverySection = $0 }
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
                     .padding(.bottom, 8)
-                    .accessibilityIdentifier("discovery.sectionPicker")
 
-                    if discoverySection == 0 {
-                        DiscoveryIdeasView { selectedTab = 3 }
+                    if discoverySection == .discovery {
+                        DiscoveryIdeasView {
+                            openStudioOnPresent = false
+                            showingProfile = true
+                        }
                     } else {
                         OOTDFeedView()
                     }
@@ -148,24 +160,19 @@ private struct AppTabs: View {
             .tabItem { Label("Camera", image: selectedTab == 2 ? "TablerCameraFilled" : "TablerCamera") }
             .tag(2)
 
-            // MARK: - Avatar
-
-            NavigationStack {
-                ProfileView(
-                    username: userId,
-                    items: closet.items,
-                    model: studio,
-                    closet: closet,
-                    outfits: outfits,
-                    onSignOut: signOut,
-                    image: { photo(for: $0) },
-                    uiImage: { closet.image(for: $0) }
-                )
-            }
-            .tabItem {
-                Label("Avatar", systemImage: "person.crop.circle")
-            }
-            .tag(3)
+        }
+        .sheet(isPresented: $showingProfile) {
+            ProfileView(
+                username: userId,
+                items: closet.items,
+                model: studio,
+                closet: closet,
+                outfits: outfits,
+                openStudioOnPresent: openStudioOnPresent,
+                onSignOut: signOut,
+                image: { photo(for: $0) },
+                uiImage: { closet.image(for: $0) }
+            )
         }
 
         // MARK: - Sign Out Error
