@@ -66,6 +66,10 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Review Item"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Seen in 2 photos"].waitForExistence(timeout: 30))
         XCTAssertTrue(app.buttons["Cancel"].exists)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Multi-photo item review"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
     }
 
     func testFullOutfitMultiPhotoReviewStartsUnselected() {
@@ -90,14 +94,18 @@ final class NavigationUITests: XCTestCase {
         }
         XCTAssertTrue(saveSelectedPieces.exists, app.debugDescription)
         XCTAssertFalse(saveSelectedPieces.isEnabled)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Full-outfit review starts unselected"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
     }
 
     private func selectTwoSimulatorPhotos(in app: XCUIApplication) {
         app.buttons["Choose from Photos"].tap()
         let photoImages = app.images.matching(NSPredicate(format: "label BEGINSWITH %@", "Photo,"))
         XCTAssertTrue(photoImages.element(boundBy: 1).waitForExistence(timeout: 10), app.debugDescription)
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.16, dy: 0.56)).tap()
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.56)).tap()
+        photoImages.element(boundBy: 0).tap()
+        photoImages.element(boundBy: 1).tap()
         app.buttons["Add"].tap()
         XCTAssertTrue(app.buttons["Review 2 Photos"].waitForExistence(timeout: 10))
     }
