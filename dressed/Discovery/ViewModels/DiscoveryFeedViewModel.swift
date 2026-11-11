@@ -116,4 +116,10 @@ struct DemoPostFunctions: PostFunctions {
             )
         }
     }
+    // An unknown ID returns nil, the same as a deleted post in Firestore.
+    func fetchPost(id: String) async throws -> Post? {
+        try await fetchRecentPosts().first { $0.id == id }
+    }
 }
+
+
