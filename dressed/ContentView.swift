@@ -29,6 +29,7 @@ private struct AppTabs: View {
     let userId: String
 
     @StateObject private var closet: PrototypeClosetStore
+    @StateObject private var outfits: PrototypeOutfitStore
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -44,14 +45,18 @@ private struct AppTabs: View {
     @State private var presentedSharedLinkId: String?
     @State private var deferredSharedLinkId: String?
 
-    @State private var studio = OutfitStudioModel()
+    @State private var studio: OutfitStudioModel
 
     init(session: SessionViewModel, userId: String) {
         self.session = session
         self.userId = userId
+        _studio = State(initialValue: OutfitStudioModel(ownerId: userId))
 
         _closet = StateObject(
             wrappedValue: PrototypeClosetStore(ownerId: userId)
+        )
+        _outfits = StateObject(
+            wrappedValue: PrototypeOutfitStore(ownerId: userId)
         )
 
         #if DEBUG
@@ -72,7 +77,24 @@ private struct AppTabs: View {
             NavigationStack {
                 PrototypeClosetView(
                     closet: closet,
-                    ownerId: userId
+                    outfits: outfits,
+                    ownerId: userId,
+                    onTryOn: { item in
+                        studio.worn[item.category] = item
+                        selectedTab = 3
+                    },
+                    onTryOutfit: { outfit in
+                        var wornItems: [ClothingCategory: ClothingItem] = [:]
+
+                        for placement in outfit.placements {
+                            if let item = closet.item(id: placement.itemId) {
+                                wornItems[item.category] = item
+                            }
+                        }
+
+                        studio.worn = wornItems
+                        selectedTab = 3
+                    }
                 )
             }
             .tabItem { Label("My Closet", image: selectedTab == 0 ? "TablerHanger2Filled" : "TablerHanger2") }
@@ -134,6 +156,7 @@ private struct AppTabs: View {
                     items: closet.items,
                     model: studio,
                     closet: closet,
+                    outfits: outfits,
                     onSignOut: signOut,
                     image: { photo(for: $0) },
                     uiImage: { closet.image(for: $0) }
@@ -274,6 +297,10 @@ private struct AppTabs: View {
                 } catch {
                     sharedImageError = error.localizedDescription
                 }
+            }
+
+            if arguments.contains("-seedClosetFixture") {
+                try? ClosetFixture.seed(into: closet)
             }
             #endif
 

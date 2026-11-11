@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ProfileHeader: View {
-    let avatar : Image
+    let avatar: Image
     let name: String
     let username: String
 
@@ -32,7 +32,7 @@ struct ProfileHeader: View {
             Spacer()
         }
 
-        //.padding(.top)
+        // .padding(.top)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding()
     }

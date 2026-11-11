@@ -266,7 +266,7 @@ enum Mannequin {
         }
         return mesh
     }
-    
+
     // MARK: - Default outfit (worn when nothing else covers the body)
 
     /// A plain crew-neck tee: the torso from the hip to the shoulders, plus short sleeves.

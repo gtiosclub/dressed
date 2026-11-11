@@ -8,10 +8,81 @@ struct SavedOutfit: Identifiable {
 
 @Observable
 final class OutfitStudioModel {
-    var look: [AvatarPart: Int] = [:]
-    var worn: [ClothingCategory: ClothingItem] = [:]
+    var look: [AvatarPart: Int] {
+        didSet { saveLook() }
+    }
+    var worn: [ClothingCategory: ClothingItem] = [:] {
+        didSet { recordWornChange() }
+    }
     var savedOutfits: [SavedOutfit] = []
     var zoom: Double = 1
+    private(set) var lookSaveError: String?
+
+    // Undo/redo for clothing selections. `worn` is changed from many places, so its didSet records
+    // each change. In-memory only, like `worn` itself.
+    private(set) var canUndo = false
+    private(set) var canRedo = false
+    @ObservationIgnored private var history = UndoHistory(initial: OutfitSnapshot())
+    @ObservationIgnored private var isRestoring = false
+
+    // nil for previews, which should not read or write anyone's saved avatar.
+    @ObservationIgnored private let ownerId: String?
+
+    init(ownerId: String? = nil) {
+        self.ownerId = ownerId
+        look = ownerId.map(AvatarLookStore.load(ownerId:)) ?? [:]
+    }
+
+    private func recordWornChange() {
+        guard !isRestoring else { return }
+        history.commit(OutfitSnapshot(worn))
+        refreshHistoryFlags()
+    }
+
+    private func refreshHistoryFlags() {
+        canUndo = history.canUndo
+        canRedo = history.canRedo
+    }
+
+    /// Goes back one clothing change. `available` is the set of closet item ids that still exist; pieces
+    /// outside it are left off. Does nothing when there is nothing to undo.
+    func undo(available: Set<String>? = nil) {
+        step(available: available) { history.undo() }
+    }
+
+    /// Redoes the clothing change that was just undone. See `undo(available:)`.
+    func redo(available: Set<String>? = nil) {
+        step(available: available) { history.redo() }
+    }
+
+    private func step(available: Set<String>?, next: () -> OutfitSnapshot?) {
+        let before = OutfitSnapshot(worn)
+        while let snapshot = next() {
+            let applied = available.map { snapshot.keeping(only: $0) } ?? snapshot
+            // A step whose only change was a piece that no longer exists looks like nothing happened, so skip it.
+            if applied == before { continue }
+            isRestoring = true
+            worn = applied.items
+            isRestoring = false
+            history.replacePresent(with: applied)
+            break
+        }
+        refreshHistoryFlags()
+    }
+
+    func clearLookSaveError() {
+        lookSaveError = nil
+    }
+
+    private func saveLook() {
+        guard let ownerId else { return }
+        do {
+            try AvatarLookStore.save(look, ownerId: ownerId)
+            lookSaveError = nil
+        } catch {
+            lookSaveError = "Your avatar changes could not be saved: \(error.localizedDescription)"
+        }
+    }
 
     // Tapping the worn item again takes it off.
     // Tapping another item in the same category replaces it.
@@ -45,8 +116,9 @@ struct ProfileView: View {
     let username: String
     let items: [ClothingItem]
     let model: OutfitStudioModel
+    @ObservedObject var outfits: PrototypeOutfitStore
 
-    var closet: PrototypeClosetStore? = nil
+    var closet: PrototypeClosetStore?
 
     let image: (ClothingItem) -> Image
     let onSignOut: () -> Void
@@ -58,16 +130,19 @@ struct ProfileView: View {
         items: [ClothingItem],
         model: OutfitStudioModel,
         closet: PrototypeClosetStore? = nil,
+        outfits: PrototypeOutfitStore,
         onSignOut: @escaping () -> Void,
         image: @escaping (ClothingItem) -> Image = {
             _ in Image(systemName: "photo")
         },
-        uiImage: ((ClothingItem) -> UIImage?)? = nil
+        uiImage: ((ClothingItem) -> UIImage?)? = nil,
+        
     ) {
         self.username = username
         self.items = items
         self.model = model
         self.closet = closet
+        _outfits = ObservedObject(wrappedValue: outfits)
         self.onSignOut = onSignOut
         self.image = image
         self.uiImage = uiImage
@@ -79,9 +154,21 @@ struct ProfileView: View {
                 model: model,
                 closet: closet,
                 items: items,
+                outfits: outfits,
                 image: image,
-                uiImage: uiImage
+                uiImage: uiImage,
             )
+        }
+        .alert(
+            "Avatar not saved",
+            isPresented: Binding(
+                get: { model.lookSaveError != nil },
+                set: { if !$0 { model.clearLookSaveError() } }
+            )
+        ) {
+            Button("OK", role: .cancel) { model.clearLookSaveError() }
+        } message: {
+            Text(model.lookSaveError ?? "Please try again.")
         }
     }
 }
@@ -93,6 +180,7 @@ struct ProfileView: View {
         username: "aditya",
         items: ClothingItem.previewSamples,
         model: OutfitStudioModel(),
+        outfits: PrototypeOutfitStore(ownerId: "preview"),
         onSignOut: {}
     )
 }

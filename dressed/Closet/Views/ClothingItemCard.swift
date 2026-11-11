@@ -4,7 +4,7 @@ struct ClothingItemCard: View {
     private let thumbnail: AnyView
     let name: String
     let category: ClothingCategory
-    var subtitle: String? = nil  // replaces the category label when set
+    var subtitle: String?  // replaces the category label when set
     let onTap: () -> Void
 
     init(image: Image, name: String, category: ClothingCategory, subtitle: String? = nil, onTap: @escaping () -> Void) {
@@ -67,4 +67,3 @@ private struct ClothingItemCardPreview: View {
         }
     }
 }
-

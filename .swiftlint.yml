@@ -4,3 +4,41 @@ included:
 excluded:
   - backend
   - Pods
+
+# The app contains canvas/drawing code and prototype views where coordinate
+# variables and larger UI functions are meaningful. Keep SwiftLint focused on
+# correctness-adjacent issues without forcing unrelated feature rewrites.
+disabled_rules:
+  - closure_parameter_position
+  - large_tuple
+  - multiple_closures_with_trailing_closure
+  - orphaned_doc_comment
+  - todo
+  - vertical_parameter_alignment
+
+identifier_name:
+  min_length: 1
+
+line_length:
+  warning: 250
+  error: 300
+
+cyclomatic_complexity:
+  warning: 30
+  error: 40
+
+function_body_length:
+  warning: 300
+  error: 400
+
+function_parameter_count:
+  warning: 10
+  error: 12
+
+type_body_length:
+  warning: 800
+  error: 1000
+
+file_length:
+  warning: 1000
+  error: 1500

@@ -30,7 +30,7 @@ struct AvatarView: View {
     let look: [AvatarPart: Int]
     let worn: [ClothingCategory: ClothingItem]
     let image: (ClothingItem) -> Image
-    var uiImage: ((ClothingItem) -> UIImage?)? = nil
+    var uiImage: ((ClothingItem) -> UIImage?)?
     var zoom: Double = 1
     var use3D: Bool = true
     var allowsInteraction: Bool = true
@@ -259,7 +259,6 @@ private enum AvatarScene {
             model(Mannequin.body(avatar.body, face: avatar.face), material: porcelain(avatar.skin))
         }
 
-
         let hairParts: [AvatarPart] = [.gender, .hair, .bangs, .color, .face, .body]
         replaceChild(of: turntable, prefix: hairPrefix, signature: signature(look, hairParts)) {
             model(
@@ -277,7 +276,7 @@ private enum AvatarScene {
                 let preset = GarmentPreset.detect(name: item.name, category: category, itemId: item.id)
                 let fabric = garmentColor(for: item, uiImage: uiImage)
                 let sig = "\(item.id)-\(item.name)-\(preset.rawValue)-\(bodySignature)-\(fabric.resolved)"
-                
+
                 replaceChild(of: turntable, prefix: garmentPrefix, signature: sig) {
                     let mesh = MannequinGarments.mesh(for: preset, shape: avatar.body)
                     let garment = model(mesh, material: fabricFinish(fabric.color))

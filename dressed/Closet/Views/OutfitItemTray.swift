@@ -10,7 +10,7 @@ struct OutfitItem: Identifiable {
     let thumbnail: AnyView
     let name: String
     let category: ClothingCategory
-    var subtitle: String? = nil  // shown instead of the category label when set
+    var subtitle: String?  // shown instead of the category label when set
 
     init(id: UUID, image: Image, name: String, category: ClothingCategory, subtitle: String? = nil) {
         self.id = id
@@ -114,7 +114,7 @@ final class OutfitTrayViewModel {
         items = [
             OutfitItem(id: UUID(), image: Image(systemName: "tshirt"), name: "Blue shirt", category: .tops),
             OutfitItem(id: UUID(), image: Image(systemName: "photo"), name: "Black pants", category: .tops),
-            OutfitItem(id: UUID(), image: Image(systemName: "shoe"), name: "White sneakers", category: .shoes),
+            OutfitItem(id: UUID(), image: Image(systemName: "shoe"), name: "White sneakers", category: .shoes)
         ]
     }
 

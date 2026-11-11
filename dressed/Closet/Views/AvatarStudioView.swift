@@ -4,10 +4,12 @@ import SwiftUI
 /// customizes avatar appearance, saves outfits, and captures photos.
 struct AvatarStudioView: View {
     @Bindable var model: OutfitStudioModel
-    var closet: PrototypeClosetStore? = nil
+    var closet: PrototypeClosetStore?
     let items: [ClothingItem]
+    let outfits: PrototypeOutfitStore
     let image: (ClothingItem) -> Image
-    var uiImage: ((ClothingItem) -> UIImage?)? = nil
+    var uiImage: ((ClothingItem) -> UIImage?)?
+
 
     enum StudioTab: String, CaseIterable, Identifiable {
         case tryOn = "Try On"
@@ -21,11 +23,11 @@ struct AvatarStudioView: View {
         let id: String
     }
 
+    @State private var draftOutfitName = ""
     @State private var activeTab: StudioTab = .tryOn
-    @State private var showingTakePic = false
-    @State private var itemDetailSheet: ItemDetailSheet? = nil
+    @State private var itemDetailSheet: ItemDetailSheet?
     @State private var outfitSavedAlert = false
-
+    
     var body: some View {
         VStack(spacing: 0) {
             Picker("Mode", selection: $activeTab) {
@@ -50,39 +52,73 @@ struct AvatarStudioView: View {
         .navigationTitle("Avatar Studio")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                TextField("Unnamed Outfit", text: $draftOutfitName)
+                    .textFieldStyle(.roundedBorder)
+                    .multilineTextAlignment(.center)
+                    .accessibilityLabel("Outfit name")
+            }
+
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    model.saveCurrentOutfit()
-                    outfitSavedAlert = true
+                    let placements: [OutfitPlacement] =
+                        ClothingCategory.layerOrder.enumerated().compactMap { layer, category in
+                            guard let item = model.worn[category] else {
+                                return nil
+                            }
+
+                            return OutfitPlacement(
+                                itemId: item.id,
+                                centerX: 0.5,
+                                centerY: 0.5,
+                                width: 0.5,
+                                rotationDegrees: 0,
+                                layer: layer
+                            )
+                        }
+
+                    let typedName = draftOutfitName.trimmingCharacters(
+                        in: .whitespacesAndNewlines
+                    )
+
+                    let outfitName = typedName.isEmpty
+                        ? "Unnamed Outfit \(outfits.outfits.count + 1)"
+                        : typedName
+
+                    do {
+                        try outfits.save(
+                            name: outfitName,
+                            placements: placements,
+                            availableItems: items
+                        )
+
+                        draftOutfitName = ""
+                        outfitSavedAlert = true
+                    } catch {
+                        print("Could not save outfit: \(error.localizedDescription)")
+                    }
                 } label: {
                     Label("Save Outfit", systemImage: "heart")
                 }
                 .disabled(model.worn.isEmpty)
             }
 
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showingTakePic = true
-                } label: {
-                    Image(systemName: "camera")
-                }
-                .accessibilityLabel("Take photo of avatar")
-            }
         }
         .alert("Outfit Saved", isPresented: $outfitSavedAlert) {
             Button("OK", role: .cancel) { outfitSavedAlert = false }
         } message: {
             Text("Find it under Saved Fits in Try On.")
         }
-        .sheet(isPresented: $showingTakePic) {
-            NavigationStack {
-                StudioTakePicView(model: model, image: image, uiImage: uiImage)
-            }
-        }
+        
         .sheet(item: $itemDetailSheet) { sheet in
             if let closet {
                 NavigationStack {
-                    PrototypeItemDetailView(closet: closet, itemID: sheet.id)
+                    PrototypeItemDetailView(
+                        closet: closet,
+                        itemID: sheet.id,
+                        onTryOn: { item in
+                            model.worn[item.category] = item
+                    })
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
                                 Button("Done") { itemDetailSheet = nil }
@@ -95,7 +131,7 @@ struct AvatarStudioView: View {
 
     // MARK: - 1. Try On Mode
 
-    @State private var trayCategory: ClothingCategory? = nil
+    @State private var trayCategory: ClothingCategory?
     @State private var traySource = 0 // 0 = Clothing, 1 = Saved fits
 
     private var filteredItems: [ClothingItem] {
@@ -114,6 +150,15 @@ struct AvatarStudioView: View {
                     zoom: model.zoom
                 )
                 StudioZoomSlider(zoom: $model.zoom).padding(.trailing, 8)
+            }
+            .overlay(alignment: .bottomLeading) {
+                StudioUndoRedoButtons(
+                    canUndo: model.canUndo,
+                    canRedo: model.canRedo,
+                    undo: { model.undo(available: Set(items.map(\.id))) },
+                    redo: { model.redo(available: Set(items.map(\.id))) }
+                )
+                .padding(8)
             }
 
             // Currently worn quick chips
@@ -140,6 +185,7 @@ struct AvatarStudioView: View {
                                     .background(.ultraThinMaterial, in: Capsule())
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityIdentifier("studio.worn.\(cat.rawValue)")
                                 .contextMenu {
                                     Button("Inspect Details") {
                                         itemDetailSheet = ItemDetailSheet(id: wornItem.id)
@@ -228,18 +274,45 @@ struct AvatarStudioView: View {
         return UUID(uuidString: formatted) ?? UUID()
     }
 
+    private func wornItems(for outfit: Outfit) -> [ClothingCategory: ClothingItem] {
+        var worn: [ClothingCategory: ClothingItem] = [:]
+
+        for placement in outfit.placements {
+            guard let item = items.first(where: { item in
+                item.id == placement.itemId
+            }) else {
+                continue
+            }
+
+            worn[item.category] = item
+        }
+
+        return worn
+    }
+
     private var savedFitsTray: some View {
-        OutfitItemTray(
-            items: model.savedOutfits.map { outfit in
-                OutfitItem(
-                    id: outfit.id,
-                    thumbnail: AnyView(SavedFitThumbnail(worn: outfit.worn, image: image)),
-                    name: outfit.name,
+        let entries = outfits.outfits.map { outfit in
+            let worn = wornItems(for: outfit)
+
+            return (
+                worn: worn,
+                tray: OutfitItem(
+                    id: Self.stableID(for: outfit.id),
+                    thumbnail: AnyView(
+                        SavedFitThumbnail(look: model.look, worn: worn, image: image)
+                    ),
+                    name: outfit.name ?? "Outfit",
                     category: .tops,
-                    subtitle: "\(outfit.worn.count) pieces"
+                    subtitle: "\(worn.count) pieces"
                 )
-            },
-            onSelect: { model.wearOutfit(id: $0) }
+            )
+        }
+        return OutfitItemTray(
+            items: entries.map { $0.tray },
+            onSelect: { id in
+                guard let entry = entries.first(where: { $0.tray.id == id }) else { return }
+                model.worn = entry.worn
+            }
         )
     }
 
@@ -367,28 +440,61 @@ struct AvatarStudioView: View {
 
 // MARK: - Saved fit thumbnail
 
-/// A flat, lightweight picture of a saved outfit: its pieces laid out where they sit on the body.
-/// Plain SwiftUI images, so it costs nothing next to a live 3D scene.
+/// A mini avatar wearing a saved outfit, for outfit cards.
+/// Uses the flat(non-3D) avatar so it costs nothing next to live RealityKit scene, and it
+/// takes the user's current look so the body matches their avatar instead of a generic figure.
 private struct SavedFitThumbnail: View {
+    let look: [AvatarPart: Int]
     let worn: [ClothingCategory: ClothingItem]
     let image: (ClothingItem) -> Image
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                Color.gray.opacity(0.12)
-                ForEach(ClothingCategory.layerOrder, id: \.self) { category in
-                    if let item = worn[category] {
-                        let slot = category.avatarSlot
-                        image(item)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: geo.size.width * 0.6, height: geo.size.height * slot.size)
-                            .position(x: geo.size.width / 2, y: geo.size.height * slot.y)
-                    }
-                }
-            }
+        AvatarView(
+            look: look,
+            worn: worn,
+            image: image,
+            use3D: false,
+            allowsInteraction: false
+        )
+        .allowsHitTesting(false)
+    }
+}
+
+// MARK: - Undo / Redo
+
+private struct StudioUndoRedoButtons: View {
+    let canUndo: Bool
+    let canRedo: Bool
+    let undo: () -> Void
+    let redo: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            button(
+                "arrow.uturn.backward", label: "Undo outfit change", id: "studio.undo",
+                enabled: canUndo, action: undo
+            )
+            button(
+                "arrow.uturn.forward", label: "Redo outfit change", id: "studio.redo",
+                enabled: canRedo, action: redo
+            )
         }
+    }
+
+    private func button(
+        _ symbol: String, label: String, id: String, enabled: Bool, action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.body.weight(.semibold))
+                .frame(width: 40, height: 40)
+                .background(.thinMaterial, in: Circle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+        .opacity(enabled ? 1 : 0.4)
+        .accessibilityLabel(label)
+        .accessibilityIdentifier(id)
     }
 }
 
@@ -411,7 +517,7 @@ private struct StudioTakePicView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var model: OutfitStudioModel
     let image: (ClothingItem) -> Image
-    var uiImage: ((ClothingItem) -> UIImage?)? = nil
+    var uiImage: ((ClothingItem) -> UIImage?)?
 
     @State private var snapshot: UIImage?
 
