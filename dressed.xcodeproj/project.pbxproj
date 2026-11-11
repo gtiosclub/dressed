@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		360046AB307476B400F78859 /* .swiftlint.yml in Resources */ = {isa = PBXBuildFile; fileRef = 360046AA3074769B00F78859 /* .swiftlint.yml */; };
+
 		8B87D8B5305380D900F3CF9E /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8B4305380D900F3CF9E /* FirebaseCore */; };
 		8B87D8B7305380DD00F3CF9E /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8B6305380DD00F3CF9E /* FirebaseAuth */; };
 		8B87D8B9305380E200F3CF9E /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8B8305380E200F3CF9E /* FirebaseStorage */; };
@@ -33,6 +34,7 @@
 			remoteGlobalIDString = 8B87D86630537AB400F3CF9E;
 			remoteInfo = dressed;
 		};
+
 
 		A10D00000000000000000001 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -90,6 +92,7 @@
 
 /* End PBXFileReference section */
 
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		D20500000000000000000001 /* dressedTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -111,6 +114,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+
 
 		8B87D86430537AB400F3CF9E /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
@@ -141,6 +145,7 @@
 			files = ();
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+
 
 /* End PBXFrameworksBuildPhase section */
 
@@ -202,11 +207,30 @@
 			sourceTree = "<group>";
 		};
 		D30500000000000000000001 /* dressedUnitTests */ = {
+
 			isa = PBXGroup;
 			children = (
 				D30200000000000000000001 /* MultiPhotoCandidateGrouperTests.swift */,
 			);
 			path = dressedUnitTests;
+			sourceTree = "<group>";
+		};
+		A10500000000000000000001 /* DressedShareExtension */ = {
+			isa = PBXGroup;
+			children = (
+				A10200000000000000000001 /* ShareViewController.swift */,
+				A10200000000000000000002 /* Info.plist */,
+				A10200000000000000000003 /* DressedShareExtension.entitlements */,
+			);
+			path = DressedShareExtension;
+			sourceTree = "<group>";
+		};
+		B20500000000000000000001 /* dressedUITests */ = {
+			isa = PBXGroup;
+			children = (
+				B20200000000000000000001 /* ShareImportUITests.swift */,
+			);
+			path = dressedUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -234,6 +258,7 @@
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 
+
 		8B87D86630537AB400F3CF9E /* dressed */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 8B87D87230537AB500F3CF9E /* Build configuration list for PBXNativeTarget "dressed" */;
@@ -242,7 +267,7 @@
 				8B87D86330537AB400F3CF9E /* Sources */,
 				8B87D86430537AB400F3CF9E /* Frameworks */,
 				8B87D86530537AB400F3CF9E /* Resources */,
-				A10300000000000000000001 /* Embed App Extensions */,
+				A10300000000000000000001 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
@@ -316,6 +341,7 @@
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 
+
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -324,7 +350,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2660;
-				LastUpgradeCheck = 2700;
+				LastUpgradeCheck = 2710;
 				TargetAttributes = {
 					8B87D86630537AB400F3CF9E = {
 						CreatedOnToolsVersion = 26.6;
@@ -417,6 +443,7 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 
+
 		8B87D86330537AB400F3CF9E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -456,6 +483,7 @@
 			target = 8B87D86630537AB400F3CF9E /* dressed */;
 			targetProxy = D20D00000000000000000001 /* PBXContainerItemProxy */;
 		};
+
 
 		A10B00000000000000000001 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -513,6 +541,7 @@
 			};
 			name = Release;
 		};
+
 
 		8B87D87030537AB500F3CF9E /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -829,6 +858,7 @@
 			defaultConfigurationName = Release;
 		};
 
+
 		8B87D86230537AB400F3CF9E /* Build configuration list for PBXProject "dressed" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -871,6 +901,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+
 
 /* End XCConfigurationList section */
 
