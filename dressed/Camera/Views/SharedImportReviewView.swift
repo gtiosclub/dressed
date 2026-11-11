@@ -141,7 +141,7 @@ struct SharedImportReviewView: View {
             } message: {
                 Text("The draft and its temporary image will be removed.")
             }
-            .sheet(isPresented: Binding(
+            .fullScreenCover(isPresented: Binding(
                 get: { cropCandidateID != nil },
                 set: { if !$0 { cropCandidateID = nil } }
             )) {
@@ -297,6 +297,9 @@ struct SharedImageRegionEditor: View {
     @State private var outline: [NormalizedImagePoint]?
     @State private var drawing: [NormalizedImagePoint] = []
     @State private var isDrawingOutline = false
+    @State private var zoom = 1.0
+    @State private var panOffset = CGPoint.zero
+    @State private var dragOffset = CGPoint.zero
 
     init(imageData: Data, initial: NormalizedImageRegion?,
          initialOutline: [NormalizedImagePoint]? = nil,
@@ -312,58 +315,128 @@ struct SharedImageRegionEditor: View {
         NavigationStack {
             Form {
                 if let image = UIImage(data: imageData) {
-                    GeometryReader { geometry in
-                        let scale = min(geometry.size.width / image.size.width,
-                                        geometry.size.height / image.size.height)
-                        let display = CGSize(width: image.size.width * scale,
-                                             height: image.size.height * scale)
-                        let origin = CGPoint(x: (geometry.size.width - display.width) / 2,
-                                             y: (geometry.size.height - display.height) / 2)
-                        Image(uiImage: image)
-                            .resizable()
-                            .frame(width: display.width, height: display.height)
-                            .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
-                        if isDrawingOutline {
-                            Path { path in
-                                for (index, point) in (drawing.isEmpty ? outline ?? [] : drawing).enumerated() {
-                                    let location = CGPoint(x: origin.x + point.x * display.width,
-                                                           y: origin.y + point.y * display.height)
-                                    if index == 0 { path.move(to: location) } else { path.addLine(to: location) }
-                                }
-                                if drawing.isEmpty && outline != nil { path.closeSubpath() }
-                            }
-                            .stroke(.yellow, lineWidth: 3)
-                        } else {
-                            Rectangle()
-                                .stroke(.yellow, lineWidth: 3)
-                                .frame(width: display.width * region.width,
-                                       height: display.height * region.height)
-                                .position(x: origin.x + display.width * (region.x + region.width / 2),
-                                          y: origin.y + display.height * (region.y + region.height / 2))
-                        }
-                        if isDrawingOutline {
-                            Color.clear
-                                .contentShape(Rectangle())
-                                .gesture(DragGesture(minimumDistance: 5)
-                                    .onChanged { value in
-                                        let x = (value.location.x - origin.x) / display.width
-                                        let y = (value.location.y - origin.y) / display.height
-                                        guard (0...1).contains(x), (0...1).contains(y) else { return }
-                                        if drawing.isEmpty { outline = nil }
-                                        drawing.append(NormalizedImagePoint(x: x, y: y))
+                    Section("Image") {
+                        GeometryReader { geometry in
+                            let baseScale = min(geometry.size.width / image.size.width,
+                                                geometry.size.height / image.size.height)
+                            let baseSize = CGSize(width: image.size.width * baseScale,
+                                                  height: image.size.height * baseScale)
+                            let display = CGSize(width: baseSize.width * zoom,
+                                                 height: baseSize.height * zoom)
+                            let boundedPan = clampedOffset(panOffset, imageSize: baseSize, zoom: zoom)
+                            let visibleOffset = CGPoint(x: boundedPan.x + dragOffset.x,
+                                                        y: boundedPan.y + dragOffset.y)
+                            let origin = CGPoint(
+                                x: (geometry.size.width - display.width) / 2 + visibleOffset.x,
+                                y: (geometry.size.height - display.height) / 2 + visibleOffset.y
+                            )
+
+                            ZStack(alignment: .topLeading) {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .frame(width: display.width, height: display.height)
+                                    .position(x: origin.x + display.width / 2,
+                                              y: origin.y + display.height / 2)
+
+                                if isDrawingOutline {
+                                    Path { path in
+                                        let points = drawing.isEmpty ? outline ?? [] : drawing
+                                        for (index, point) in points.enumerated() {
+                                            let location = CGPoint(x: origin.x + point.x * display.width,
+                                                                   y: origin.y + point.y * display.height)
+                                            if index == 0 { path.move(to: location) } else {
+                                                path.addLine(to: location)
+                                            }
+                                        }
+                                        if drawing.isEmpty && outline != nil { path.closeSubpath() }
                                     }
-                                    .onEnded { _ in finishOutline() })
-                                .simultaneousGesture(SpatialTapGesture().onEnded { value in
-                                    let x = (value.location.x - origin.x) / display.width
-                                    let y = (value.location.y - origin.y) / display.height
-                                    guard (0...1).contains(x), (0...1).contains(y) else { return }
-                                    if drawing.isEmpty { outline = nil }
-                                    drawing.append(NormalizedImagePoint(x: x, y: y))
+                                    .stroke(.yellow, lineWidth: 3)
+                                } else {
+                                    Rectangle()
+                                        .stroke(.yellow, lineWidth: 3)
+                                        .frame(width: display.width * region.width,
+                                               height: display.height * region.height)
+                                        .position(
+                                            x: origin.x + display.width * (region.x + region.width / 2),
+                                            y: origin.y + display.height * (region.y + region.height / 2)
+                                        )
+                                }
+                            }
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .contentShape(Rectangle())
+                            .clipped()
+                            .gesture(DragGesture(minimumDistance: 3)
+                                .onChanged { value in
+                                    if isDrawingOutline {
+                                        appendOutlinePoint(value.location, origin: origin, display: display)
+                                    } else {
+                                        dragOffset = value.translation
+                                    }
+                                }
+                                .onEnded { value in
+                                    if isDrawingOutline {
+                                        finishOutline()
+                                    } else {
+                                        panOffset = clampedOffset(
+                                            CGPoint(x: boundedPan.x + value.translation.width,
+                                                    y: boundedPan.y + value.translation.height),
+                                            imageSize: baseSize,
+                                            zoom: zoom
+                                        )
+                                        dragOffset = .zero
+                                    }
                                 })
+                            .simultaneousGesture(SpatialTapGesture().onEnded { value in
+                                guard isDrawingOutline else { return }
+                                appendOutlinePoint(value.location, origin: origin, display: display)
+                            })
                         }
+                        .frame(height: 360)
+                        .accessibilityLabel("Zoomable image region editor")
+
+                        HStack(alignment: .top, spacing: 12) {
+                            if let previewImage = UIImage(data: imageData) {
+                                ImageRegionMiniMap(
+                                    image: previewImage,
+                                    region: region,
+                                    viewport: visibleViewport(
+                                        imageSize: CGSize(width: image.size.width * min(1, 360 / image.size.width),
+                                                          height: image.size.height * min(1, 360 / image.size.height)),
+                                        zoom: zoom,
+                                        offset: panOffset
+                                    )
+                                )
+                                .frame(width: 112, height: 96)
+                            }
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Zoomed part")
+                                    .font(.subheadline.weight(.semibold))
+                                Text("Blue shows the area in view. Yellow shows the piece you’ll keep.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text("Zoom")
+                                Spacer()
+                                Text("\(Int(zoom * 100))%")
+                                    .monospacedDigit()
+                                    .foregroundStyle(.secondary)
+                            }
+                            Slider(value: $zoom, in: 1...4, step: 0.1)
+                                .accessibilityLabel("Image zoom")
+                                .accessibilityValue("\(Int(zoom * 100)) percent")
+                        }
+                        Text(isDrawingOutline
+                             ? "Drag or tap around the piece to draw its outline. Turn off Draw Outline to move the zoomed image."
+                             : "Drag the image to move it. Adjust the yellow region with the sliders below.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
                     }
-                    .frame(height: 360)
                 }
+
                 Section("Image Region") {
                     Picker("Selection", selection: $isDrawingOutline) {
                         Text("Rectangle").tag(false)
@@ -371,7 +444,7 @@ struct SharedImageRegionEditor: View {
                     }
                     .pickerStyle(.segmented)
                     if isDrawingOutline {
-                        Text("Trace with your finger or tap points around one piece, then close the outline. The area outside becomes transparent.")
+                        Text("Trace around one piece, then close the outline. The area outside becomes transparent.")
                             .font(.footnote).foregroundStyle(.secondary)
                         if drawing.count >= 3 {
                             Button("Close Outline") { finishOutline() }
@@ -410,6 +483,29 @@ struct SharedImageRegionEditor: View {
         }
     }
 
+    private func appendOutlinePoint(_ location: CGPoint, origin: CGPoint, display: CGSize) {
+        let x = (location.x - origin.x) / display.width
+        let y = (location.y - origin.y) / display.height
+        guard (0...1).contains(x), (0...1).contains(y) else { return }
+        if drawing.isEmpty { outline = nil }
+        drawing.append(NormalizedImagePoint(x: x, y: y))
+    }
+
+    private func clampedOffset(_ offset: CGPoint, imageSize: CGSize, zoom: Double) -> CGPoint {
+        let limitX = imageSize.width * CGFloat(max(0, zoom - 1)) / 2
+        let limitY = imageSize.height * CGFloat(max(0, zoom - 1)) / 2
+        return CGPoint(x: min(max(offset.x, -limitX), limitX),
+                       y: min(max(offset.y, -limitY), limitY))
+    }
+
+    private func visibleViewport(imageSize: CGSize, zoom: Double, offset: CGPoint) -> NormalizedImageRegion {
+        let width = min(1, 1 / zoom)
+        let height = min(1, 1 / zoom)
+        let x = min(max(0.5 - Double(offset.x / (imageSize.width * zoom)) - width / 2, 0), 1 - width)
+        let y = min(max(0.5 - Double(offset.y / (imageSize.height * zoom)) - height / 2, 0), 1 - height)
+        return NormalizedImageRegion(x: x, y: y, width: width, height: height)
+    }
+
     private func finishOutline() {
         defer { drawing = [] }
         guard drawing.count >= 3 else { return }
@@ -420,5 +516,42 @@ struct SharedImageRegionEditor: View {
         guard candidate.isValid, candidate.width >= 0.01, candidate.height >= 0.01 else { return }
         outline = drawing
         region = candidate
+    }
+}
+
+private struct ImageRegionMiniMap: View {
+    let image: UIImage
+    let region: NormalizedImageRegion
+    let viewport: NormalizedImageRegion
+
+    var body: some View {
+        GeometryReader { geometry in
+            let scale = min(geometry.size.width / image.size.width,
+                            geometry.size.height / image.size.height)
+            let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+            let origin = CGPoint(x: (geometry.size.width - size.width) / 2,
+                                 y: (geometry.size.height - size.height) / 2)
+
+            ZStack(alignment: .topLeading) {
+                Image(uiImage: image)
+                    .resizable()
+                    .frame(width: size.width, height: size.height)
+                    .position(x: origin.x + size.width / 2, y: origin.y + size.height / 2)
+                Rectangle()
+                    .stroke(.yellow, lineWidth: 2)
+                    .frame(width: size.width * region.width, height: size.height * region.height)
+                    .position(x: origin.x + size.width * (region.x + region.width / 2),
+                              y: origin.y + size.height * (region.y + region.height / 2))
+                Rectangle()
+                    .stroke(.cyan, lineWidth: 2)
+                    .frame(width: size.width * viewport.width, height: size.height * viewport.height)
+                    .position(x: origin.x + size.width * (viewport.x + viewport.width / 2),
+                              y: origin.y + size.height * (viewport.y + viewport.height / 2))
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(.secondary.opacity(0.35)))
+        }
+        .accessibilityLabel("Image overview showing the zoomed viewport and selected region")
     }
 }
