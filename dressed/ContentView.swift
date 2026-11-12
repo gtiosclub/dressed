@@ -28,8 +28,6 @@ private struct AppTabs: View {
     @StateObject private var closet: PrototypeClosetStore
     @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab: Int
-    @State private var discoverySection = 0
-    @State private var dismissDiscoverySearchRequest = 0
     @State private var signOutError: String?
     @State private var showingProfile = false
     @State private var pendingSharedImage: ReviewImage?
@@ -48,9 +46,21 @@ private struct AppTabs: View {
         let arguments = ProcessInfo.processInfo.arguments
         _selectedTab = State(initialValue: arguments.contains("-showCamera") ? 2 :
             (arguments.contains("-showCatalog") || arguments.contains("-showDiscovery") ? 1 : 0))
-        _discoverySection = State(initialValue: arguments.contains("-showCatalog") ? 1 : 0)
         #else
         _selectedTab = State(initialValue: 0)
+        #endif
+    }
+
+    @ViewBuilder private var discovery: some View {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-showCatalog") {
+            PrototypeCatalogView()
+        } else {
+            InfiniteDiscoveryFeed.demo(failSecondPage: arguments.contains("-failDiscoveryPage"))
+        }
+        #else
+        InfiniteDiscoveryFeed.demo()
         #endif
     }
 
@@ -64,28 +74,8 @@ private struct AppTabs: View {
             .tag(0)
 
             NavigationStack {
-                VStack {
-                    Picker("Discovery", selection: $discoverySection) {
-                        Text("Feed").tag(0)
-                        Text("Search").tag(1)
-                    }
-                    .pickerStyle(.segmented)
-                    .padding()
-
-                    if discoverySection == 0 {
-                        DiscoveryFeedView(dismissRequest: dismissDiscoverySearchRequest)
-                    } else {
-                        PrototypeCatalogView()
-                    }
-                }
-                .background {
-                    Color.clear
-                        .contentShape(Rectangle())
-                        .onTapGesture { dismissDiscoverySearchRequest &+= 1 }
-                }
-                .navigationTitle("Discovery")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar { profileToolbar }
+                discovery
+                    .toolbar { profileToolbar }
             }
             .tabItem { Label("Discovery", systemImage: "safari") }
             .tag(1)

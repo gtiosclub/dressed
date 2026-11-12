@@ -7,11 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A10100000000000000000001 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10200000000000000000001 /* ShareViewController.swift */; };
-		A10100000000000000000002 /* DressedShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A10200000000000000000004 /* DressedShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		B20100000000000000000001 /* ShareImportUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20200000000000000000001 /* ShareImportUITests.swift */; };
-		C10100000000000000000001 /* InjectionNext in Frameworks */ = {isa = PBXBuildFile; productRef = C10300000000000000000001 /* InjectionNext */; };
-		C10100000000000000000002 /* Inject in Frameworks */ = {isa = PBXBuildFile; productRef = C10300000000000000000002 /* Inject */; };
 		8B87D8B5305380D900F3CF9E /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8B4305380D900F3CF9E /* FirebaseCore */; };
 		8B87D8B7305380DD00F3CF9E /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8B6305380DD00F3CF9E /* FirebaseAuth */; };
 		8B87D8B9305380E200F3CF9E /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8B8305380E200F3CF9E /* FirebaseStorage */; };
@@ -19,17 +14,29 @@
 		8B87D8BD305380EC00F3CF9E /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8BC305380EC00F3CF9E /* FirebaseDatabase */; };
 		8B87D8BF305380F100F3CF9E /* FirebaseAI in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8BE305380F100F3CF9E /* FirebaseAI */; };
 		8B87D8C1305380F400F3CF9E /* FirebaseAILogic in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8C0305380F400F3CF9E /* FirebaseAILogic */; };
+		A10100000000000000000001 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10200000000000000000001 /* ShareViewController.swift */; };
+		A10100000000000000000002 /* DressedShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A10200000000000000000004 /* DressedShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B20100000000000000000001 /* ShareImportUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20200000000000000000001 /* ShareImportUITests.swift */; };
+		C10100000000000000000001 /* InjectionNext in Frameworks */ = {isa = PBXBuildFile; productRef = C10300000000000000000001 /* InjectionNext */; };
+		C10100000000000000000002 /* Inject in Frameworks */ = {isa = PBXBuildFile; productRef = C10300000000000000000002 /* Inject */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXFileReference section */
-		A10200000000000000000001 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
-		A10200000000000000000002 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		A10200000000000000000003 /* DressedShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DressedShareExtension.entitlements; sourceTree = "<group>"; };
-		A10200000000000000000004 /* DressedShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DressedShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		B20200000000000000000001 /* ShareImportUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareImportUITests.swift; sourceTree = "<group>"; };
-		B20200000000000000000002 /* dressedUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = dressedUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		8B87D86730537AB400F3CF9E /* dressed.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = dressed.app; sourceTree = BUILT_PRODUCTS_DIR; };
-/* End PBXFileReference section */
+/* Begin PBXContainerItemProxy section */
+		A10D00000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8B87D85F30537AB400F3CF9E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A10600000000000000000001;
+			remoteInfo = DressedShareExtension;
+		};
+		B20D00000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8B87D85F30537AB400F3CF9E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8B87D86630537AB400F3CF9E;
+			remoteInfo = dressed;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		A10300000000000000000001 /* Embed App Extensions */ = {
@@ -45,6 +52,16 @@
 		};
 /* End PBXCopyFilesBuildPhase section */
 
+/* Begin PBXFileReference section */
+		8B87D86730537AB400F3CF9E /* dressed.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = dressed.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10200000000000000000001 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		A10200000000000000000002 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A10200000000000000000003 /* DressedShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DressedShareExtension.entitlements; sourceTree = "<group>"; };
+		A10200000000000000000004 /* DressedShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DressedShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B20200000000000000000001 /* ShareImportUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareImportUITests.swift; sourceTree = "<group>"; };
+		B20200000000000000000002 /* dressedUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = dressedUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		8B87D86930537AB400F3CF9E /* dressed */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -54,7 +71,6 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		A10400000000000000000001 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 		8B87D86430537AB400F3CF9E /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -71,25 +87,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A10400000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		A10500000000000000000001 /* DressedShareExtension */ = {
-			isa = PBXGroup;
-			children = (
-				A10200000000000000000001 /* ShareViewController.swift */,
-				A10200000000000000000002 /* Info.plist */,
-				A10200000000000000000003 /* DressedShareExtension.entitlements */,
-			);
-			path = DressedShareExtension;
-			sourceTree = "<group>";
-		};
-		B20500000000000000000001 /* dressedUITests */ = {
-			isa = PBXGroup;
-			children = (B20200000000000000000001 /* ShareImportUITests.swift */, );
-			path = dressedUITests;
-			sourceTree = "<group>";
-		};
 		8B87D85E30537AB400F3CF9E = {
 			isa = PBXGroup;
 			children = (
@@ -118,35 +125,27 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		A10500000000000000000001 /* DressedShareExtension */ = {
+			isa = PBXGroup;
+			children = (
+				A10200000000000000000001 /* ShareViewController.swift */,
+				A10200000000000000000002 /* Info.plist */,
+				A10200000000000000000003 /* DressedShareExtension.entitlements */,
+			);
+			path = DressedShareExtension;
+			sourceTree = "<group>";
+		};
+		B20500000000000000000001 /* dressedUITests */ = {
+			isa = PBXGroup;
+			children = (
+				B20200000000000000000001 /* ShareImportUITests.swift */,
+			);
+			path = dressedUITests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		A10600000000000000000001 /* DressedShareExtension */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = A10A00000000000000000001 /* Build configuration list for PBXNativeTarget "DressedShareExtension" */;
-			buildPhases = (
-				A10800000000000000000001 /* Sources */,
-				A10400000000000000000001 /* Frameworks */,
-				A10900000000000000000001 /* Resources */,
-			);
-			buildRules = ();
-			dependencies = ();
-			name = DressedShareExtension;
-			productName = DressedShareExtension;
-			productReference = A10200000000000000000004 /* DressedShareExtension.appex */;
-			productType = "com.apple.product-type.app-extension";
-		};
-		B20600000000000000000001 /* dressedUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = B20A00000000000000000001 /* Build configuration list for PBXNativeTarget "dressedUITests" */;
-			buildPhases = (B20800000000000000000001 /* Sources */, );
-			buildRules = ();
-			dependencies = (B20B00000000000000000001 /* PBXTargetDependency */, );
-			name = dressedUITests;
-			productName = dressedUITests;
-			productReference = B20200000000000000000002 /* dressedUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
-		};
 		8B87D86630537AB400F3CF9E /* dressed */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 8B87D87230537AB500F3CF9E /* Build configuration list for PBXNativeTarget "dressed" */;
@@ -179,6 +178,39 @@
 			productName = dressed;
 			productReference = 8B87D86730537AB400F3CF9E /* dressed.app */;
 			productType = "com.apple.product-type.application";
+		};
+		A10600000000000000000001 /* DressedShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10A00000000000000000001 /* Build configuration list for PBXNativeTarget "DressedShareExtension" */;
+			buildPhases = (
+				A10800000000000000000001 /* Sources */,
+				A10400000000000000000001 /* Frameworks */,
+				A10900000000000000000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = DressedShareExtension;
+			productName = DressedShareExtension;
+			productReference = A10200000000000000000004 /* DressedShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		B20600000000000000000001 /* dressedUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B20A00000000000000000001 /* Build configuration list for PBXNativeTarget "dressedUITests" */;
+			buildPhases = (
+				B20800000000000000000001 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B20B00000000000000000001 /* PBXTargetDependency */,
+			);
+			name = dressedUITests;
+			productName = dressedUITests;
+			productReference = B20200000000000000000002 /* dressedUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
 
@@ -225,8 +257,14 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		A10900000000000000000001 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 		8B87D86530537AB400F3CF9E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A10900000000000000000001 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -236,8 +274,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		A10800000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10100000000000000000001 /* ShareViewController.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
-		B20800000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (B20100000000000000000001 /* ShareImportUITests.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
 		8B87D86330537AB400F3CF9E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -245,79 +281,38 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A10800000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10100000000000000000001 /* ShareViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B20800000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B20100000000000000000001 /* ShareImportUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		A10B00000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A10600000000000000000001 /* DressedShareExtension */;
+			targetProxy = A10D00000000000000000001 /* PBXContainerItemProxy */;
+		};
+		B20B00000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8B87D86630537AB400F3CF9E /* dressed */;
+			targetProxy = B20D00000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
-		A10C00000000000000000001 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				APPLICATION_EXTENSION_API_ONLY = YES;
-				CODE_SIGN_ENTITLEMENTS = DressedShareExtension/DressedShareExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = WDRKBQFYRJ;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = DressedShareExtension/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressed.share;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		A10C00000000000000000002 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				APPLICATION_EXTENSION_API_ONLY = YES;
-				CODE_SIGN_ENTITLEMENTS = DressedShareExtension/DressedShareExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = WDRKBQFYRJ;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = DressedShareExtension/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressed.share;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
-		B20C00000000000000000001 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = WDRKBQFYRJ;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressedUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = dressed;
-			};
-			name = Debug;
-		};
-		B20C00000000000000000002 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = WDRKBQFYRJ;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressedUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = dressed;
-			};
-			name = Release;
-		};
 		8B87D87030537AB500F3CF9E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -445,16 +440,17 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = dressed/Dressed.entitlements;
-				INFOPLIST_FILE = config/DevelopmentInfo.plist;
-				INFOPLIST_KEY_CatalogAPIBaseURL = "$(CATALOG_API_BASE_URL)";
-				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos of clothing to add to your closet.";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = dressed/Dressed.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = WDRKBQFYRJ;
+				EMIT_FRONTEND_COMMAND_LINES = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = config/DevelopmentInfo.plist;
+				INFOPLIST_KEY_CatalogAPIBaseURL = "$(CATALOG_API_BASE_URL)";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos of clothing to add to your closet.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -465,7 +461,6 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				EMIT_FRONTEND_COMMAND_LINES = YES;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-Xlinker",
@@ -487,15 +482,15 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = dressed/Dressed.entitlements;
-				INFOPLIST_KEY_CatalogAPIBaseURL = "$(CATALOG_API_BASE_URL)";
-				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos of clothing to add to your closet.";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = dressed/Dressed.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = WDRKBQFYRJ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CatalogAPIBaseURL = "$(CATALOG_API_BASE_URL)";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos of clothing to add to your closet.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -518,24 +513,79 @@
 			};
 			name = Release;
 		};
+		A10C00000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = DressedShareExtension/DressedShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = WDRKBQFYRJ;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = DressedShareExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressed.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A10C00000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = DressedShareExtension/DressedShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = WDRKBQFYRJ;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = DressedShareExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressed.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		B20C00000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = WDRKBQFYRJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressedUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = dressed;
+			};
+			name = Debug;
+		};
+		B20C00000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = WDRKBQFYRJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressedUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = dressed;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		A10A00000000000000000001 /* Build configuration list for PBXNativeTarget "DressedShareExtension" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				A10C00000000000000000001 /* Debug */,
-				A10C00000000000000000002 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		B20A00000000000000000001 /* Build configuration list for PBXNativeTarget "dressedUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (B20C00000000000000000001 /* Debug */, B20C00000000000000000002 /* Release */, );
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		8B87D86230537AB400F3CF9E /* Build configuration list for PBXProject "dressed" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -554,49 +604,27 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		A10A00000000000000000001 /* Build configuration list for PBXNativeTarget "DressedShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10C00000000000000000001 /* Debug */,
+				A10C00000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B20A00000000000000000001 /* Build configuration list for PBXNativeTarget "dressedUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B20C00000000000000000001 /* Debug */,
+				B20C00000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
-/* Begin PBXContainerItemProxy section */
-		A10D00000000000000000001 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 8B87D85F30537AB400F3CF9E /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = A10600000000000000000001;
-			remoteInfo = DressedShareExtension;
-		};
-		B20D00000000000000000001 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 8B87D85F30537AB400F3CF9E /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 8B87D86630537AB400F3CF9E;
-			remoteInfo = dressed;
-		};
-/* End PBXContainerItemProxy section */
-
-/* Begin PBXTargetDependency section */
-		A10B00000000000000000001 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = A10600000000000000000001 /* DressedShareExtension */;
-			targetProxy = A10D00000000000000000001 /* PBXContainerItemProxy */;
-		};
-		B20B00000000000000000001 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 8B87D86630537AB400F3CF9E /* dressed */;
-			targetProxy = B20D00000000000000000001 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
-
 /* Begin XCRemoteSwiftPackageReference section */
-		C10200000000000000000001 /* XCRemoteSwiftPackageReference "InjectionNext" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/johnno1962/InjectionNext";
-			requirement = { kind = exactVersion; version = 2.0.1; };
-		};
-		C10200000000000000000002 /* XCRemoteSwiftPackageReference "Inject" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/krzysztofzablocki/Inject";
-			requirement = { kind = exactVersion; version = 1.6.0; };
-		};
 		8B87D8AF30537E5200F3CF9E /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
@@ -605,19 +633,25 @@
 				minimumVersion = 12.19.1;
 			};
 		};
+		C10200000000000000000001 /* XCRemoteSwiftPackageReference "InjectionNext" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/johnno1962/InjectionNext";
+			requirement = {
+				kind = exactVersion;
+				version = 2.0.1;
+			};
+		};
+		C10200000000000000000002 /* XCRemoteSwiftPackageReference "Inject" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/krzysztofzablocki/Inject";
+			requirement = {
+				kind = exactVersion;
+				version = 1.6.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		C10300000000000000000001 /* InjectionNext */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C10200000000000000000001 /* XCRemoteSwiftPackageReference "InjectionNext" */;
-			productName = InjectionNext;
-		};
-		C10300000000000000000002 /* Inject */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C10200000000000000000002 /* XCRemoteSwiftPackageReference "Inject" */;
-			productName = Inject;
-		};
 		8B87D8B4305380D900F3CF9E /* FirebaseCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 8B87D8AF30537E5200F3CF9E /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
@@ -652,6 +686,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 8B87D8AF30537E5200F3CF9E /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseAILogic;
+		};
+		C10300000000000000000001 /* InjectionNext */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C10200000000000000000001 /* XCRemoteSwiftPackageReference "InjectionNext" */;
+			productName = InjectionNext;
+		};
+		C10300000000000000000002 /* Inject */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C10200000000000000000002 /* XCRemoteSwiftPackageReference "Inject" */;
+			productName = Inject;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

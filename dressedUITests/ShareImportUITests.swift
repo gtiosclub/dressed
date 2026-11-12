@@ -134,3 +134,43 @@ final class ShareImportUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts[outfitName].waitForExistence(timeout: 5))
     }
 }
+
+/// Isolated fixture coverage; this does not verify Firebase authentication.
+final class InfiniteFeedUITests: XCTestCase {
+    func testAutomaticPagingPausesOnFailureAndRetries() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-mockSignedIn", "-showDiscovery", "-failDiscoveryPage"]
+        app.launch()
+        XCTAssertTrue(app.navigationBars["Discovery"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["infinite.post.infinite_0"].waitForExistence(timeout: 5))
+        let retry = app.buttons["infinite.retry"]
+        XCTAssertFalse(retry.exists)
+        let friends = app.buttons["Friends"]
+        XCTAssertTrue(friends.exists)
+        friends.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["infinite.card.infinite_0"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertFalse(retry.exists)
+        app.buttons["For You"].tap()
+        let feed = app.scrollViews["infinite.scroll"]
+        for _ in 0..<8 {
+            if retry.isHittable { break }
+            feed.swipeUp()
+        }
+        XCTAssertTrue(retry.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["infinite.post.infinite_11"].exists)
+        XCTAssertFalse(app.buttons["infinite.post.infinite_12"].exists)
+        retry.tap()
+        XCTAssertTrue(app.buttons["infinite.post.infinite_12"].waitForExistence(timeout: 5))
+        XCTAssertFalse(retry.exists)
+        for _ in 0..<30 {
+            if app.staticTexts["infinite.end"].isHittable { break }
+            feed.swipeUp()
+        }
+        XCTAssertTrue(app.staticTexts["infinite.end"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["infinite.post.infinite_47"].exists)
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "Infinite feed reached last fixture page"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+}
