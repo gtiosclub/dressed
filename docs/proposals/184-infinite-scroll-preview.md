@@ -1,6 +1,6 @@
 # Issue 184 — Infinite scrolling in Discovery
 
-Discovery opens directly to **For You** and **Friends**. For You has a two-column outfit grid and Search Styles. Friends uses large photo cards with the author, date, and caption. Both tabs use the same chronological sample feed until a source for friends' posts is available. The two designs considered were a Load More button with an upward pull gesture and automatic paging near the end of the feed. Automatic paging is the selected app flow. The manual option remains available in the Xcode canvas.
+Discovery opens directly to **For You** and **Friends**. For You has a two-column outfit grid. Friends uses large photo cards with the author, date, and caption. Both tabs use the same chronological sample feed until a source for friends' posts is available. The two designs considered were a Load More button with an upward pull gesture and automatic paging near the end of the feed. Automatic paging is the selected app flow. The manual option remains available in the Xcode canvas.
 
 ## Feed states
 

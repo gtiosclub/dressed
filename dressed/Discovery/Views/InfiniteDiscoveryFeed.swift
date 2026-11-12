@@ -12,8 +12,6 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     @State private var nearBottom = false
     @State private var pageTask: Task<Void, Never>?
     @State private var selectedPost: Post?
-    @State private var showingSearch = false
-    @State private var search = ""
     @State private var likedIDs: Set<String> = []
     private let artwork: (Post) -> Artwork
     private let accent = Color(red: 0.61, green: 0.48, blue: 0.91)
@@ -67,21 +65,6 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                 let refreshTask = Task { @MainActor in await model.refresh() }
                 await refreshTask.value
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if section == .forYou {
-                    Button { showingSearch = true } label: {
-                        Label("Search Styles", systemImage: "magnifyingglass")
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(.black)
-                            .frame(maxWidth: .infinity, minHeight: 54)
-                            .background(.white, in: Capsule())
-                            .overlay(Capsule().stroke(Color.black.opacity(0.06)))
-                            .shadow(color: .black.opacity(0.12), radius: 12, y: 3)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 12)
-                }
-            }
         }
         .background(.white)
         .tint(accent)
@@ -101,31 +84,6 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                             Button("Done") { selectedPost = nil }
                         }
                     }
-            }
-            .tint(accent)
-        }
-        .sheet(isPresented: $showingSearch) {
-            NavigationStack {
-                List {
-                    NavigationLink("Browse catalog") { PrototypeCatalogView() }
-                    Section("Outfits") {
-                        ForEach(model.posts.filter {
-                            search.isEmpty || $0.caption.localizedCaseInsensitiveContains(search)
-                        }) { post in
-                            VStack(alignment: .leading) {
-                                Text(post.caption)
-                                Text("@\(post.authorId)").foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
-                .searchable(text: $search, prompt: "Denim, layers, vintage…")
-                .navigationTitle("Search Styles")
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") { showingSearch = false }
-                    }
-                }
             }
             .tint(accent)
         }
