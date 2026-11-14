@@ -46,17 +46,17 @@ struct FullScreenTryOnView: View {
 
         var singular: String {
             switch self {
-            case .shirt: return "Shirt"
-            case .pants: return "Pants"
-            case .shoes: return "Shoes"
+            case .shirt: return " "
+            case .pants: return " "
+            case .shoes: return " "
             }
         }
 
         var plural: String {
             switch self {
-            case .shirt: return "Shirts"
-            case .pants: return "Pants"
-            case .shoes: return "Shoes"
+            case .shirt: return " "
+            case .pants: return " "
+            case .shoes: return " "
             }
         }
 
