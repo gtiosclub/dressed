@@ -28,6 +28,7 @@ struct AvatarStudioView: View {
     @State private var showingTakePic = false
     @State private var itemDetailSheet: ItemDetailSheet?
     @State private var outfitSavedAlert = false
+    @State private var showingFullScreen = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -112,6 +113,15 @@ struct AvatarStudioView: View {
                 }
                 .accessibilityLabel("Take photo of avatar")
             }
+            
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showingFullScreen = true
+                } label: {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                }
+                .accessibilityLabel("Full screen try-on")
+            }
         }
         .alert("Outfit Saved", isPresented: $outfitSavedAlert) {
             Button("OK", role: .cancel) { outfitSavedAlert = false }
@@ -121,6 +131,9 @@ struct AvatarStudioView: View {
         .sheet(isPresented: $showingTakePic) {
             NavigationStack {
                 StudioTakePicView(model: model, image: image, uiImage: uiImage)
+            }
+        .fullScreenCover(isPresented: $showingFullScreen) {
+                FullScreenTryOnView(model: model, items: items, image: image, uiImage: uiImage)
             }
         }
         .sheet(item: $itemDetailSheet) { sheet in
