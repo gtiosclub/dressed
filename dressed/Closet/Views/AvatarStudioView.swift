@@ -25,7 +25,6 @@ struct AvatarStudioView: View {
 
     @State private var draftOutfitName = ""
     @State private var activeTab: StudioTab = .tryOn
-    @State private var showingTakePic = false
     @State private var itemDetailSheet: ItemDetailSheet?
     @State private var outfitSavedAlert = false
     @State private var showingFullScreen = false
@@ -136,6 +135,7 @@ struct AvatarStudioView: View {
                 FullScreenTryOnView(model: model, items: items, image: image, uiImage: uiImage)
             }
         }
+        
         .sheet(item: $itemDetailSheet) { sheet in
             if let closet {
                 NavigationStack {
@@ -177,6 +177,15 @@ struct AvatarStudioView: View {
                 )
                 StudioZoomSlider(zoom: $model.zoom).padding(.trailing, 8)
             }
+            .overlay(alignment: .bottomLeading) {
+                StudioUndoRedoButtons(
+                    canUndo: model.canUndo,
+                    canRedo: model.canRedo,
+                    undo: { model.undo(available: Set(items.map(\.id))) },
+                    redo: { model.redo(available: Set(items.map(\.id))) }
+                )
+                .padding(8)
+            }
 
             // Currently worn quick chips
             if !model.worn.isEmpty {
@@ -202,6 +211,7 @@ struct AvatarStudioView: View {
                                     .background(.ultraThinMaterial, in: Capsule())
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityIdentifier("studio.worn.\(cat.rawValue)")
                                 .contextMenu {
                                     Button("Inspect Details") {
                                         itemDetailSheet = ItemDetailSheet(id: wornItem.id)
@@ -315,7 +325,7 @@ struct AvatarStudioView: View {
                 tray: OutfitItem(
                     id: Self.stableID(for: outfit.id),
                     thumbnail: AnyView(
-                        SavedFitThumbnail(worn: worn, image: image)
+                        SavedFitThumbnail(look: model.look, worn: worn, image: image)
                     ),
                     name: outfit.name ?? "Outfit",
                     category: .tops,
@@ -456,28 +466,61 @@ struct AvatarStudioView: View {
 
 // MARK: - Saved fit thumbnail
 
-/// A flat, lightweight picture of a saved outfit: its pieces laid out where they sit on the body.
-/// Plain SwiftUI images, so it costs nothing next to a live 3D scene.
+/// A mini avatar wearing a saved outfit, for outfit cards.
+/// Uses the flat(non-3D) avatar so it costs nothing next to live RealityKit scene, and it
+/// takes the user's current look so the body matches their avatar instead of a generic figure.
 private struct SavedFitThumbnail: View {
+    let look: [AvatarPart: Int]
     let worn: [ClothingCategory: ClothingItem]
     let image: (ClothingItem) -> Image
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                Color.gray.opacity(0.12)
-                ForEach(ClothingCategory.layerOrder, id: \.self) { category in
-                    if let item = worn[category] {
-                        let slot = category.avatarSlot
-                        image(item)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: geo.size.width * 0.6, height: geo.size.height * slot.size)
-                            .position(x: geo.size.width / 2, y: geo.size.height * slot.y)
-                    }
-                }
-            }
+        AvatarView(
+            look: look,
+            worn: worn,
+            image: image,
+            use3D: false,
+            allowsInteraction: false
+        )
+        .allowsHitTesting(false)
+    }
+}
+
+// MARK: - Undo / Redo
+
+private struct StudioUndoRedoButtons: View {
+    let canUndo: Bool
+    let canRedo: Bool
+    let undo: () -> Void
+    let redo: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            button(
+                "arrow.uturn.backward", label: "Undo outfit change", id: "studio.undo",
+                enabled: canUndo, action: undo
+            )
+            button(
+                "arrow.uturn.forward", label: "Redo outfit change", id: "studio.redo",
+                enabled: canRedo, action: redo
+            )
         }
+    }
+
+    private func button(
+        _ symbol: String, label: String, id: String, enabled: Bool, action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.body.weight(.semibold))
+                .frame(width: 40, height: 40)
+                .background(.thinMaterial, in: Circle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+        .opacity(enabled ? 1 : 0.4)
+        .accessibilityLabel(label)
+        .accessibilityIdentifier(id)
     }
 }
 

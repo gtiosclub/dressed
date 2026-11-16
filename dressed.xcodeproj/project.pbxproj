@@ -21,9 +21,17 @@
 		B20100000000000000000003 /* NavigationUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20200000000000000000003 /* NavigationUITests.swift */; };
 		C10100000000000000000001 /* InjectionNext in Frameworks */ = {isa = PBXBuildFile; productRef = C10300000000000000000001 /* InjectionNext */; };
 		C10100000000000000000002 /* Inject in Frameworks */ = {isa = PBXBuildFile; productRef = C10300000000000000000002 /* Inject */; };
+		B20100000000000000000004 /* OutfitUndoRedoUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20200000000000000000004 /* OutfitUndoRedoUITests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		D20D00000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8B87D85F30537AB400F3CF9E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8B87D86630537AB400F3CF9E;
+			remoteInfo = dressed;
+		};
 		A10D00000000000000000001 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 8B87D85F30537AB400F3CF9E /* Project object */;
@@ -55,6 +63,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D20200000000000000000002 /* dressedTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = dressedTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		360046AA3074769B00F78859 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = .swiftlint.yml; sourceTree = "<group>"; };
 		8B87D86730537AB400F3CF9E /* dressed.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = dressed.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10200000000000000000001 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
@@ -64,9 +73,15 @@
 		B20200000000000000000001 /* ShareImportUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareImportUITests.swift; sourceTree = "<group>"; };
 		B20200000000000000000002 /* dressedUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = dressedUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B20200000000000000000003 /* NavigationUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationUITests.swift; sourceTree = "<group>"; };
+		B20200000000000000000004 /* OutfitUndoRedoUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutfitUndoRedoUITests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		D20500000000000000000001 /* dressedTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = dressedTests;
+			sourceTree = "<group>";
+		};
 		8B87D86930537AB400F3CF9E /* dressed */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = dressed;
@@ -75,6 +90,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		D20900000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8B87D86430537AB400F3CF9E /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -108,6 +130,7 @@
 				8B87D86930537AB400F3CF9E /* dressed */,
 				A10500000000000000000001 /* DressedShareExtension */,
 				B20500000000000000000001 /* dressedUITests */,
+				D20500000000000000000001 /* dressedTests */,
 				8B87D8B3305380D900F3CF9E /* Frameworks */,
 				8B87D86830537AB400F3CF9E /* Products */,
 			);
@@ -119,6 +142,7 @@
 				8B87D86730537AB400F3CF9E /* dressed.app */,
 				A10200000000000000000004 /* DressedShareExtension.appex */,
 				B20200000000000000000002 /* dressedUITests.xctest */,
+				D20200000000000000000002 /* dressedTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -145,6 +169,7 @@
 			children = (
 				B20200000000000000000001 /* ShareImportUITests.swift */,
 				B20200000000000000000003 /* NavigationUITests.swift */,
+				B20200000000000000000004 /* OutfitUndoRedoUITests.swift */,
 			);
 			path = dressedUITests;
 			sourceTree = "<group>";
@@ -152,6 +177,26 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		D20600000000000000000001 /* dressedTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D20A00000000000000000001 /* Build configuration list for PBXNativeTarget "dressedTests" */;
+			buildPhases = (
+				D20800000000000000000001 /* Sources */,
+				D20900000000000000000001 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D20B00000000000000000001 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D20500000000000000000001 /* dressedTests */,
+			);
+			name = dressedTests;
+			productName = dressedTests;
+			productReference = D20200000000000000000002 /* dressedTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		8B87D86630537AB400F3CF9E /* dressed */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 8B87D87230537AB500F3CF9E /* Build configuration list for PBXNativeTarget "dressed" */;
@@ -235,6 +280,10 @@
 					A10600000000000000000001 = {
 						CreatedOnToolsVersion = 26.6;
 					};
+					D20600000000000000000001 = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = 8B87D86630537AB400F3CF9E;
+					};
 				};
 			};
 			buildConfigurationList = 8B87D86230537AB400F3CF9E /* Build configuration list for PBXProject "dressed" */;
@@ -259,6 +308,7 @@
 				8B87D86630537AB400F3CF9E /* dressed */,
 				A10600000000000000000001 /* DressedShareExtension */,
 				B20600000000000000000001 /* dressedUITests */,
+				D20600000000000000000001 /* dressedTests */,
 			);
 		};
 /* End PBXProject section */
@@ -305,6 +355,13 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		D20800000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8B87D86330537AB400F3CF9E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -326,12 +383,18 @@
 			files = (
 				B20100000000000000000001 /* ShareImportUITests.swift in Sources */,
 				B20100000000000000000003 /* NavigationUITests.swift in Sources */,
+				B20100000000000000000004 /* OutfitUndoRedoUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		D20B00000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8B87D86630537AB400F3CF9E /* dressed */;
+			targetProxy = D20D00000000000000000001 /* PBXContainerItemProxy */;
+		};
 		A10B00000000000000000001 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = A10600000000000000000001 /* DressedShareExtension */;
@@ -345,6 +408,44 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		D20C00000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = WDRKBQFYRJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressedTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/dressed.app/dressed";
+			};
+			name = Debug;
+		};
+		D20C00000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = WDRKBQFYRJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressedTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/dressed.app/dressed";
+			};
+			name = Release;
+		};
 		8B87D87030537AB500F3CF9E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -618,6 +719,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		D20A00000000000000000001 /* Build configuration list for PBXNativeTarget "dressedTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D20C00000000000000000001 /* Debug */,
+				D20C00000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		8B87D86230537AB400F3CF9E /* Build configuration list for PBXProject "dressed" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
