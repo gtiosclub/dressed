@@ -300,7 +300,7 @@ private struct AppTabs: View {
             }
 
             if arguments.contains("-seedClosetFixture") {
-                try? ClosetFixture.seed(into: closet)
+                try? ClosetFixture.seed(into: closet, clearing: outfits)
             }
             #endif
 
