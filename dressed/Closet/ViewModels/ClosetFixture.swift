@@ -3,7 +3,6 @@ import UIKit
 
 /// Debug-only sample closet for simulator checks and UI tests. Launch with `-seedClosetFixture`.
 /// Item ids are fixed, so seeding twice replaces the same four pieces instead of adding more.
-/// It also clears saved outfits so every run starts with none.
 enum ClosetFixture {
     private struct Piece {
         let id: String
@@ -20,10 +19,7 @@ enum ClosetFixture {
     ]
 
     @MainActor
-    static func seed(into closet: PrototypeClosetStore, clearing outfits: PrototypeOutfitStore) throws {
-        for outfit in outfits.outfits {
-            try outfits.delete(id: outfit.id)
-        }
+    static func seed(into closet: PrototypeClosetStore) throws {
         for piece in pieces {
             let size = CGSize(width: 240, height: 240)
             let image = UIGraphicsImageRenderer(size: size).image { context in

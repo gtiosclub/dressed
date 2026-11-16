@@ -16,6 +16,8 @@ struct ClothingItemsList: View {
 
     let items: [ClothingItem]
     let outfits: [SavedOutfit]
+    var look: [AvatarPart: Int] = [:]
+    
     let image: (ClothingItem) -> Image
     let uiImage: ((ClothingItem) -> UIImage?)?
     let onSelect: (String) -> Void
@@ -30,6 +32,7 @@ struct ClothingItemsList: View {
     init(
         items: [ClothingItem],
         outfits: [SavedOutfit] = [],
+        look: [AvatarPart: Int] = [:],
         image: @escaping (ClothingItem) -> Image = { _ in Image(systemName: "photo") },
         uiImage: ((ClothingItem) -> UIImage?)? = nil,
         onSelect: @escaping (String) -> Void,
@@ -37,6 +40,7 @@ struct ClothingItemsList: View {
     ) {
         self.items = items
         self.outfits = outfits
+        self.look = look
         self.image = image
         self.uiImage = uiImage
         self.onSelect = onSelect
@@ -87,10 +91,11 @@ struct ClothingItemsList: View {
                     OutfitPreviewCard(
                         name: outfit.name,
                         thumbnail: AnyView(AvatarView(
-                            look: [:],
+                            look: look,
                             worn: outfit.worn,
                             image: image,
                             uiImage: uiImage,
+                            use3D: false,
                             allowsInteraction: false
                         )),
                         onTap: { onSelectOutfit(outfit.id) }

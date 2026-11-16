@@ -446,7 +446,7 @@ struct ImportReviewView: View {
                 }
             }
             .interactiveDismissDisabled(isSaving)
-            .sheet(isPresented: Binding(
+            .fullScreenCover(isPresented: Binding(
                 get: { editingCandidateID != nil },
                 set: { if !$0 { editingCandidateID = nil } }
             )) {

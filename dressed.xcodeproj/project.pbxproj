@@ -21,7 +21,7 @@
 		B20100000000000000000003 /* NavigationUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20200000000000000000003 /* NavigationUITests.swift */; };
 		C10100000000000000000001 /* InjectionNext in Frameworks */ = {isa = PBXBuildFile; productRef = C10300000000000000000001 /* InjectionNext */; };
 		C10100000000000000000002 /* Inject in Frameworks */ = {isa = PBXBuildFile; productRef = C10300000000000000000002 /* Inject */; };
-		B20100000000000000000004 /* OutfitHeartUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20200000000000000000004 /* OutfitHeartUITests.swift */; };
+		B20100000000000000000004 /* OutfitUndoRedoUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20200000000000000000004 /* OutfitUndoRedoUITests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
