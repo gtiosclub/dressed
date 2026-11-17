@@ -109,3 +109,5 @@ The `-P` tickets below are a separate, substantial proposal format for data, viz
 | [#185: SOCIAL-P02 - Prototype a safe post-detail breakdown](https://github.com/gtiosclub/dressed/issues/185) | `social` |
 | [#186: SOCIAL-P03 - Propose saved-post behavior when posts change](https://github.com/gtiosclub/dressed/issues/186) | `social` |
 | [#187: SOCIAL-P04 - Evaluate trustworthy Discovery Search results](https://github.com/gtiosclub/dressed/issues/187) | `social` |
+| [#214: SOCIAL-P05 - Propose persistent post likes](https://github.com/gtiosclub/dressed/issues/214) | `social` |
+| [#215: SOCIAL-P06 - Propose persistent post comments](https://github.com/gtiosclub/dressed/issues/215) | `social` |

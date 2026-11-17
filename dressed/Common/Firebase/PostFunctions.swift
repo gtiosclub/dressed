@@ -10,6 +10,9 @@ import FirebaseFirestore
 
 protocol PostFunctions {
     func fetchRecentPosts() async throws -> [Post]
+    /// Reads one published post. Returns nil when no post exists at that ID
+    /// (for example, the author deleted it).
+    func fetchPost(id: String) async throws -> Post?
 }
 
 struct FirebasePostFunctions: PostFunctions {
@@ -25,5 +28,17 @@ struct FirebasePostFunctions: PostFunctions {
         return try snapshot.documents.map { document in
             try document.data(as: Post.self)
         }
+    }
+
+    // Reads posts/{id}. Signed-in users may read posts under the current rules;
+    // a missing document means the post is gone, which is not an error.
+    func fetchPost(id: String) async throws -> Post? {
+        let document = try await db
+            .collection("posts")
+            .document(id)
+            .getDocument()
+
+        guard document.exists else { return nil }
+        return try document.data(as: Post.self)
     }
 }

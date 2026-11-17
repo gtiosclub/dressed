@@ -6,7 +6,7 @@ Build one working path first: select a photo, enter a clothing name/category, sa
 | --- | --- | --- | --- |
 | 1. Add and browse clothing | Choose-photo button, details form, save/fetch/upload functions, clothing card/grid, category controls/filter | Photo picker, session, IDs, record construction, failure recovery and closet loading | A manually described garment is saved and visible after relaunch |
 | 2. Build an outfit | Item tray, selected-item row, save/fetch outfit functions, preview card | Selection/layout state and opening saved outfits | An outfit can be saved and reopened |
-| 3. Share an outfit | Post card, profile header, fetch posts, save-post function, clothing breakdown | Publication, separate public media and feed wiring | Another account can browse and save the published outfit |
+| 3. Share an outfit | Post card, profile header, fetch posts, save-post function, clothing breakdown | Publication, separate public media and OOTD feed wiring | Another account can browse and save the published outfit |
 | 4. Improve importing and discovery | Search field and garment-review row; more small pieces after decisions | Camera capture, extraction, Share to Dressed, product links, recommendations | Faster imports and useful discovery |
 | 5. Explore try-on | Define small components after agreeing on direction | Avatar approach and rendering | An agreed visualization prototype |
 

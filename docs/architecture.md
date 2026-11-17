@@ -1,5 +1,40 @@
 # Architecture and shared contracts
 
+## Discovery and OOTD navigation update (October 18, 2026)
+
+The signed-in Discovery tab now uses a Discovery / OOTD switch based on the
+supplied prototype. Discovery renders individual `CatalogProduct` ideas in a
+two-column grid with search and a detail page. Debug builds show synthetic
+catalog ideas by default; `-showCatalog` or `-liveCatalog` selects the HTTP
+catalog client. Release builds use that client and need a configured catalog
+service; the existing local fixture API is not a live retailer source. Style
+suggestions are backed only by Debug fixture associations until a public style
+contract exists. An idea never becomes a private closet item on tap.
+
+OOTD renders the existing `Post` outfit snapshots as vertical cards with
+in-feed pin, Find items, comment and like controls. Find items shows published
+pieces in a category-filtered sheet. Debug builds use synthetic posts by default;
+`-livePosts` selects Firestore. The Debug Share button inserts only a local
+preview. There is still no connected publication, public media loader,
+persistent comments, likes, or saved-post state. The earlier midsemester
+Discovery post prototype below records previous behavior, not the current
+navigation.
+
+The OOTD plus button now pushes the New post composition screen within the
+Discovery tab, keeping the native tab bar visible. Its outfit image is the
+prototype's greyscale vector placeholder until publishable media is selected.
+The Find items sheet uses the prototype's product-row layout, sort and category
+chips, and a local bookmark toggle. Only the first Debug demo post has fixture
+brands, prices, ratings, and alternatives; other posts display their published
+piece names/categories without invented product metadata. Bookmarks in this
+sheet are UI state, not persisted saved items.
+
+The new fixture-backed `testDiscoveryIdeasAndOOTDPostsAreSeparate` UI test passed
+on the iPhone 17 Pro iOS 26.0 simulator on October 18. It showed individual ideas,
+switched to OOTD, exercised the in-feed controls, and
+displayed both published pieces. This is separate from real-account authentication testing;
+the test uses the existing isolated mock session.
+
 ## Recognition experiment
 
 `backend/recognition/product_search.py` now parses a synthetic Google Product
@@ -193,6 +228,8 @@ As of commit `5c10212`:
 The current planning branch adds schema-only Codable types in `dressed/Common/Models` and JSON examples under `backend/schemas`; these do not implement persistence or features. The model definitions are the canonical field source, including the six required fields on ClothingItem.
 
 The access-rules work added Firestore and Storage rules with emulator tests for synthetic users. Firestore rules were published to `out-fitted` on September 28, 2026; live Rules Playground simulations confirmed owner and non-owner read decisions. Storage rules remain local because live Storage is unavailable. See [Firebase testing](officers/firebase-testing.md) before assigning live database work.
+
+The visualization prototype lives in `Closet/Views` and opens from the Profile sheet, preserving the three top-level tabs and the Closet's Pieces, Outfits, and Wishlist sections. `AvatarStudioView` offers customization, try-on, full-body viewing, and a picture flow. `AvatarView` renders a faceless procedural mannequin (`Mannequin`, `MannequinGeometry`) with RealityKit's non-AR camera. Users drag it to turn it on a turntable (`AvatarOrbit`), and clothes are still flat 2D images that narrow and fade as it turns. Body, face, hair and bangs are presets, and skin is a light tint on porcelain. This is outfit visualization, not fit prediction. Studio saved fits are temporary in-memory state and do not replace the persisted Outfit flow. The 3D model source, 3D garment representation and take-pic capture of the 3D view are TBD. A replacement model must keep the procedural figure's framing: 1 unit tall, feet at y = 0, facing +z.
 
 Everything below is a proposed contract. Confirm details in the lead planning tickets before implementation. Firestore plus Storage is the proposed primary persistence stack; do not build a parallel Realtime Database model merely because that dependency is linked.
 

@@ -1,11 +1,28 @@
 import SwiftUI
 
+enum OutfitCanvasFixture {
+    static let ownerId = "canvas-fixture-owner"
+    static let items = [
+        ClothingItem(id: "fixture-shirt", ownerId: ownerId, name: "Blue shirt", category: .tops,
+                     imagePath: "fixture-shirt.png", createdAt: .distantPast),
+        ClothingItem(id: "fixture-pants", ownerId: ownerId, name: "Dark pants", category: .pants,
+                     imagePath: "fixture-pants.png", createdAt: .distantPast)
+    ]
+    static let placements = [
+        OutfitPlacement(itemId: "fixture-shirt", centerX: 0.48, centerY: 0.30,
+                        width: 0.42, rotationDegrees: 0, layer: 1),
+        OutfitPlacement(itemId: "fixture-pants", centerX: 0.53, centerY: 0.67,
+                        width: 0.50, rotationDegrees: 0, layer: 0)
+    ]
+}
+
 struct PrototypeOutfitEditorView: View {
     @ObservedObject var closet: PrototypeClosetStore
     @ObservedObject var outfits: PrototypeOutfitStore
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var placements: [OutfitPlacement] = []
+    @State private var selectedItemId: String?
     @State private var saveError: String?
 
     var body: some View {
@@ -56,23 +73,44 @@ struct PrototypeOutfitEditorView: View {
                         Text("Drag pieces to arrange them.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        OutfitCanvasView(placements: $placements, closet: closet, editable: true)
+                        OutfitCanvasView(
+                            placements: $placements,
+                            selectedItemId: $selectedItemId,
+                            closet: closet,
+                            editable: true
+                        )
                             .frame(height: 340)
                             .listRowInsets(EdgeInsets())
-                        ForEach(placements, id: \.itemId) { placement in
-                            if let item = closet.item(id: placement.itemId) {
-                                VStack(alignment: .leading) {
-                                    Text(item.name)
-                                        .font(.subheadline.bold())
-                                    HStack {
-                                        moveButton("Left", icon: "arrow.left", itemId: item.id, dx: -0.1, dy: 0)
-                                        moveButton("Up", icon: "arrow.up", itemId: item.id, dx: 0, dy: -0.1)
-                                        moveButton("Down", icon: "arrow.down", itemId: item.id, dx: 0, dy: 0.1)
-                                        moveButton("Right", icon: "arrow.right", itemId: item.id, dx: 0.1, dy: 0)
-                                    }
-                                    .buttonStyle(.bordered)
+                        if let selectedItemId,
+                           let index = placements.firstIndex(where: { $0.itemId == selectedItemId }),
+                           let item = closet.item(id: selectedItemId) {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Editing \(item.name)")
+                                    .font(.subheadline.bold())
+                                HStack {
+                                    Text("Size")
+                                    Slider(value: $placements[index].width, in: 0.2...0.8)
+                                        .accessibilityLabel("Size of \(item.name)")
+                                    Text("\(Int(placements[index].width * 100))%")
+                                        .monospacedDigit()
+                                        .frame(width: 44, alignment: .trailing)
                                 }
+                                HStack {
+                                    Button("Send backward", systemImage: "arrow.down") {
+                                        moveLayer(itemId: selectedItemId, direction: -1)
+                                    }
+                                    .disabled(index == 0)
+                                    Button("Bring forward", systemImage: "arrow.up") {
+                                        moveLayer(itemId: selectedItemId, direction: 1)
+                                    }
+                                    .disabled(index == placements.count - 1)
+                                }
+                                .buttonStyle(.bordered)
                             }
+                        } else {
+                            Text("Tap a piece to resize it or change its layer. Drag a piece to move it.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -124,16 +162,14 @@ struct PrototypeOutfitEditorView: View {
         }
     }
 
-    private func moveButton(_ direction: String, icon: String, itemId: String, dx: Double, dy: Double) -> some View {
-        Button {
-            guard let index = placements.firstIndex(where: { $0.itemId == itemId }) else { return }
-            placements[index].centerX = min(max(placements[index].centerX + dx, 0.15), 0.85)
-            placements[index].centerY = min(max(placements[index].centerY + dy, 0.15), 0.85)
-        } label: {
-            Image(systemName: icon)
-                .frame(maxWidth: .infinity)
+    private func moveLayer(itemId: String, direction: Int) {
+        guard let index = placements.firstIndex(where: { $0.itemId == itemId }) else { return }
+        let destination = index + direction
+        guard placements.indices.contains(destination) else { return }
+        placements.swapAt(index, destination)
+        for layer in placements.indices {
+            placements[layer].layer = layer
         }
-        .accessibilityLabel("Move \(closet.item(id: itemId)?.name ?? "piece") \(direction.lowercased())")
     }
 }
 
@@ -151,7 +187,7 @@ struct PrototypeOutfitDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                OutfitCanvasView(placements: $placements, closet: closet, editable: false)
+                OutfitCanvasView(placements: $placements, selectedItemId: .constant(nil), closet: closet, editable: false)
                     .frame(height: 400)
                 Text("Pieces")
                     .font(.title2.bold())
@@ -173,17 +209,20 @@ struct PrototypeOutfitDetailView: View {
 
 private struct OutfitCanvasView: View {
     @Binding var placements: [OutfitPlacement]
+    @Binding var selectedItemId: String?
     @ObservedObject var closet: PrototypeClosetStore
     let editable: Bool
+    var fixtureItems: [ClothingItem] = []
 
     var body: some View {
         GeometryReader { geometry in
             ZStack {
                 RoundedRectangle(cornerRadius: 18)
                     .fill(Color(uiColor: .secondarySystemGroupedBackground))
-                ForEach(placements.indices, id: \.self) { index in
+                ForEach(orderedIndices, id: \.self) { index in
                     let placement = placements[index]
-                    if let item = closet.item(id: placement.itemId) {
+                    if let item = closet.item(id: placement.itemId)
+                        ?? fixtureItems.first(where: { $0.id == placement.itemId }) {
                         Group {
                             if let image = closet.image(for: item) {
                                 Image(uiImage: image)
@@ -199,16 +238,26 @@ private struct OutfitCanvasView: View {
                         .frame(width: geometry.size.width * placement.width, height: 140)
                         .background(.background, in: RoundedRectangle(cornerRadius: 12))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .shadow(radius: 4)
+                        .overlay {
+                            if editable && selectedItemId == item.id {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.accentColor, lineWidth: 3)
+                            }
+                        }
+                        .shadow(color: .black.opacity(0.16), radius: 4, y: 2)
                         .rotationEffect(.degrees(placement.rotationDegrees))
                         .position(x: geometry.size.width * placement.centerX,
                                   y: geometry.size.height * placement.centerY)
                         .accessibilityLabel(item.name)
-                        .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .named("outfitCanvas"))
+                        .onTapGesture { if editable { selectedItemId = item.id } }
+                        .gesture(DragGesture(minimumDistance: 4, coordinateSpace: .named("outfitCanvas"))
                             .onChanged { value in
                                 guard editable, geometry.size.width > 0, geometry.size.height > 0 else { return }
-                                placements[index].centerX = min(max(Double(value.location.x / geometry.size.width), 0.15), 0.85)
-                                placements[index].centerY = min(max(Double(value.location.y / geometry.size.height), 0.15), 0.85)
+                                selectedItemId = item.id
+                                let halfWidth = placements[index].width / 2
+                                placements[index].centerX = min(max(Double(value.location.x / geometry.size.width), halfWidth), 1 - halfWidth)
+                                let halfHeight = min(0.48, Double(140 / max(geometry.size.height, 1)) / 2)
+                                placements[index].centerY = min(max(Double(value.location.y / geometry.size.height), halfHeight), 1 - halfHeight)
                             })
                         .allowsHitTesting(editable)
                     } else {
@@ -222,4 +271,23 @@ private struct OutfitCanvasView: View {
             .coordinateSpace(name: "outfitCanvas")
         }
     }
+
+    private var orderedIndices: [Int] {
+        placements.indices.sorted { placements[$0].layer < placements[$1].layer }
+    }
+}
+
+#Preview("Two-piece outfit canvas") {
+    @Previewable @State var placements = OutfitCanvasFixture.placements
+    @Previewable @State var selectedItemId: String? = "fixture-shirt"
+
+    OutfitCanvasView(
+        placements: $placements,
+        selectedItemId: $selectedItemId,
+        closet: PrototypeClosetStore(ownerId: OutfitCanvasFixture.ownerId),
+        editable: true,
+        fixtureItems: OutfitCanvasFixture.items
+    )
+    .frame(height: 360)
+    .padding()
 }

@@ -42,7 +42,7 @@ struct SharedImportReviewView: View {
                             .resizable()
                             .scaledToFit()
                             .frame(maxWidth: .infinity)
-                            .frame(maxHeight: 260)
+                            .frame(maxHeight: 180)
                             .accessibilityLabel("Shared image to review")
                     }
                     Text("Private shared image. Nothing enters your closet until you confirm.")
