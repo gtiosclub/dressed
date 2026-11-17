@@ -152,6 +152,11 @@ private struct OOTDPostCard: View {
         return "\(date.month ?? 0).\(date.day ?? 0).\(String(format: "%02d", (date.year ?? 0) % 100))"
     }
 
+    private var captionCanExpand: Bool {
+        let explicitLineCount = post.caption.split(separator: "\n", omittingEmptySubsequences: false).count
+        return explicitLineCount > 3 || post.caption.count > 90
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("@\(post.authorId)")
@@ -214,7 +219,10 @@ private struct OOTDPostCard: View {
 
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(post.caption).font(.system(size: 13.5))
+                    ExpandablePostCaption(
+                        caption: post.caption,
+                        canExpand: captionCanExpand
+                    )
                     Text("song....").font(.system(size: 11.5)).foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
