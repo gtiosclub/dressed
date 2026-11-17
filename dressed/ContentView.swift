@@ -70,15 +70,16 @@ private struct AppTabs: View {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         if arguments.contains("-livePosts") {
-            InfiniteDiscoveryFeed.live(showingCreate: $isCreatingPost)
+            InfiniteDiscoveryFeed.live(section: $discoverySection, showingCreate: $isCreatingPost)
         } else {
             InfiniteDiscoveryFeed.demo(
                 failSecondPage: arguments.contains("-failDiscoveryPage"),
+                section: $discoverySection,
                 showingCreate: $isCreatingPost
             )
         }
         #else
-        InfiniteDiscoveryFeed.live(showingCreate: $isCreatingPost)
+        InfiniteDiscoveryFeed.live(section: $discoverySection, showingCreate: $isCreatingPost)
         #endif
     }
 
@@ -111,13 +112,11 @@ private struct AppTabs: View {
                             }
                         )
 
-                        if discoverySection == 0 {
-                            DiscoveryIdeasView()
-                        } else {
-                            ootdFeed
-                        }
+                        ootdFeed
                     }
                     .toolbar(.hidden, for: .navigationBar)
+                    // Hide on the navigation content too, so the system bar cannot intercept feed taps.
+                    .toolbar(.hidden, for: .tabBar)
                 }
                 .toolbar(.hidden, for: .tabBar)
                 .tag(1)

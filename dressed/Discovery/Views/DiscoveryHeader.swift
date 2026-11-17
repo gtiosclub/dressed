@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Discovery tab header from the "for u" mockup (915:933): profile, For You / Friends, new post.
-/// For You shows clothing ideas; Friends shows OOTD posts.
+/// For You shows the ranked outfit grid; Friends shows chronological outfit cards.
 struct DiscoveryHeader: View {
     @Binding var section: Int
     let onProfile: () -> Void

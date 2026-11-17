@@ -61,7 +61,7 @@ Components are presentational: callers own state, data and actions.
 
 | Screen | Figma | Notes |
 | --- | --- | --- |
-| Discovery (`DiscoveryHeader`, `DiscoveryIdeasView`) | `915:933` | For You / Friends header, photo tiles, floating "Search Styles". The Friends section retains `InfiniteDiscoveryFeed` and its ranked/chronological selector; its body is not fully migrated yet. |
+| Discovery (`DiscoveryHeader`, `DiscoveryIdeasView`) | `915:933` | For You / Friends header, photo tiles, floating "Search Styles". The one top switch controls `InfiniteDiscoveryFeed`: ranked outfit grid / chronological outfit cards. Its body is not fully migrated yet. |
 
 Other feature views still use their own styling.
 
@@ -99,9 +99,10 @@ committed; photo previews use `OutfitPostPlaceholder` until the team has photos 
 The November 17 merge keeps the social branch's infinite paging, ranking, retry,
 and post-detail implementation. The header's create button uses the existing
 preview composer; demo posts remain local and live publication is unavailable.
-The Friends section still has its own For You / Friends feed selector. Combining
-that selector with the outer clothing-ideas/posts navigation remains a separate
-product decision. This merge reuses Eric's committed styling; an independent
+Per the user's November 17 correction, the top For You / Friends switch directly
+controls the ranked outfit grid and chronological outfit cards. There is no inner
+selector. The catalog clothing-ideas view remains in the project but is no longer
+the For You destination. This merge reuses Eric's committed styling; an independent
 comparison with the live Figma file has not been performed.
 
 ## Open items

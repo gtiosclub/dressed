@@ -1,32 +1,35 @@
 import XCTest
 
 final class ShareImportUITests: XCTestCase {
-    func testDiscoveryStyleSearchMatchesPrototype() {
+    func testSingleDiscoveryHeaderSwitchesFeedLayouts() {
         let app = XCUIApplication()
         app.launchArguments = ["-mockSignedIn", "-showDiscovery"]
         app.launch()
 
-        // Search opens from the floating "Search Styles" button and focuses its field.
-        let searchButton = app.buttons["discovery.searchButton"]
-        XCTAssertTrue(searchButton.waitForExistence(timeout: 10))
-        searchButton.tap()
-        XCTAssertTrue(app.textFields["searchField.textField"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["discovery.style.select.Y2K"].waitForExistence(timeout: 5))
-        app.buttons["discovery.style.select.Y2K"].tap()
-        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["discovery.style.remove.Y2K"].exists)
-        XCTAssertTrue(app.buttons["discovery.style.select.Comfortable"].exists)
-        XCTAssertTrue(app.buttons["discovery.showResults"].exists)
+        let forYou = app.buttons["For You"]
+        let friends = app.buttons["Friends"]
+        XCTAssertTrue(app.buttons["infinite.post.infinite_0"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.buttons.matching(identifier: "For You").count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "Friends").count, 1)
+        XCTAssertFalse(app.segmentedControls["infinite.sections"].exists)
+        XCTAssertTrue(forYou.isSelected)
+        let gridScreenshot = XCTAttachment(screenshot: app.screenshot())
+        gridScreenshot.name = "Single header - For You outfit grid"
+        gridScreenshot.lifetime = .keepAlways
+        add(gridScreenshot)
 
-        let focusedScreenshot = XCTAttachment(screenshot: app.screenshot())
-        focusedScreenshot.name = "Discovery focused style search"
-        focusedScreenshot.lifetime = .keepAlways
-        add(focusedScreenshot)
+        friends.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["infinite.card.infinite_0"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(friends.isSelected)
+        XCTAssertFalse(app.buttons["infinite.post.infinite_0"].exists)
+        let friendsScreenshot = XCTAttachment(screenshot: app.screenshot())
+        friendsScreenshot.name = "Single header - Friends outfit cards"
+        friendsScreenshot.lifetime = .keepAlways
+        add(friendsScreenshot)
 
-        app.buttons["discovery.showResults"].tap()
-        XCTAssertTrue(app.buttons["discovery.idea.idea_top_1"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["discovery.idea.idea_shoes_1"].exists)
-        XCTAssertFalse(app.buttons["discovery.idea.idea_pants_1"].exists)
+        forYou.tap()
+        XCTAssertTrue(app.buttons["infinite.post.infinite_0"].waitForExistence(timeout: 5))
+        XCTAssertTrue(forYou.isSelected)
     }
 
     func testDiscoveryIdeasAndOOTDPostsAreSeparate() {
@@ -274,30 +277,19 @@ final class ShareImportUITests: XCTestCase {
 
 /// Isolated fixture coverage; this does not verify Firebase authentication.
 final class InfiniteFeedUITests: XCTestCase {
-    func testDiscoverySearchRemainsReachable() {
-        let app = XCUIApplication()
-        app.launchArguments = ["-mockSignedIn", "-showDiscovery"]
-        app.launch()
-
-        let search = app.buttons["discovery.searchButton"]
-        XCTAssertTrue(search.waitForExistence(timeout: 5))
-        search.tap()
-        XCTAssertTrue(app.textFields["searchField.textField"].waitForExistence(timeout: 5))
-    }
-
     func testAutomaticPagingPausesOnFailureAndRetries() {
         let app = XCUIApplication()
-        app.launchArguments = ["-mockSignedIn", "-showDiscovery", "-showOOTD", "-failDiscoveryPage"]
+        app.launchArguments = ["-mockSignedIn", "-showDiscovery", "-failDiscoveryPage"]
         app.launch()
         XCTAssertTrue(app.buttons["infinite.post.infinite_0"].waitForExistence(timeout: 5))
         let retry = app.buttons["infinite.retry"]
         XCTAssertFalse(retry.exists)
-        let friends = app.segmentedControls["infinite.sections"].buttons["Friends"]
+        let friends = app.buttons["Friends"]
         XCTAssertTrue(friends.exists)
         friends.tap()
         XCTAssertTrue(app.descendants(matching: .any)["infinite.card.infinite_0"].firstMatch.waitForExistence(timeout: 5))
         XCTAssertFalse(retry.exists)
-        app.segmentedControls["infinite.sections"].buttons["For You"].tap()
+        app.buttons["For You"].tap()
         let feed = app.scrollViews["infinite.scroll"]
         for _ in 0..<8 {
             if retry.isHittable { break }

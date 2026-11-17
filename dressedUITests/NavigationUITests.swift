@@ -24,7 +24,7 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(app.segmentedControls.buttons["Wishlist"].isSelected)
 
         app.buttons["tab.discovery"].tap()
-        XCTAssertTrue(app.buttons["discovery.searchButton"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["infinite.post.infinite_0"].waitForExistence(timeout: 10))
         app.buttons["app.profileButton"].tap()
         XCTAssertTrue(app.buttons["tab.avatar"].isSelected)
         XCTAssertTrue(app.navigationBars["Avatar Studio"].waitForExistence(timeout: 10))

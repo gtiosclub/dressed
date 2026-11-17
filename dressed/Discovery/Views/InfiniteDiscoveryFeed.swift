@@ -2,13 +2,8 @@ import SwiftUI
 
 /// Paginates supplied Post snapshots and displays artwork supplied by the caller.
 struct InfiniteDiscoveryFeed<Artwork: View>: View {
-    private enum FeedTab: String {
-        case forYou = "For You"
-        case friends = "Friends"
-    }
-
     @StateObject private var model: ChronologicalFeedModel
-    @State private var section: FeedTab = .forYou
+    @Binding private var section: Int
     @State private var nearBottom = false
     @State private var pageTask: Task<Void, Never>?
     @State private var selectedPost: Post?
@@ -26,6 +21,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         loadPage: @escaping ChronologicalFeedModel.PageLoader,
         ranker: FeedRanker = FeedRanker(),
         rankingContext: FeedRankingContext = .chronological(),
+        section: Binding<Int> = .constant(0),
         showingCreate: Binding<Bool> = .constant(false),
         canSharePreview: Bool = false,
         @ViewBuilder artwork: @escaping (Post) -> Artwork
@@ -34,6 +30,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         self.ranker = ranker
         self.rankingContext = rankingContext
         self.artwork = artwork
+        _section = section
         _showingCreate = showingCreate
         self.canSharePreview = canSharePreview
     }
@@ -44,10 +41,9 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            sectionPicker
             ScrollView {
                 LazyVStack(spacing: 20) {
-                    if section == .forYou {
+                    if section == 0 {
                         LazyVGrid(columns: columns, spacing: 12) {
                             ForEach(forYouPosts) { post in
                                 Button { selectedPost = post } label: {
@@ -102,7 +98,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                     outfitSnapshot: PublishedOutfitSnapshot(name: nil, items: []),
                     mediaPath: "", createdAt: .now
                 ), at: 0)
-                section = .friends
+                section = 1
                 showingCreate = false
             }
         }
@@ -119,17 +115,6 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
             }
             .tint(accent)
         }
-    }
-
-    private var sectionPicker: some View {
-        Picker("Discovery feed", selection: $section) {
-            Text(FeedTab.forYou.rawValue).tag(FeedTab.forYou)
-            Text(FeedTab.friends.rawValue).tag(FeedTab.friends)
-        }
-        .pickerStyle(.segmented)
-        .frame(maxWidth: 260)
-        .padding(.vertical, 20)
-        .accessibilityIdentifier("infinite.sections")
     }
 
     @ViewBuilder private var footer: some View {
@@ -198,9 +183,18 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
 }
 
 extension InfiniteDiscoveryFeed where Artwork == DemoOutfitPhoto {
-    static func demo(failSecondPage: Bool = false, showingCreate: Binding<Bool> = .constant(false)) -> Self {
+    static func demo(
+        failSecondPage: Bool = false,
+        section: Binding<Int> = .constant(0),
+        showingCreate: Binding<Bool> = .constant(false)
+    ) -> Self {
         let fixtures = InfiniteFeedFixtures(failSecondPage: failSecondPage)
-        return Self(loadPage: fixtures.loadPage, showingCreate: showingCreate, canSharePreview: true) { post in
+        return Self(
+            loadPage: fixtures.loadPage,
+            section: section,
+            showingCreate: showingCreate,
+            canSharePreview: true
+        ) { post in
             DemoOutfitPhoto(post: post)
         }
     }
@@ -211,6 +205,7 @@ extension InfiniteDiscoveryFeed where Artwork == PostArtwork {
     /// It can adopt cursor-based paging here once PostFunctions exposes a cursor contract.
     static func live(
         service: any PostFunctions = DiscoveryPostSource.current,
+        section: Binding<Int> = .constant(0),
         showingCreate: Binding<Bool> = .constant(false)
     ) -> Self {
         Self(loadPage: { cursor in
@@ -222,7 +217,7 @@ extension InfiniteDiscoveryFeed where Artwork == PostArtwork {
                 nextCursor: nil,
                 removedPostIDs: []
             )
-        }, showingCreate: showingCreate) { post in
+        }, section: section, showingCreate: showingCreate) { post in
             PostArtwork(post: post)
         }
     }

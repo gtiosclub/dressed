@@ -5,10 +5,19 @@
 `social_main` incorporates Eric's shared tokens, presentational components, Tabler
 assets, preview gallery, custom four-tab bar, and Discovery header/search styling.
 The existing `InfiniteDiscoveryFeed`, chronological paging/retry model, ranking,
-and post-detail services remain in place. The header's Friends section opens that
-feed rather than replacing it with the older `OOTDFeedView`. Its internal For You /
-Friends selector is retained for ranked versus chronological posts; consolidating
-the two selectors is a separate navigation decision. The header's create button
+and post-detail services remain in place. After the user's navigation correction,
+one top `DiscoveryHeader` switch controls that persistent feed: **For You** shows
+the ranked outfit grid and **Friends** shows chronological outfit cards. The inner
+picker was removed; switching layouts keeps the same loaded pages and retry state.
+The separate catalog clothing-ideas screen is no longer the For You destination;
+its view remains in the project.
+The system tab bar is also hidden on Discovery's navigation content so its
+invisible hit area cannot intercept the feed's Retry button. The correction passed
+a signed simulator build and four focused fixture-backed UI tests: one-header
+layout switching, tab/profile navigation, local post preview, and paging/retry to
+the final page. Both layout screenshots were inspected. SwiftLint still reports
+inherited errors; fresh authentication and live Figma comparison were not repeated.
+ The header's create button
 opens the existing local preview composer, with preview sharing enabled only for
 the demo source; it does not publish to Firebase. Social-only screens use the shared
 Tabler icon API as well. No service contracts or backend rules changed.
@@ -47,7 +56,8 @@ remains lead work before real personalization.
 
 The Discovery tab follows the "for u" Figma frame. `DiscoveryHeader` replaces the
 segmented picker with a profile button, a **For You / Friends** switch and a create-post
-button. For You is the existing clothing-ideas grid; Friends now opens `InfiniteDiscoveryFeed`.
+button. The November 17 correction makes For You the ranked outfit grid and Friends the
+chronological outfit cards within `InfiniteDiscoveryFeed`.
 The profile button moved from a floating button into the header, and OOTD's create button
 moved from the feed into the header. Search is a floating "Search Styles" button above the
 tab bar; tapping it opens the existing style search and suggestions. Behavior, data sources

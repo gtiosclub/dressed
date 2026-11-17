@@ -12,7 +12,7 @@ The design system lives in `dressed/Common/DesignSystem/`. Read its `README.md` 
 When a screen has a Figma frame, match it for **strings, colors, icon colors, component choice and placement**, even when the current app differs. Before editing, call `get_design_context` on the frame and list every visible element with its text, color and position; after editing, compare a simulator screenshot against the frame element by element. Keep existing behavior and data unless the frame requires a change. Record any deviation you cannot avoid (for example, missing data) in the design system README's open items and in your report.
 
 Known mappings:
-- The Discovery frames (`915:933` for u, `922:1100` friends) label the sections **For You** (clothing ideas) and **Friends** (OOTD posts).
+- The Discovery frames (`915:933` for u, `922:1100` friends) label the sections **For You** and **Friends**. The user's November 17 correction makes the single top switch control the ranked outfit grid and chronological outfit cards in `InfiniteDiscoveryFeed`; do not restore the old clothing-ideas/posts routing or add a second selector.
 - Search on mockup screens is a bottom `DSFloatingSearchButton` ("Search Styles", "Search Your Closet") above the tab bar, not a field at the top. Tapping it opens search mode, which shows the text field and suggestions; add `DSFloatingSearchButton.height` plus spacing to the scroll content's bottom padding.
 - Header circle buttons are `DSCircleButton`; their icons are `DSColor.iconMuted` (`#6D6D6D`), not black.
 
