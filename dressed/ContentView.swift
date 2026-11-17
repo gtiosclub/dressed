@@ -64,6 +64,21 @@ private struct AppTabs: View {
         #endif
     }
 
+    @ViewBuilder private var ootdFeed: some View {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-livePosts") {
+            InfiniteDiscoveryFeed.live()
+        } else {
+            InfiniteDiscoveryFeed.demo(
+                failSecondPage: arguments.contains("-failDiscoveryPage")
+            )
+        }
+        #else
+        InfiniteDiscoveryFeed.live()
+        #endif
+    }
+
     var body: some View {
         TabView(selection: $selectedTab) {
 
@@ -95,7 +110,7 @@ private struct AppTabs: View {
                     if discoverySection == 0 {
                         DiscoveryIdeasView { selectedTab = 3 }
                     } else {
-                        OOTDFeedView()
+                        ootdFeed
                     }
                 }
                 .toolbar(.hidden, for: .navigationBar)
