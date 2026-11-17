@@ -8,12 +8,15 @@ struct OOTDFeedView: View {
     @State private var commentsPost: Post?
     @State private var itemsPost: Post?
     @State private var showingCreate = false
+    @State private var showingSaved = false
     @State private var previewPosts: [Post] = []
     private let demo: Bool
+    private let savedPosts: SavedPostsViewModel
 
-    init(service: any PostFunctions = DiscoveryPostSource.current) {
+    init(service: any PostFunctions = DiscoveryPostSource.current, savedPosts: SavedPostsViewModel) {
         _model = StateObject(wrappedValue: DiscoveryFeedViewModel(service: service))
         demo = service is DemoPostFunctions
+        self.savedPosts = savedPosts
     }
 
     var body: some View {
@@ -31,6 +34,9 @@ struct OOTDFeedView: View {
                                          likes: demoLikes(post) + (liked.contains(post.id) ? 1 : 0),
                                          isLiked: liked.contains(post.id),
                                          commentCount: postComments(post).count,
+                                         // A local preview isn't published yet, so there's nothing to save.
+                                         saveControl: index < previewPosts.count ? nil :
+                                            SavedPostControl(postId: post.id, post: post, model: savedPosts),
                                          onItems: { itemsPost = post },
                                          onComments: { commentsPost = post },
                                          onLike: {
@@ -46,6 +52,7 @@ struct OOTDFeedView: View {
             }
         }
         .task { model.load() }
+        .task { await savedPosts.loadIfNeeded() }
         .onDisappear { model.cancel() }
         .sheet(item: $commentsPost) { post in
             OOTDCommentsSheet(comments: postComments(post)) { text in
@@ -69,6 +76,9 @@ struct OOTDFeedView: View {
                 showingCreate = false
             }
         }
+        .navigationDestination(isPresented: $showingSaved) {
+            SavedPostsView(model: savedPosts)
+        }
     }
 
     private var header: some View {
@@ -90,7 +100,16 @@ struct OOTDFeedView: View {
                 .frame(height: 34)
                 .background(Color.black.opacity(0.08), in: Capsule())
             Spacer()
-            Color.clear.frame(width: 44, height: 44)
+            Button { showingSaved = true } label: {
+                Image(systemName: "bookmark")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 22, height: 22)
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Saved Posts")
+            .accessibilityIdentifier("ootd.savedPosts")
         }
         .padding(.horizontal, 16)
         .padding(.top, 14)
@@ -122,6 +141,7 @@ private struct OOTDPostCard: View {
     let likes: Int
     let isLiked: Bool
     let commentCount: Int
+    let saveControl: SavedPostControl?
     let onItems: () -> Void
     let onComments: () -> Void
     let onLike: () -> Void
@@ -209,6 +229,11 @@ private struct OOTDPostCard: View {
                 }
             }
             .padding(.top, 10)
+
+            if let saveControl {
+                saveControl
+                    .padding(.top, 6)
+            }
         }
     }
 
@@ -338,7 +363,7 @@ private struct OOTDCommentsSheet: View {
     }
 }
 
-private struct OOTDItemsSheet: View {
+struct OOTDItemsSheet: View {
     let post: Post
     @State private var category: String?
     @State private var sort: OOTDItemSort = .bestMatch
@@ -717,7 +742,13 @@ struct PostArtwork: View {
 }
 
 #Preview {
-    NavigationStack { OOTDFeedView(service: DemoPostFunctions()) }
+    NavigationStack {
+        OOTDFeedView(service: DemoPostFunctions(), savedPosts: SavedPostsViewModel(
+            ownerId: "preview_user",
+            saves: DemoSavedPostFunctions(arguments: ["-seedSavedPosts"]),
+            posts: DemoPostFunctions()
+        ))
+    }
 }
 
 #Preview("New post") {

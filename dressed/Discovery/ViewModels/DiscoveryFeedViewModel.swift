@@ -116,4 +116,9 @@ struct DemoPostFunctions: PostFunctions {
             )
         }
     }
+
+    func fetchPosts(ids: [String]) async throws -> [Post] {
+        let wanted = Set(ids)
+        return try await fetchRecentPosts().filter { wanted.contains($0.id) }
+    }
 }
