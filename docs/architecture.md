@@ -1,5 +1,23 @@
 # Architecture and shared contracts
 
+## OOTD recommendation ranking baseline (November 16, 2026)
+
+`dressed/Discovery/ViewModels/FeedRanker.swift` now contains a deterministic,
+dependency-injected ranking baseline for public OOTD `Post` snapshots. It can
+combine normalized recency, category and author affinity, saved-outfit category
+similarity, follows, smoothed saves, trend, novelty, exploration, session intent,
+public snapshot completeness, dismissals, and repeat exposure. A greedy rerank
+penalizes repeated authors, saturated categories, and category-set similarity.
+
+`InfiniteDiscoveryFeed` applies that projection only to **For You**. The
+underlying `ChronologicalFeedModel` and **Friends** presentation retain service
+order, so an empty ranking context is an explicit chronological fallback. The
+current live call supplies that empty context because durable impressions,
+dismissals, follows, saves, and preference aggregation are not implemented.
+The ranker does not read private closet records and is not a deployed backend
+recommendation service. Moving scoring behind an authorized, versioned service
+remains lead work before real personalization.
+
 ## Discovery and OOTD navigation update (October 18, 2026)
 
 The signed-in Discovery tab now uses a Discovery / OOTD switch based on the
