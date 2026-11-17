@@ -14,12 +14,25 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     @State private var selectedPost: Post?
     @State private var likedIDs: Set<String> = []
     private let artwork: (Post) -> Artwork
+    private let ranker: FeedRanker
+    private let rankingContext: FeedRankingContext
     private let accent = Color(red: 0.61, green: 0.48, blue: 0.91)
     private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
-    init(loadPage: @escaping ChronologicalFeedModel.PageLoader, @ViewBuilder artwork: @escaping (Post) -> Artwork) {
+    init(
+        loadPage: @escaping ChronologicalFeedModel.PageLoader,
+        ranker: FeedRanker = FeedRanker(),
+        rankingContext: FeedRankingContext = .chronological(),
+        @ViewBuilder artwork: @escaping (Post) -> Artwork
+    ) {
         _model = StateObject(wrappedValue: ChronologicalFeedModel(loadPage: loadPage))
+        self.ranker = ranker
+        self.rankingContext = rankingContext
         self.artwork = artwork
+    }
+
+    private var forYouPosts: [Post] {
+        ranker.rank(model.posts, context: rankingContext).map(\.post)
     }
 
     var body: some View {
@@ -29,7 +42,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                 LazyVStack(spacing: 20) {
                     if section == .forYou {
                         LazyVGrid(columns: columns, spacing: 12) {
-                            ForEach(model.posts) { post in
+                            ForEach(forYouPosts) { post in
                                 Button { selectedPost = post } label: {
                                     artwork(post)
                                         .aspectRatio(1, contentMode: .fit)
