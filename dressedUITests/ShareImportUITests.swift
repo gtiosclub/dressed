@@ -137,6 +137,17 @@ final class ShareImportUITests: XCTestCase {
 
 /// Isolated fixture coverage; this does not verify Firebase authentication.
 final class InfiniteFeedUITests: XCTestCase {
+    func testDiscoverySearchRemainsReachable() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-mockSignedIn", "-showDiscovery"]
+        app.launch()
+
+        let searchSection = app.segmentedControls.buttons["Search"]
+        XCTAssertTrue(searchSection.waitForExistence(timeout: 10))
+        searchSection.tap()
+        XCTAssertTrue(app.textFields["searchField.textField"].waitForExistence(timeout: 5))
+    }
+
     func testAutomaticPagingPausesOnFailureAndRetries() {
         let app = XCUIApplication()
         app.launchArguments = ["-mockSignedIn", "-showDiscovery", "-failDiscoveryPage"]

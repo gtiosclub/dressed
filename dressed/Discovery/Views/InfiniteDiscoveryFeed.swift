@@ -174,6 +174,25 @@ extension InfiniteDiscoveryFeed where Artwork == DemoOutfitPhoto {
     }
 }
 
+extension InfiniteDiscoveryFeed where Artwork == PostArtwork {
+    /// The current post service returns one bounded chronological result set.
+    /// It can adopt cursor-based paging here once PostFunctions exposes a cursor contract.
+    static func live(service: any PostFunctions = DiscoveryPostSource.current) -> Self {
+        Self(loadPage: { cursor in
+            guard cursor == nil else {
+                return FeedPage(posts: [], nextCursor: nil, removedPostIDs: [])
+            }
+            return FeedPage(
+                posts: try await service.fetchRecentPosts(),
+                nextCursor: nil,
+                removedPostIDs: []
+            )
+        }) { post in
+            PostArtwork(post: post)
+        }
+    }
+}
+
 #Preview("Infinite scroll · For You & Friends") {
     NavigationStack { InfiniteDiscoveryFeed.demo() }
 }
