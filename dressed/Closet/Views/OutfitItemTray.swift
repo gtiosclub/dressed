@@ -112,18 +112,18 @@ final class OutfitTrayViewModel {
 
     func loadSamples() {
         items = [
-            OutfitItem(id: UUID(), image: Image(systemName: "tshirt"), name: "Blue shirt", category: .tops),
-            OutfitItem(id: UUID(), image: Image(systemName: "photo"), name: "Black pants", category: .tops),
-            OutfitItem(id: UUID(), image: Image(systemName: "shoe"), name: "White sneakers", category: .shoes),
+            OutfitItem(id: UUID(), image: Image("TablerShirt"), name: "Blue shirt", category: .tops),
+            OutfitItem(id: UUID(), image: Image("TablerPhoto"), name: "Black pants", category: .tops),
+            OutfitItem(id: UUID(), image: Image("TablerShoe"), name: "White sneakers", category: .shoes),
         ]
     }
 
     func loadMany(count: Int = 50) {
-        let symbols = ["tshirt", "photo", "shoe", "hanger", "bag"]
+        let symbols = ["TablerShirt", "TablerPhoto", "TablerShoe", "TablerHanger2", "TablerShoppingBag"]
         items = (1...count).map { i in
             OutfitItem(
                 id: UUID(),
-                image: Image(systemName: symbols[i % symbols.count]),
+                image: Image(symbols[i % symbols.count]),
                 name: "Item \(i)",
                 category: .tops
             )

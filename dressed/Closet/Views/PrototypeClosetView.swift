@@ -44,7 +44,7 @@ struct PrototypeClosetView: View {
         .toolbar {
             if section == 1 {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("New Outfit", systemImage: "plus") { showingOutfitEditor = true }
+                    Button("New Outfit", tabler: "TablerPlus") { showingOutfitEditor = true }
                         .disabled(closet.items.isEmpty || closet.error != nil)
                 }
             }
@@ -62,10 +62,10 @@ struct PrototypeClosetView: View {
     @ViewBuilder
     private var wishlistContent: some View {
         if let error = productLinks.error {
-            ContentUnavailableView("Could not load Wishlist", systemImage: "exclamationmark.triangle",
+            ContentUnavailableView("Could not load Wishlist", tabler: "TablerAlertTriangle",
                                    description: Text(error))
         } else if productLinks.links.isEmpty {
-            ContentUnavailableView("No saved links", systemImage: "heart",
+            ContentUnavailableView("No saved links", tabler: "TablerHeart",
                                    description: Text("Paste a product link in Camera or share one to Dressed."))
         } else {
             List {
@@ -95,7 +95,7 @@ struct PrototypeClosetView: View {
         Group {
             if let error = closet.error {
                 ContentUnavailableView {
-                    Label("Could not load closet", systemImage: "exclamationmark.triangle")
+                    Label("Could not load closet", tabler: "TablerAlertTriangle", size: 48)
                 } description: {
                     Text(error)
                 } actions: {
@@ -104,7 +104,7 @@ struct PrototypeClosetView: View {
             } else if closet.items.isEmpty {
                 ContentUnavailableView(
                     "Your closet is empty",
-                    systemImage: "hanger",
+                    tabler: "TablerHanger2",
                     description: Text("Add a piece from Camera or share an image to Dressed.")
                 )
             } else {
@@ -120,14 +120,14 @@ struct PrototypeClosetView: View {
                                     Button(option.rawValue.capitalized) { category = option }
                                 }
                             } label: {
-                                Label(category?.rawValue.capitalized ?? "All Categories", systemImage: "line.3.horizontal.decrease")
+                                Label(category?.rawValue.capitalized ?? "All Categories", tabler: "TablerFilter", size: 16)
                                     .font(.subheadline)
                             }
                             .accessibilityLabel("Filter pieces by category")
                         }
 
                         if visibleItems.isEmpty {
-                            ContentUnavailableView("No matching pieces", systemImage: "magnifyingglass",
+                            ContentUnavailableView("No matching pieces", tabler: "TablerSearch",
                                                    description: Text("Try another name or category."))
                                 .frame(maxWidth: .infinity)
                                 .frame(minHeight: 300)
@@ -156,7 +156,7 @@ struct PrototypeClosetView: View {
     private var outfitsContent: some View {
         if let error = outfits.error {
             ContentUnavailableView {
-                Label("Could not load outfits", systemImage: "exclamationmark.triangle")
+                Label("Could not load outfits", tabler: "TablerAlertTriangle", size: 48)
             } description: {
                 Text(error)
             } actions: {
@@ -164,7 +164,7 @@ struct PrototypeClosetView: View {
             }
         } else if outfits.outfits.isEmpty {
             ContentUnavailableView {
-                Label("No outfits yet", systemImage: "square.on.square")
+                Label("No outfits yet", tabler: "TablerCopy", size: 48)
             } description: {
                 Text("Choose pieces from your closet to make an outfit.")
             } actions: {
@@ -179,8 +179,7 @@ struct PrototypeClosetView: View {
                             PrototypeOutfitDetailView(outfit: outfit, closet: closet)
                         } label: {
                             VStack(alignment: .leading, spacing: 6) {
-                                Image(systemName: "square.on.square")
-                                    .font(.largeTitle)
+                                DSIcon("TablerCopy", size: 34)
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 100)
                                 Text(outfit.name ?? "Outfit")
@@ -210,7 +209,7 @@ struct PrototypeClosetView: View {
                             .resizable()
                             .scaledToFill()
                     } else {
-                        Image(systemName: "photo")
+                        Image("TablerPhoto")
                             .resizable()
                             .scaledToFit()
                             .padding(40)
@@ -261,7 +260,7 @@ struct PrototypeItemDetailView: View {
                                 .frame(maxHeight: 340)
                                 .accessibilityLabel("Photo of \(item.name)")
                         } else {
-                            ContentUnavailableView("Photo unavailable", systemImage: "photo")
+                            ContentUnavailableView("Photo unavailable", tabler: "TablerPhoto")
                                 .frame(maxWidth: .infinity)
                         }
                     }
@@ -304,7 +303,7 @@ struct PrototypeItemDetailView: View {
                     Text("The piece and its private photo will be removed from this device.")
                 }
             } else {
-                ContentUnavailableView("Piece unavailable", systemImage: "hanger",
+                ContentUnavailableView("Piece unavailable", tabler: "TablerHanger2",
                                        description: Text("It may have been deleted."))
             }
         }

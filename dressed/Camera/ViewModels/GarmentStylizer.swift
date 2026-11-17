@@ -21,7 +21,7 @@ enum GarmentStylizer {
     /// Converts raw image data into an isolated avatar-style piece for a specific category or preset.
     static func convert(_ imageData: Data, preferredCategory: ClothingCategory? = nil, presetHint: GarmentPreset? = nil) async -> StylizedResult {
         guard let sourceImage = UIImage(data: imageData) else {
-            let fallback = UIImage(systemName: "tshirt") ?? UIImage()
+            let fallback = UIImage(named: "TablerShirt") ?? UIImage()
             let data = fallback.pngData() ?? imageData
             return StylizedResult(
                 image: fallback,

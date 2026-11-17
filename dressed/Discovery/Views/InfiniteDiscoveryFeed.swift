@@ -13,26 +13,33 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     @State private var pageTask: Task<Void, Never>?
     @State private var selectedPost: Post?
     @State private var likedIDs: Set<String> = []
+    @State private var previewPosts: [Post] = []
+    @Binding private var showingCreate: Bool
+    private let canSharePreview: Bool
     private let artwork: (Post) -> Artwork
     private let ranker: FeedRanker
     private let rankingContext: FeedRankingContext
-    private let accent = Color(red: 0.61, green: 0.48, blue: 0.91)
+    private let accent = DSColor.brand
     private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
     init(
         loadPage: @escaping ChronologicalFeedModel.PageLoader,
         ranker: FeedRanker = FeedRanker(),
         rankingContext: FeedRankingContext = .chronological(),
+        showingCreate: Binding<Bool> = .constant(false),
+        canSharePreview: Bool = false,
         @ViewBuilder artwork: @escaping (Post) -> Artwork
     ) {
         _model = StateObject(wrappedValue: ChronologicalFeedModel(loadPage: loadPage))
         self.ranker = ranker
         self.rankingContext = rankingContext
         self.artwork = artwork
+        _showingCreate = showingCreate
+        self.canSharePreview = canSharePreview
     }
 
     private var forYouPosts: [Post] {
-        ranker.rank(model.posts, context: rankingContext).map(\.post)
+        previewPosts + ranker.rank(model.posts, context: rankingContext).map(\.post)
     }
 
     var body: some View {
@@ -54,7 +61,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                             }
                         }
                     } else {
-                        ForEach(model.posts) { post in
+                        ForEach(previewPosts + model.posts) { post in
                             friendCard(post)
                         }
                     }
@@ -87,6 +94,18 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         .task { await model.loadInitial() }
         .onAppear { loadNextPageIfNeeded() }
         .onDisappear { pageTask?.cancel() }
+        .navigationDestination(isPresented: $showingCreate) {
+            OOTDCreatePostView(canSharePreview: canSharePreview) { caption in
+                previewPosts.insert(Post(
+                    id: "demo_post_\(UUID().uuidString)", schemaVersion: 1,
+                    authorId: "you", caption: caption.isEmpty ? "caption (optional)" : caption,
+                    outfitSnapshot: PublishedOutfitSnapshot(name: nil, items: []),
+                    mediaPath: "", createdAt: .now
+                ), at: 0)
+                section = .friends
+                showingCreate = false
+            }
+        }
         .sheet(item: $selectedPost) { post in
             NavigationStack {
                 ScrollView { friendCard(post).padding(20) }
@@ -127,7 +146,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
             }
             .padding()
         } else if model.hasLoaded && !model.hasMore {
-            Label(model.posts.isEmpty ? "No outfits yet" : "You're all caught up", systemImage: "checkmark.circle")
+            Label(model.posts.isEmpty ? "No outfits yet" : "You're all caught up", tabler: "TablerCircleCheck")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .padding()
@@ -159,7 +178,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                 Button {
                     if !likedIDs.insert(post.id).inserted { likedIDs.remove(post.id) }
                 } label: {
-                    Image(systemName: likedIDs.contains(post.id) ? "heart.fill" : "heart")
+                    DSIcon(likedIDs.contains(post.id) ? "TablerHeartFilled" : "TablerHeart", size: 20)
                         .font(.title3)
                         .foregroundStyle(likedIDs.contains(post.id) ? accent : .black)
                         .frame(width: 44, height: 44)
@@ -179,9 +198,9 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
 }
 
 extension InfiniteDiscoveryFeed where Artwork == DemoOutfitPhoto {
-    static func demo(failSecondPage: Bool = false) -> Self {
+    static func demo(failSecondPage: Bool = false, showingCreate: Binding<Bool> = .constant(false)) -> Self {
         let fixtures = InfiniteFeedFixtures(failSecondPage: failSecondPage)
-        return Self(loadPage: fixtures.loadPage) { post in
+        return Self(loadPage: fixtures.loadPage, showingCreate: showingCreate, canSharePreview: true) { post in
             DemoOutfitPhoto(post: post)
         }
     }
@@ -190,7 +209,10 @@ extension InfiniteDiscoveryFeed where Artwork == DemoOutfitPhoto {
 extension InfiniteDiscoveryFeed where Artwork == PostArtwork {
     /// The current post service returns one bounded chronological result set.
     /// It can adopt cursor-based paging here once PostFunctions exposes a cursor contract.
-    static func live(service: any PostFunctions = DiscoveryPostSource.current) -> Self {
+    static func live(
+        service: any PostFunctions = DiscoveryPostSource.current,
+        showingCreate: Binding<Bool> = .constant(false)
+    ) -> Self {
         Self(loadPage: { cursor in
             guard cursor == nil else {
                 return FeedPage(posts: [], nextCursor: nil, removedPostIDs: [])
@@ -200,7 +222,7 @@ extension InfiniteDiscoveryFeed where Artwork == PostArtwork {
                 nextCursor: nil,
                 removedPostIDs: []
             )
-        }) { post in
+        }, showingCreate: showingCreate) { post in
             PostArtwork(post: post)
         }
     }

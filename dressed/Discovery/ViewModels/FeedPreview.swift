@@ -66,7 +66,7 @@ struct FeedPreview: View {
                     .buttonStyle(.borderedProminent)
 
                     VStack(spacing: 8) {
-                        Image(systemName: "arrow.up")
+                        DSIcon("TablerArrowUp", size: 20)
                             .offset(y: -min(upwardPull / 5, 14))
 
                         Text(

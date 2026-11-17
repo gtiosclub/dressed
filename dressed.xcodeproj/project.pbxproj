@@ -19,6 +19,7 @@
 		B20100000000000000000001 /* ShareImportUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20200000000000000000001 /* ShareImportUITests.swift */; };
 		C10100000000000000000001 /* InjectionNext in Frameworks */ = {isa = PBXBuildFile; productRef = C10300000000000000000001 /* InjectionNext */; };
 		C10100000000000000000002 /* Inject in Frameworks */ = {isa = PBXBuildFile; productRef = C10300000000000000000002 /* Inject */; };
+		B20100000000000000000002 /* NavigationUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20200000000000000000003 /* NavigationUITests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -60,6 +61,7 @@
 		A10200000000000000000004 /* DressedShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DressedShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B20200000000000000000001 /* ShareImportUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareImportUITests.swift; sourceTree = "<group>"; };
 		B20200000000000000000002 /* dressedUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = dressedUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B20200000000000000000003 /* NavigationUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationUITests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -139,6 +141,7 @@
 			isa = PBXGroup;
 			children = (
 				B20200000000000000000001 /* ShareImportUITests.swift */,
+				B20200000000000000000003 /* NavigationUITests.swift */,
 			);
 			path = dressedUITests;
 			sourceTree = "<group>";
@@ -318,6 +321,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B20100000000000000000001 /* ShareImportUITests.swift in Sources */,
+				B20100000000000000000002 /* NavigationUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -469,6 +473,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = WDRKBQFYRJ;
+				DEVELOPMENT_ASSET_PATHS = dressed/PreviewContent;
 				EMIT_FRONTEND_COMMAND_LINES = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -511,6 +516,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = WDRKBQFYRJ;
+				DEVELOPMENT_ASSET_PATHS = dressed/PreviewContent;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CatalogAPIBaseURL = "$(CATALOG_API_BASE_URL)";

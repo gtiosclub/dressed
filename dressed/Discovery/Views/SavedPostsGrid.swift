@@ -25,7 +25,7 @@ struct SavedPostGrid: View {
         if(posts.isEmpty){
             Spacer()
             VStack{
-                Image(systemName: "person.2")
+                Image("TablerUsers")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 80)
@@ -49,7 +49,7 @@ struct SavedPostGrid: View {
                                     .clipped()
                                     .clipShape(RoundedRectangle(cornerRadius: 12))
                             } else {
-                                Image(systemName: "photo")
+                                Image("TablerPhoto")
                                     .resizable()
                                     .scaledToFit()
                                     .frame(height: 180)
