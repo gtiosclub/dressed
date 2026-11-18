@@ -41,15 +41,15 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		A10300000000000000000001 /* Embed App Extensions */ = {
+		A10300000000000000000001 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				A10100000000000000000002 /* DressedShareExtension.appex in Embed App Extensions */,
+				A10100000000000000000002 /* DressedShareExtension.appex in Embed Foundation Extensions */,
 			);
-			name = "Embed App Extensions";
+			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -104,7 +104,6 @@
 		8B87D85E30537AB400F3CF9E = {
 			isa = PBXGroup;
 			children = (
-				360046AA3074769B00F78859 /* .swiftlint.yml */,
 				8B87D86930537AB400F3CF9E /* dressed */,
 				A10500000000000000000001 /* DressedShareExtension */,
 				B20500000000000000000001 /* dressedUITests */,
@@ -160,7 +159,7 @@
 				8B87D86330537AB400F3CF9E /* Sources */,
 				8B87D86430537AB400F3CF9E /* Frameworks */,
 				8B87D86530537AB400F3CF9E /* Resources */,
-				A10300000000000000000001 /* Embed App Extensions */,
+				A10300000000000000000001 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
@@ -227,7 +226,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2660;
-				LastUpgradeCheck = 2700;
+				LastUpgradeCheck = 2710;
 				TargetAttributes = {
 					8B87D86630537AB400F3CF9E = {
 						CreatedOnToolsVersion = 26.6;
@@ -268,7 +267,13 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				360046AB307476B400F78859 /* .swiftlint.yml in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A10900000000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -477,6 +482,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = WDRKBQFYRJ;
+				DEVELOPMENT_ASSET_PATHS = dressed/PreviewContent;
 				EMIT_FRONTEND_COMMAND_LINES = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -519,6 +525,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = WDRKBQFYRJ;
+				DEVELOPMENT_ASSET_PATHS = dressed/PreviewContent;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CatalogAPIBaseURL = "$(CATALOG_API_BASE_URL)";

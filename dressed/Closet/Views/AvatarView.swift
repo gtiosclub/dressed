@@ -45,7 +45,7 @@ struct AvatarView: View {
                 if use3D {
                     AvatarStage(look: look, worn: worn, uiImage: uiImage, zoom: zoom, orbit: orbit)
                 } else {
-                    Image(systemName: AvatarGender(look: look).symbol)
+                    Image(AvatarGender(look: look).symbol)
                         .resizable()
                         .scaledToFit()
                         .foregroundStyle(Color(uiColor: AvatarScene.tint(look)))
@@ -456,5 +456,5 @@ private extension MannequinMesh {
 }
 
 #Preview {
-    AvatarView(look: [:], worn: [:], image: { _ in Image(systemName: "photo") })
+    AvatarView(look: [:], worn: [:], image: { _ in Image("TablerPhoto") })
 }

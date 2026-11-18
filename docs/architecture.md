@@ -1,5 +1,80 @@
 # Architecture and shared contracts
 
+## Eric design system integration (November 17, 2026)
+
+`social_main` incorporates Eric's shared tokens, presentational components, Tabler
+assets, preview gallery, custom four-tab bar, and Discovery header/search styling.
+The existing `InfiniteDiscoveryFeed`, chronological paging/retry model, ranking,
+and post-detail services remain in place. After the user's navigation correction,
+one top `DiscoveryHeader` switch controls that persistent feed: **For You** shows
+the ranked outfit grid and **Friends** shows chronological outfit cards. The inner
+picker was removed; switching layouts keeps the same loaded pages and retry state.
+The separate catalog clothing-ideas screen is no longer the For You destination;
+its view remains in the project.
+The system tab bar is also hidden on Discovery's navigation content so its
+invisible hit area cannot intercept the feed's Retry button. The correction passed
+a signed simulator build and four focused fixture-backed UI tests: one-header
+layout switching, tab/profile navigation, local post preview, and paging/retry to
+the final page. Both layout screenshots were inspected. SwiftLint still reports
+inherited errors; fresh authentication and live Figma comparison were not repeated.
+ The header's create button
+opens the existing local preview composer, with preview sharing enabled only for
+the demo source; it does not publish to Firebase. Social-only screens use the shared
+Tabler icon API as well. No service contracts or backend rules changed.
+
+Validation on iPhone 17 Pro / iOS 26.0: signed Debug build passed; five
+fixture-backed XCUITests passed across closet/tab/profile navigation, Discovery
+style search and search access, local post composition, and paging/retry/end of
+feed. Search, composer, feed, and tab screenshots were inspected. A launch
+without mock flags restored the existing Firebase session; fresh credential
+submission was not tested because the guide does not contain test credentials.
+Both Swift command-line checks (ranking and pagination) passed. SwiftLint reported
+241 findings, including 75 errors; all errors also occur on either pre-merge
+`social_main` or `eric`. This was not a full UI-suite or live Figma verification.
+`NavigationUITests.swift` was added to the explicit Xcode test source list so its
+navigation coverage actually executes.
+
+## OOTD recommendation ranking baseline (November 16, 2026)
+
+`dressed/Discovery/ViewModels/FeedRanker.swift` now contains a deterministic,
+dependency-injected ranking baseline for public OOTD `Post` snapshots. It can
+combine normalized recency, category and author affinity, saved-outfit category
+similarity, follows, smoothed saves, trend, novelty, exploration, session intent,
+public snapshot completeness, dismissals, and repeat exposure. A greedy rerank
+penalizes repeated authors, saturated categories, and category-set similarity.
+
+`InfiniteDiscoveryFeed` applies that projection only to **For You**. The
+underlying `ChronologicalFeedModel` and **Friends** presentation retain service
+order, so an empty ranking context is an explicit chronological fallback. The
+current live call supplies that empty context because durable impressions,
+dismissals, follows, saves, and preference aggregation are not implemented.
+The ranker does not read private closet records and is not a deployed backend
+recommendation service. Moving scoring behind an authorized, versioned service
+remains lead work before real personalization.
+
+## Discovery header and search (November 7, 2026)
+
+The Discovery tab follows the "for u" Figma frame. `DiscoveryHeader` replaces the
+segmented picker with a profile button, a **For You / Friends** switch and a create-post
+button. The November 17 correction makes For You the ranked outfit grid and Friends the
+chronological outfit cards within `InfiniteDiscoveryFeed`.
+The profile button moved from a floating button into the header, and OOTD's create button
+moved from the feed into the header. Search is a floating "Search Styles" button above the
+tab bar; tapping it opens the existing style search and suggestions. Behavior, data sources
+and accessibility identifiers are unchanged apart from the labels and the new
+`discovery.searchButton`.
+
+## Navigation bar and icons (November 7, 2026)
+
+The signed-in shell now hides the system tab bar and shows the design system's
+`DSTabBar` below the `TabView`, matching the dressed-design Figma bar: Closet,
+Discovery, Avatar, Camera, with the purple active tab. Tab tags and launch flags are
+unchanged. The bar hides while the keyboard is visible. UI tests locate tabs by
+`tab.closet`, `tab.discovery`, `tab.avatar` and `tab.camera`. All app icons are now
+Tabler icons from `Assets.xcassets`; SF Symbols are no longer used. The product scope's
+three-tab description predates the Avatar tab and is unchanged. See
+[the design system README](../dressed/Common/DesignSystem/README.md).
+
 ## Saved posts on OOTD (November 2026)
 
 Each published OOTD card has a Save control, and the bookmark button in the feed
@@ -57,6 +132,8 @@ Not checked: real sign-in and sign-out in the running app, the live Firebase pro
 the owner-only rule itself, a physical device, dark mode and a Release build.
 
 ## Discovery and OOTD navigation update (October 18, 2026)
+
+Historical prototype behavior; the November 17 integration above supersedes its shell and feed routing.
 
 The signed-in Discovery tab now uses a Discovery / OOTD switch based on the
 supplied prototype. Discovery renders individual `CatalogProduct` ideas in a

@@ -24,7 +24,7 @@ struct PrototypeCatalogView: View {
                             Button(option.rawValue.capitalized) { category = option }
                         }
                     } label: {
-                        Label(category?.rawValue.capitalized ?? "All Categories", systemImage: "line.3.horizontal.decrease")
+                        Label(category?.rawValue.capitalized ?? "All Categories", tabler: "TablerFilter")
                     }
                     .accessibilityLabel("Filter catalog by category")
 
@@ -35,7 +35,7 @@ struct PrototypeCatalogView: View {
                     case .loaded(let products) where products.isEmpty:
                         ContentUnavailableView(
                             "No matching products",
-                            systemImage: "magnifyingglass",
+                            tabler: "TablerSearch",
                             description: Text("Try another name or category.")
                         )
                         .frame(maxWidth: .infinity, minHeight: 260)
@@ -45,7 +45,7 @@ struct PrototypeCatalogView: View {
                         }
                     case .failed(let message):
                         ContentUnavailableView {
-                            Label("Catalog unavailable", systemImage: "wifi.exclamationmark")
+                            Label("Catalog unavailable", tabler: "TablerWifiOff", size: 48)
                         } description: {
                             Text(message)
                         } actions: {
@@ -75,8 +75,7 @@ struct PrototypeCatalogView: View {
                 AsyncImage(url: product.imageURL) { image in
                     image.resizable().scaledToFill()
                 } placeholder: {
-                    Image(systemName: "tag")
-                        .font(.title2)
+                    DSIcon("TablerTag", size: 24)
                         .foregroundStyle(.secondary)
                 }
                 .frame(width: 48, height: 56)
