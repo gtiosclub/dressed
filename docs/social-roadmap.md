@@ -25,7 +25,7 @@ The October 19 local import/recognition prototype stays private in My Closet. It
 
 **Tickets:** [#60 post card](https://github.com/gtiosclub/dressed/issues/60), [#80 recent posts](https://github.com/gtiosclub/dressed/issues/80), [#125 feed status views](https://github.com/gtiosclub/dressed/issues/125), and [#151 expandable caption](https://github.com/gtiosclub/dressed/issues/151). [Lead #59](https://github.com/gtiosclub/dressed/issues/59) owns publication, public media, and feed wiring.
 
-The November 17 user request authorizes persistent comment implementation in the current feed; see [architecture](architecture.md) and [comment contract](../backend/schemas/comments.md). This does not approve student assignments or imply that the live rules have been deployed.
+The November 17 user request authorizes persistent comment implementation in the current feed; see [architecture](architecture.md) and [comment contract](../backend/schemas/comments.md). This does not approve student assignments. Comment rules were published to `out-fitted` with user approval on November 17, 2026; real-account persistence verification remains pending.
 
 Earlier engagement proposals [#214](https://github.com/gtiosclub/dressed/issues/214) and [#215](https://github.com/gtiosclub/dressed/issues/215) compare persistent likes and comments using synthetic data. They do not approve backend records, access rules, or implementation tickets; leads and Neal must settle those decisions first.
 

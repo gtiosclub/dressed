@@ -1,7 +1,9 @@
 # Post comments
 
-Implemented client and emulator-tested rules; live rules deployment and signed-in
-iOS persistence checks are pending. The Firebase project remains `out-fitted`.
+Implemented client and emulator-tested rules. The rules were published to
+`out-fitted` on November 17, 2026 with user approval. The console showed the new
+active version and no unpublished changes; its rule content matched the tested
+file. Signed-in iOS save/relaunch and cross-account persistence checks remain pending.
 
 Path: `posts/{postId}/comments/{commentId}`. Synthetic JSON example:
 
@@ -46,7 +48,7 @@ swiftc dressed/Common/Models/PostComment.swift \
 The rules suite uses only `demo-dressed` and synthetic users. The focused UI test
 `ShareImportUITests/testCommentsSubmitAndReopenFromBothFeedLayouts` uses a mock
 session and demo service: it checks UI wiring, not Firebase authentication.
-After deploying the reviewed rules, use a normally signed build and dedicated
+For live acceptance checks, use a normally signed build and dedicated
 development accounts through normal sign-in. On a designated synthetic published
 post, account A submits, closes/reopens, and relaunches; account B refreshes and
 sees the same comment. Check the record in the console. Do not use real-user posts

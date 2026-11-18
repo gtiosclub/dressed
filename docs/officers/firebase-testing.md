@@ -19,6 +19,8 @@ The sample `ClothingItem` is in `backend/schemas/examples.json`. The lead suppli
 
 ## Live project status and next steps
 
+- On November 17, 2026, the user approved publishing the comment rules to `out-fitted`. The console showed the new active version (8:00 PM) and no unpublished changes; the published content matched the emulator-tested `firestore.rules`. Signed-in users can read bounded comment queries and create their own validated comments on existing posts. Updates/deletes remain denied. The 13-case emulator suite passed with synthetic identities; a live iOS save/relaunch/cross-account check has not been performed. Use dedicated development accounts and a designated synthetic post for that check. See [comment contract](../../backend/schemas/comments.md).
+
 - `firestore.rules` was published to `out-fitted` on September 28, 2026. The live Rules Playground allowed an `alice` read at `users/alice/items/item_001` and denied the same read for `bob` and a signed-out user. These were simulations; they did not create records or exercise the iOS app. The emulator suite also covers writes and malformed records.
 - [Cloud Storage for Firebase](https://firebase.google.com/docs/storage/ios/start) currently requires Blaze, and the console asks to upgrade `out-fitted`. This blocks the live image-upload ticket and the full photo-save demo. [Lead ticket #87](https://github.com/gtiosclub/dressed/issues/87) will check club credits, billing behavior and approval. Credits can apply only if they are on a [Google Cloud billing account linked to this project](https://firebase.google.com/docs/projects/billing/firebase-pricing-plans).
 - `storage.rules` is tested locally only. Publish it after Storage exists and the account owner has approved the billing change.

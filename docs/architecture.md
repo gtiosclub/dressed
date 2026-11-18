@@ -47,8 +47,10 @@ earlier merged-tree checks also covered removed saved posts, pieces, read failur
 and failed refresh. All 11 saved-post state scenarios passed. Screenshots of the
 comment sheet and feed were inspected; these UI checks use synthetic demo data.
 
-Local rules are emulator-tested; the live Firebase rule change and a real-account
-save/relaunch/cross-account check are **not yet performed**. Existing legacy
+The emulator-tested rules were published to `out-fitted` with user approval on
+November 17, 2026. The console showed the new active version (8:00 PM), no
+unpublished changes, and content matching the tested file. A real-account
+save/relaunch/cross-account check is **not yet performed**. Existing legacy
 uppercase collections are untouched. See `backend/schemas/comments.md` for mapping
 and test commands. The new sheet reuses design-system tokens and buttons; no live
 Figma design-context tool was available for an independent frame comparison.
