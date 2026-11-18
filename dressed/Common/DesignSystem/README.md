@@ -107,6 +107,9 @@ comparison with the live Figma file has not been performed.
 
 ## Open items
 
+- The persistent comment sheet uses shared tokens and button styles. Live Figma
+  design-context access was unavailable; an independent frame comparison is pending.
+
 - The Discovery header shows a profile icon where the mockup shows the user's initial;
   the session does not expose a display name yet.
 - The mockups are light mode only; dark-mode colors are TBD.

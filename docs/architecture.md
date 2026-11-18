@@ -1,3 +1,48 @@
+## Persistent comments implementation (November 17, 2026)
+
+The current feed now opens `PostCommentsSheet` from Friends cards and For You
+previews. `CommentsViewModel` coordinates loading, empty, submitting, retry,
+refresh, cancellation and removed-post states through an injected `CommentService`.
+`FirebaseCommentService` reads/writes `posts/{postId}/comments/{commentId}` using
+the app's configured Firebase project. Normal Debug and Release launches use live
+posts; `-demoPosts` and fixture-backed mock-session tests use isolated demo data
+(unless `-livePosts` is supplied). Demo comments are labeled and never written to
+Firestore. The older `OOTDFeedView` still contains its historical local prototype.
+
+The user's request authorizes this implementation, superseding the proposal-only
+scope of #215 for this work. Assumptions for this bounded implementation: signed-in
+community reads; authenticated author creation; plain text of 1–1,000 characters;
+newest-first latest 50 with document ID tie-breaking; pull-to-refresh. Display is
+“You” or “Member” until a trusted public profile contract exists; no email or
+client-supplied display identity is published. Editing, deletion, reporting and
+moderation remain TBD before public launch. No aggregate comment count is claimed.
+
+Comment IDs are retained across a failed submission. A transaction checks the
+parent post and existing comment before creating a document with a server timestamp.
+A repeated request with the same author/text is a no-op. The UI clears the draft
+only after write acknowledgement; failure retains it and prevents editing until
+retry or dismissal. A subsequent refresh failure does not resubmit the saved text.
+Server reads avoid presenting a cached write as verified database persistence.
+Rules deny impersonation, extra fields, whitespace-only/oversized text, changes,
+deletes, unbounded queries and access after the parent post is removed. Parent
+post creation remains closed. Orphan cleanup remains part of the publication/
+deletion contract; hiding orphan comments does not delete them.
+
+Verification: all 13 Firebase emulator cases passed, including synthetic
+cross-user comment persistence and denial checks. The standalone view-model checks
+passed, and the five new Swift files pass focused SwiftLint. Full-repository lint
+still reports pre-existing violations. A signed iPhone 17 Pro iOS 26.0 build passed.
+The first focused UI run passed feed switching but found inherited accessibility
+identifiers on the new button; the card now explicitly contains its child elements.
+The rerun was interrupted to hand the simulator to the user, so the corrected
+comment flow is not yet verified. No hot reload is claimed for this structural change.
+
+Local rules are emulator-tested; the live Firebase rule change and a real-account
+save/relaunch/cross-account check are **not yet performed**. Existing legacy
+uppercase collections are untouched. See `backend/schemas/comments.md` for mapping
+and test commands. The new sheet reuses design-system tokens and buttons; no live
+Figma design-context tool was available for an independent frame comparison.
+
 # Architecture and shared contracts
 
 ## Eric design system integration (November 17, 2026)

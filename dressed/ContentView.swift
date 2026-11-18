@@ -69,7 +69,7 @@ private struct AppTabs: View {
     @ViewBuilder private var ootdFeed: some View {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
-        if arguments.contains("-livePosts") {
+        if !DiscoveryPostSource.isDemo {
             InfiniteDiscoveryFeed.live(section: $discoverySection, showingCreate: $isCreatingPost)
         } else {
             InfiniteDiscoveryFeed.demo(

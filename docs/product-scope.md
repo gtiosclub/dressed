@@ -32,6 +32,8 @@ clothing-ideas view remains in the repository but is no longer this tab's defaul
 destination. This is an observed prototype change; the first-release roadmap below
 still requires live publication and service integration.
 
+The current feed has a persistent-comment client and locally tested access rules; deployment and real-account verification are pending. See [comment contract](../backend/schemas/comments.md).
+
 The earlier catalog/OOTD prototype opened to a two-column grid of individual catalog ideas with search and suggested styles. OOTD contains the outfit post feed. Post cards do not navigate; garment pins, Find items, comments and likes act on the feed, and Find items opens a sheet of published pieces. The plus button opens a new-post screen; Share inserts a local preview only for Debug demo posts. Likes and comments are local UI state, not backend records. Synthetic items and posts support the Debug UI walkthrough while live catalog sourcing, publication, public media loading, and saved-post access remain lead work. This does not add another top-level tab. See the [implementation plan](discovery-ootd-implementation-plan.md).
 
 ## First release: capture, closet, outfits, OOTD

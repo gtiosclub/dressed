@@ -7,6 +7,9 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     @State private var nearBottom = false
     @State private var pageTask: Task<Void, Never>?
     @State private var selectedPost: Post?
+    @State private var commentsPost: Post?
+    @State private var previewCommentsPost: Post?
+    @State private var commentService: any CommentService
     @State private var likedIDs: Set<String> = []
     @State private var previewPosts: [Post] = []
     @Binding private var showingCreate: Bool
@@ -24,6 +27,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         section: Binding<Int> = .constant(0),
         showingCreate: Binding<Bool> = .constant(false),
         canSharePreview: Bool = false,
+        commentService: (any CommentService)? = nil,
         @ViewBuilder artwork: @escaping (Post) -> Artwork
     ) {
         _model = StateObject(wrappedValue: ChronologicalFeedModel(loadPage: loadPage))
@@ -33,6 +37,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         _section = section
         _showingCreate = showingCreate
         self.canSharePreview = canSharePreview
+        _commentService = State(initialValue: commentService ?? FirebaseCommentService())
     }
 
     private var forYouPosts: [Post] {
@@ -102,9 +107,15 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                 showingCreate = false
             }
         }
+        .sheet(item: $commentsPost) { post in
+            PostCommentsSheet(postId: post.id, service: commentService)
+        }
         .sheet(item: $selectedPost) { post in
             NavigationStack {
-                ScrollView { friendCard(post).padding(20) }
+                ScrollView { friendCard(post, inPreview: true).padding(20) }
+                    .sheet(item: $previewCommentsPost) { selected in
+                        PostCommentsSheet(postId: selected.id, service: commentService)
+                    }
                     .navigationTitle("Outfit preview")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
@@ -144,7 +155,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         pageTask = Task { @MainActor in await model.loadMore() }
     }
 
-    private func friendCard(_ post: Post) -> some View {
+    private func friendCard(_ post: Post, inPreview: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text("@\(post.authorId)").fontWeight(.semibold)
@@ -160,6 +171,15 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
             HStack(alignment: .center, spacing: 12) {
                 Text(post.caption).font(.body.weight(.medium))
                     .frame(maxWidth: .infinity, alignment: .leading)
+                Button {
+                    if inPreview { previewCommentsPost = post } else { commentsPost = post }
+                } label: {
+                    DSIcon("TablerMessageCircle", size: 20)
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Comments")
+                .accessibilityIdentifier("infinite.comments.\(post.id)")
                 Button {
                     if !likedIDs.insert(post.id).inserted { likedIDs.remove(post.id) }
                 } label: {
@@ -178,6 +198,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         .clipShape(RoundedRectangle(cornerRadius: 18))
         .overlay(RoundedRectangle(cornerRadius: 18).stroke(accent.opacity(0.22)))
         .shadow(color: accent.opacity(0.12), radius: 8, y: 4)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("infinite.card.\(post.id)")
     }
 }
@@ -193,7 +214,8 @@ extension InfiniteDiscoveryFeed where Artwork == DemoOutfitPhoto {
             loadPage: fixtures.loadPage,
             section: section,
             showingCreate: showingCreate,
-            canSharePreview: true
+            canSharePreview: true,
+            commentService: DemoCommentService()
         ) { post in
             DemoOutfitPhoto(post: post)
         }

@@ -12,6 +12,8 @@ import {
   orderBy,
   query,
   setDoc,
+  serverTimestamp,
+  runTransaction,
 } from 'firebase/firestore';
 import { deleteObject, getMetadata, ref, uploadBytes } from 'firebase/storage';
 
@@ -104,6 +106,61 @@ try {
     await assertFails(setDoc(doc(bob.firestore(), savedPath), saved));
     await assertFails(getDoc(doc(bob.firestore(), savedPath)));
     await assertFails(getDoc(doc(guest.firestore(), savedPath)));
+  });
+
+  await test('comments persist across users, bounded refreshes, and idempotent retries', async () => {
+    await env.clearFirestore();
+    await env.withSecurityRulesDisabled(async (admin) => {
+      await setDoc(doc(admin.firestore(), 'posts/comment_test'), { authorId: 'bob' });
+    });
+    const path = 'posts/comment_test/comments/stable_id';
+    const record = { id: 'stable_id', authorId: 'alice', text: 'Nice fit', createdAt: serverTimestamp() };
+    const send = () => runTransaction(alice.firestore(), async (transaction) => {
+      const target = doc(alice.firestore(), path);
+      if (!(await transaction.get(target)).exists()) transaction.set(target, record);
+    });
+    await assertSucceeds(send());
+    const first = await assertSucceeds(getDoc(doc(bob.firestore(), path)));
+    await assertSucceeds(send());
+    const comments = query(collection(bob.firestore(), 'posts/comment_test/comments'),
+      orderBy('createdAt', 'desc'), orderBy('__name__', 'desc'), limit(50));
+    const loaded = await assertSucceeds(getDocs(comments));
+    assert.equal(loaded.size, 1);
+    assert.equal(loaded.docs[0].data().text, 'Nice fit');
+    assert.ok(loaded.docs[0].data().createdAt.isEqual(first.data().createdAt));
+    await assertFails(getDoc(doc(guest.firestore(), path)));
+    await assertFails(getDocs(query(collection(guest.firestore(), 'posts/comment_test/comments'), limit(50))));
+    await assertFails(getDocs(collection(alice.firestore(), 'posts/comment_test/comments')));
+    await assertFails(getDocs(query(collection(alice.firestore(), 'posts/comment_test/comments'), limit(51))));
+    await assertFails(setDoc(doc(bob.firestore(), path), { ...record, text: 'Edited' }));
+    await assertFails(deleteDoc(doc(bob.firestore(), path)));
+    await assertFails(deleteDoc(doc(alice.firestore(), path)));
+    await env.withSecurityRulesDisabled(async (admin) => {
+      await deleteDoc(doc(admin.firestore(), 'posts/comment_test'));
+    });
+    await assertFails(getDoc(doc(alice.firestore(), path)));
+    await assertFails(getDocs(comments));
+    await assertFails(setDoc(doc(alice.firestore(), 'posts/comment_test/comments/new'), { ...record, id: 'new' }));
+  });
+
+  await test('comments reject impersonation, malformed content, client time, and missing posts', async () => {
+    await env.clearFirestore();
+    await env.withSecurityRulesDisabled(async (admin) => {
+      await setDoc(doc(admin.firestore(), 'posts/comment_test'), { authorId: 'bob' });
+    });
+    const target = doc(alice.firestore(), 'posts/comment_test/comments/check');
+    const record = { id: 'check', authorId: 'alice', text: 'Hello', createdAt: serverTimestamp() };
+    for (const invalid of [
+      { ...record, authorId: 'bob' }, { ...record, id: 'wrong' },
+      { ...record, text: '' }, { ...record, text: ' \n\t ' },
+      { ...record, text: 'a'.repeat(1001) }, { ...record, text: 123 },
+      { ...record, email: 'private@example.invalid' }, { ...record, createdAt },
+    ]) await assertFails(setDoc(target, invalid));
+    await assertFails(setDoc(doc(guest.firestore(), 'posts/comment_test/comments/check'), record));
+    await assertFails(setDoc(doc(alice.firestore(), 'posts/missing/comments/check'), record));
+    await assertSucceeds(setDoc(target, { ...record, text: 'a'.repeat(1000) }));
+    await assertFails(setDoc(target, { ...record, text: 'Replacement' }));
+    await assertFails(getDoc(doc(alice.firestore(), 'COMMENTS/legacy')));
   });
 
   await test('private JPEG media is owner-only and size/type-limited', async () => {

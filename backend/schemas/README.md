@@ -25,7 +25,7 @@ Other proposed persisted records currently include `schemaVersion`; `ClothingIte
 
 Storage paths: private item photos under `users/{uid}/items/{id}/`; published copies under `posts/{uid}/{postId}/`. Notifications must not be arbitrarily created by a recipient pretending another user acted. Challenge submissions require ownership checks. No rules or indexes are deployed by adding these files.
 
-Templates cover the currently named entities, including deferred follows, preferences, avatars and engagement. Optional future features such as comments/likes, AR or body scans still need approved contracts before implementation. No functioning feature or server is implied by a schema file.
+Templates cover the currently named entities, including deferred follows, preferences, avatars and engagement. Persistent comments now have an implemented client and locally tested rules; see [comments](comments.md) for their contract and pending deployment verification. Optional future features such as persistent likes, AR or body scans still need approved contracts before implementation. No functioning feature or server is implied by a schema file.
 
 ## Validate the JSON contracts locally
 
