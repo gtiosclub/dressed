@@ -5,7 +5,12 @@ import UIKit
 struct PrototypeImportView: View {
     @ObservedObject var closet: PrototypeClosetStore
     let ownerId: String
-    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var selectedPhotos: [PhotosPickerItem] = []
+    @State private var selectedPhotoPreviews: [SelectedLibraryPhoto] = []
+    @State private var multiPhotoReview: MultiPhotoReviewSession?
+    @State private var importMode: ImportMode = .oneItem
+    @State private var isLoadingSelectedPhotos = false
+    @State private var photoLoadingTask: Task<Void, Never>?
     @State private var review: ReviewImage?
     @State private var showsCamera = false
     @State private var capturedImage: UIImage?
@@ -25,11 +30,105 @@ struct PrototypeImportView: View {
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
 
-            PhotosPicker(selection: $selectedPhoto, matching: .images) {
+            Picker("Import mode", selection: $importMode) {
+                Text("One Item").tag(ImportMode.oneItem)
+                Text("Full Outfit").tag(ImportMode.oneOutfit)
+            }
+            .pickerStyle(.segmented)
+
+            Text(importMode == .oneItem
+                 ? "Choose several views of the same garment."
+                 : "Choose photos of the same outfit.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            PhotosPicker(selection: $selectedPhotos, maxSelectionCount: 8, matching: .images) {
                 Label("Choose from Photos", tabler: "TablerLibraryPhoto")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
+
+            if isLoadingSelectedPhotos {
+                ProgressView("Loading selected photos…")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if !selectedPhotoPreviews.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Selected Photos (\(selectedPhotoPreviews.count))")
+                        .font(.headline)
+
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+                        ForEach(selectedPhotoPreviews) { selectedPhoto in
+                            ZStack(alignment: .topTrailing) {
+                                Group {
+                                    if let data = selectedPhoto.reviewImage?.data,
+                                       let image = UIImage(data: data) {
+                                        Image(uiImage: image)
+                                            .resizable()
+                                            .scaledToFill()
+                                    } else {
+                                        DSIcon("TablerPhoto", size: 20)
+                                            .font(.title2)
+                                            .foregroundStyle(.secondary)
+                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                            .background(Color(.secondarySystemGroupedBackground))
+                                    }
+                                }
+                                .frame(height: 112)
+                                .frame(maxWidth: .infinity)
+                                .clipped()
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                                Button {
+                                    removeSelectedPhoto(selectedPhoto)
+                                } label: {
+                                    DSIcon("TablerCircleXFilled", size: 20)
+                                        .font(.title3)
+                                        .symbolRenderingMode(.palette)
+                                        .foregroundStyle(.white, .black.opacity(0.65))
+                                }
+                                .buttonStyle(.plain)
+                                .padding(4)
+                                .accessibilityLabel("Remove photo")
+                            }
+                        }
+                    }
+
+                    if selectedPhotoPreviews.count == 1,
+                       let image = selectedPhotoPreviews.first?.reviewImage {
+                        Button("Review Photo") { review = image }
+                            .buttonStyle(.bordered)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+
+                    if selectedPhotoPreviews.count > 1 {
+                        Button("Review \(selectedPhotoPreviews.count) Photos") {
+                            let photos = selectedPhotoPreviews.compactMap(\.reviewImage)
+                            guard photos.count == selectedPhotoPreviews.count else {
+                                importError = "Remove any photo that could not be loaded, then try again."
+                                return
+                            }
+                            let selectionKey = ([importMode.rawValue] + photos.map(\.id).sorted())
+                                .joined(separator: ":")
+                            let importID = SharedImportDraftStore.stableID(
+                                importID: selectionKey,
+                                part: "multi-photo-import"
+                            )
+                            multiPhotoReview = MultiPhotoReviewSession(
+                                id: importID,
+                                mode: importMode,
+                                photos: photos
+                            )
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .disabled(isLoadingSelectedPhotos)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
 
             Button {
                 if UIImagePickerController.isSourceTypeAvailable(.camera) {
@@ -42,6 +141,11 @@ struct PrototypeImportView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
+
+            #if DEBUG
+            NavigationLink("On-device speed test") { RecognitionLabView() }
+                .buttonStyle(.bordered)
+            #endif
 
             Text("You can also share an image to Dressed from another app, then open Dressed to review it.")
                 .font(.footnote)
@@ -80,20 +184,9 @@ struct PrototypeImportView: View {
             .frame(maxWidth: .infinity)
         }
         .navigationTitle("Camera")
-        .onChange(of: selectedPhoto) { _, photo in
-            guard let photo else { return }
-            Task {
-                defer { selectedPhoto = nil }
-                do {
-                    guard let data = try await photo.loadTransferable(type: Data.self),
-                          UIImage(data: data) != nil else {
-                        throw PrototypeImportError.invalidImage
-                    }
-                    review = ReviewImage(id: UUID().uuidString, data: data, source: "Photo Library", isShared: false)
-                } catch {
-                    importError = error.localizedDescription
-                }
-            }
+        .onChange(of: selectedPhotos) { _, photos in
+            photoLoadingTask?.cancel()
+            photoLoadingTask = Task { await loadSelectedPhotos(photos) }
         }
         .sheet(isPresented: $showsCamera, onDismiss: {
             guard let capturedImage else { return }
@@ -114,7 +207,21 @@ struct PrototypeImportView: View {
                 image: image,
                 closet: closet,
                 onCancel: { review = nil },
-                onSaved: { review = nil }
+                onSaved: { review = nil },
+                onAnotherPhoto: { newImage in review = newImage }
+            )
+        }
+        .sheet(item: $multiPhotoReview) { session in
+            MultiPhotoImportReviewView(
+                mode: session.mode,
+                importID: session.id,
+                photos: session.photos,
+                closet: closet,
+                onCancel: { multiPhotoReview = nil },
+                onSaved: {
+                    multiPhotoReview = nil
+                    selectedPhotos = []
+                }
             )
         }
         .sheet(item: $productLink) { link in
@@ -134,6 +241,68 @@ struct PrototypeImportView: View {
             Text(importError ?? "Please try again.")
         }
     }
+
+    private func loadSelectedPhotos(_ photos: [PhotosPickerItem]) async {
+        guard !photos.isEmpty else {
+            selectedPhotoPreviews = []
+            isLoadingSelectedPhotos = false
+            return
+        }
+
+        isLoadingSelectedPhotos = true
+        var previews: [SelectedLibraryPhoto] = []
+        var failedCount = 0
+
+        for photo in photos {
+            guard !Task.isCancelled else { return }
+            // Failed loads never reach review or saving, so a random ID is fine there.
+            var id = UUID().uuidString
+            do {
+                guard let data = try await photo.loadTransferable(type: Data.self),
+                      UIImage(data: data) != nil else {
+                    throw PrototypeImportError.invalidImage
+                }
+                id = ImportPhotoID.make(for: data)
+                guard !previews.contains(where: { $0.id == id }) else { continue }
+                let reviewImage = ReviewImage(
+                    id: id,
+                    data: data,
+                    source: "Photo Library",
+                    isShared: false
+                )
+                previews.append(SelectedLibraryPhoto(id: id, pickerItem: photo, reviewImage: reviewImage))
+            } catch {
+                previews.append(SelectedLibraryPhoto(id: id, pickerItem: photo, reviewImage: nil))
+                failedCount += 1
+            }
+        }
+
+        guard !Task.isCancelled else { return }
+        selectedPhotoPreviews = previews
+        isLoadingSelectedPhotos = false
+        if failedCount > 0 {
+            importError = failedCount == 1
+                ? "One selected photo could not be loaded. Remove it or choose it again."
+                : "Some selected photos could not be loaded. Remove them or choose them again."
+        }
+    }
+
+    private func removeSelectedPhoto(_ photo: SelectedLibraryPhoto) {
+        selectedPhotos.removeAll { $0 == photo.pickerItem }
+        selectedPhotoPreviews.removeAll { $0.id == photo.id }
+    }
+}
+
+private struct SelectedLibraryPhoto: Identifiable {
+    let id: String
+    let pickerItem: PhotosPickerItem
+    let reviewImage: ReviewImage?
+}
+
+private struct MultiPhotoReviewSession: Identifiable {
+    let id: String
+    let mode: ImportMode
+    let photos: [ReviewImage]
 }
 
 struct ImportReviewView: View {
@@ -141,10 +310,12 @@ struct ImportReviewView: View {
     @ObservedObject var closet: PrototypeClosetStore
     let onCancel: () -> Void
     let onSaved: () -> Void
+    // P18 handoff to P17: when the person chooses another photo for a possible
+    // missing piece, hand the new image back so review starts again on it.
+    var onAnotherPhoto: ((ReviewImage) -> Void)? = nil
 
     private enum RecognitionState: Equatable {
         case analyzing
-        case suggested
         case noMatch
         case failed
         case manual
@@ -166,10 +337,10 @@ struct ImportReviewView: View {
     @State private var hasEditedName = false
     @State private var hasEditedCategory = false
     @State private var recognitionState: RecognitionState = .analyzing
-    @State private var recognitionAttempt = 0
     @State private var isSaving = false
     @State private var saveError: String?
     @State private var candidates: [ImportCandidate] = []
+    @State private var possibleMissing: [PossibleMissingPiece] = []
     @State private var isDetectingPieces = false
     @State private var detectionMessage: String?
     @State private var editingCandidateID: String?
@@ -183,6 +354,8 @@ struct ImportReviewView: View {
         }
         return GarmentPreset.allCases.filter { $0.filterCategory == activeFilter }
     }
+    @State private var detectionID = UUID()
+    @State private var additionalPhoto: PhotosPickerItem?
 
     var body: some View {
         NavigationStack {
@@ -255,6 +428,7 @@ struct ImportReviewView: View {
                     Section {
                         Button("Add Missed Piece", action: addManualPiece)
                         Button("Enter One Piece Manually Instead") {
+                            SharedImportDraftStore.removeAutomaticCutouts(for: candidates)
                             candidates = []
                             recognitionState = .manual
                         }
@@ -288,6 +462,41 @@ struct ImportReviewView: View {
                     Section {
                         Button(isSaving ? "Saving…" : "Save Selected Pieces", action: saveSelectedPieces)
                             .disabled(isSaving || isDetectingPieces || !candidates.contains(where: \.selected))
+                    }
+                }
+
+                if !possibleMissing.isEmpty {
+                    Section {
+                        ForEach(possibleMissing) { hint in
+                            VStack(alignment: .leading, spacing: 10) {
+                                Label("Possible missing piece", tabler: "TablerHelpCircle")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.orange)
+                                Text(hint.reason)
+                                    .foregroundStyle(.secondary)
+                                PhotosPicker(selection: $additionalPhoto, matching: .images) {
+                                    Label("Add Another Photo", tabler: "TablerLibraryPhoto")
+                                        .font(.footnote)
+                                }
+                                HStack {
+                                    Button("Enter Manually") {
+                                        addManualPiece()
+                                        dismissPossiblePiece(hint.id)
+                                    }
+                                    Spacer()
+                                    Button("Dismiss", role: .destructive) {
+                                        dismissPossiblePiece(hint.id)
+                                    }
+                                }
+                                .font(.footnote)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        Text("A possible piece is not a detected one and is never saved automatically. Choose another photo or enter it by hand to confirm it.")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    } header: {
+                        Text("Possible Missing Piece")
                     }
                 }
 
@@ -374,12 +583,10 @@ struct ImportReviewView: View {
                             Text("Filling preset with details from photo…")
                         }
                         Button("Enter details manually") {
+                            detectionTask?.cancel()
+                            isDetectingPieces = false
                             recognitionState = .manual
-                            recognitionAttempt += 1
                         }
-                    case .suggested:
-                        Label("Suggested preset: \(selectedPreset.rawValue)", tabler: "TablerSparkles")
-                            .foregroundStyle(.secondary)
                     case .noMatch:
                         Text("Choose a preset above and name your piece.")
                             .foregroundStyle(.secondary)
@@ -395,7 +602,7 @@ struct ImportReviewView: View {
 
                     TextField("Name (for example, Blue \(selectedPreset.rawValue))", text: Binding(
                         get: { name },
-                        set: { name = $0; hasEditedName = true }
+                        set: { name = $0 }
                     ))
 
                     Picker("Category", selection: Binding(
@@ -462,36 +669,21 @@ struct ImportReviewView: View {
                     }
                 }
             }
-            .task(id: recognitionAttempt) {
-                guard recognitionState == .analyzing else { return }
-                async let suggestionTask = PrototypeGarmentRecognition.analyze(image.data)
-                async let stylizerTask = GarmentStylizer.convert(image.data)
-
-                do {
-                    let (suggestion, stylized) = try await (suggestionTask, stylizerTask)
-                    guard !Task.isCancelled, recognitionState == .analyzing else { return }
-                    self.stylizedResult = stylized
-                    self.selectedPreset = stylized.detectedPreset
-                    self.category = stylized.detectedPreset.category
-
-                    if let suggestion {
-                        if !hasEditedName { name = suggestion.name }
-                        if !hasEditedCategory { category = suggestion.category }
-                        recognitionState = .suggested
-                    } else {
-                        if !hasEditedName { name = stylized.detectedPreset.rawValue }
-                        recognitionState = .noMatch
-                    }
-                } catch is CancellationError {
-                } catch {
-                    guard !Task.isCancelled, recognitionState == .analyzing else { return }
-                    recognitionState = .failed
-                }
-            }
             .task {
                 guard !didStartPieceDetection else { return }
                 didStartPieceDetection = true
                 detectPieces()
+            }
+            .onChange(of: additionalPhoto) { _, item in
+                guard let item else { return }
+                Task {
+                    defer { additionalPhoto = nil }
+                    guard let data = try? await item.loadTransferable(type: Data.self),
+                          UIImage(data: data) != nil else { return }
+                    detectionTask?.cancel()
+                    onAnotherPhoto?(ReviewImage(id: UUID().uuidString, data: data,
+                                                source: "Photo Library", isShared: false))
+                }
             }
             .onDisappear {
                 detectionTask?.cancel()
@@ -591,31 +783,40 @@ struct ImportReviewView: View {
 
     private func retryRecognition() {
         recognitionState = .analyzing
-        recognitionAttempt += 1
+        detectPieces()
     }
 
     private func detectPieces() {
         guard !isDetectingPieces else { return }
         isDetectingPieces = true
         detectionMessage = nil
+        let attempt = UUID()
+        detectionID = attempt
         detectionTask = Task {
-            defer { isDetectingPieces = false }
+            defer { if detectionID == attempt { isDetectingPieces = false } }
             do {
-                let found = try await AutomaticImportSuggestions.detect(imageData: image.data, importID: image.id)
+                let result = try await AutomaticImportSuggestions.review(imageData: image.data, importID: image.id)
                 guard !Task.isCancelled else {
-                    SharedImportDraftStore.removeAutomaticCutouts(for: found)
+                    SharedImportDraftStore.removeAutomaticCutouts(for: result.candidates)
                     return
                 }
-                let previous = Dictionary(uniqueKeysWithValues: candidates.map { ($0.id, $0) })
-                let manual = candidates.filter { $0.suggestionSource == nil }
-                candidates = found.map { previous[$0.id] ?? $0 } + manual
-                if found.isEmpty {
+                possibleMissing = result.possibleMissing
+                candidates = SharedImportDraftStore.mergingSuggestions(result.candidates, into: candidates)
+                recognitionState = result.candidates.isEmpty ? .noMatch : .manual
+                if result.candidates.isEmpty {
                     detectionMessage = "No separate clothing pieces found. You can enter one piece manually below."
                 }
+            } catch is CancellationError {
+                return
             } catch {
+                recognitionState = .failed
                 detectionMessage = "Could not find pieces automatically. You can enter one manually below."
             }
         }
+    }
+
+    private func dismissPossiblePiece(_ id: String) {
+        possibleMissing.removeAll { $0.id == id }
     }
 
     private func addManualPiece() {

@@ -1,0 +1,14 @@
+[
+ {"id":"jacket","url":"https://shop.example.com/p/rain-jacket","snapshot":"jacket-jsonld.html",
+  "expected":{"name":"Rain Jacket","retailer":"Example Outerwear Co","image":"https://cdn.example.com/rain-jacket.jpg","category":"outerwear","price":"89.00 USD","availability":"In stock","variant":null}},
+ {"id":"coat-variants","url":"https://shop.example.com/p/wool-coat","snapshot":"multi-offer.html",
+  "expected":{"name":"Wool Coat","retailer":"shop.example.com","image":"https://cdn.example.com/coat.jpg","category":null,"price":null,"availability":null,"variant":null}},
+ {"id":"sneakers-og","url":"https://shop.example.com/p/sneakers","snapshot":"og-only.html",
+  "expected":{"name":"Canvas Sneakers","retailer":"shop.example.com","image":"https://shop.example.com/img/sneakers.jpg"}},
+ {"id":"shirt-microdata","url":"https://shop.example.com/p/linen-shirt","snapshot":"microdata.html",
+  "expected":{"name":"Linen Shirt","retailer":"shop.example.com","image":"https://cdn.example.com/linen.jpg","price":"45.00 EUR","availability":"Preorder"}},
+ {"id":"jeans-no-currency","url":"https://shop.example.com/p/jeans","snapshot":"script-price.html",
+  "expected":{"name":"Denim Jeans","retailer":"shop.example.com","image":"https://cdn.example.com/jeans.jpg","price":null}},
+ {"id":"thin-page","url":"https://shop.example.com/p/none","snapshot":"thin.html","expected":{"retailer":"shop.example.com"}},
+ {"id":"blocked-page","url":"https://shop.example.com/p/blocked","snapshot":"blocked.html","status":403,"expected":{}}
+]

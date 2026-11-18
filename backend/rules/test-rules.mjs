@@ -12,6 +12,7 @@ import {
   orderBy,
   query,
   setDoc,
+  updateDoc,
   serverTimestamp,
   runTransaction,
 } from 'firebase/firestore';
@@ -81,6 +82,36 @@ try {
     await assertFails(getDoc(doc(bob.firestore(), path)));
     await assertFails(setDoc(doc(bob.firestore(), path), outfit));
     await assertFails(setDoc(doc(alice.firestore(), path), { ...outfit, ownerId: 'bob' }));
+  });
+
+  await test('clothing detail updates preserve identity and reject other users', async () => {
+    await env.clearFirestore();
+    const own = doc(alice.firestore(), itemPath);
+    await assertSucceeds(setDoc(own, item));
+    await assertSucceeds(updateDoc(own, { name: 'Navy shirt', category: 'outerwear' }));
+    const saved = (await getDoc(own)).data();
+    assert.equal(saved.name, 'Navy shirt');
+    assert.equal(saved.category, 'outerwear');
+    assert.equal(saved.imagePath, item.imagePath);
+    assert.equal(saved.createdAt.toMillis(), createdAt.getTime());
+    await assertFails(updateDoc(doc(bob.firestore(), itemPath), { name: 'Wrong owner' }));
+    await assertFails(updateDoc(doc(guest.firestore(), itemPath), { name: 'Guest' }));
+  });
+
+  await test('outfit deletion is repeatable, scoped, and owner-only', async () => {
+    await env.clearFirestore();
+    const path = 'users/alice/outfits/outfit_001';
+    const other = 'users/alice/outfits/outfit_002';
+    await assertSucceeds(setDoc(doc(alice.firestore(), path), outfit));
+    await assertSucceeds(setDoc(doc(alice.firestore(), other), { ...outfit, id: 'outfit_002' }));
+    await assertSucceeds(setDoc(doc(alice.firestore(), itemPath), item));
+    await assertFails(deleteDoc(doc(bob.firestore(), path)));
+    await assertFails(deleteDoc(doc(guest.firestore(), path)));
+    await assertSucceeds(deleteDoc(doc(alice.firestore(), path)));
+    await assertSucceeds(deleteDoc(doc(alice.firestore(), path)));
+    assert.equal((await getDoc(doc(alice.firestore(), path))).exists(), false);
+    assert.equal((await getDoc(doc(alice.firestore(), other))).exists(), true);
+    assert.equal((await getDoc(doc(alice.firestore(), itemPath))).exists(), true);
   });
 
   await test('only signed-in users read posts; publication and legacy paths stay closed', async () => {

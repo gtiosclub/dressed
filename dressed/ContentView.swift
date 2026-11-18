@@ -47,11 +47,14 @@ private struct AppTabs: View {
     @State private var presentedSharedLinkId: String?
     @State private var deferredSharedLinkId: String?
 
-    @State private var studio = OutfitStudioModel()
+    @StateObject private var studio: OutfitStudioModel
+    @StateObject private var outfits: PrototypeOutfitStore
 
     init(session: SessionViewModel, userId: String) {
         self.session = session
         self.userId = userId
+        _studio = StateObject(wrappedValue: OutfitStudioModel(ownerId: userId))
+        _outfits = StateObject(wrappedValue: PrototypeOutfitStore(ownerId: userId))
 
         _closet = StateObject(
             wrappedValue: PrototypeClosetStore(ownerId: userId)
@@ -99,7 +102,20 @@ private struct AppTabs: View {
                 NavigationStack {
                     PrototypeClosetView(
                         closet: closet,
-                        ownerId: userId
+                        outfits: outfits,
+                        ownerId: userId,
+                        onTryOn: { item in
+                            studio.worn[item.category] = item
+                            selectedTab = 3
+                        },
+                        onTryOutfit: { outfit in
+                            var worn: [ClothingCategory: ClothingItem] = [:]
+                            for placement in outfit.placements {
+                                if let item = closet.item(id: placement.itemId) { worn[item.category] = item }
+                            }
+                            studio.worn = worn
+                            selectedTab = 3
+                        }
                     )
                 }
                 .toolbar(.hidden, for: .tabBar)
@@ -158,6 +174,7 @@ private struct AppTabs: View {
                         items: closet.items,
                         model: studio,
                         closet: closet,
+                        outfits: outfits,
                         onSignOut: signOut,
                         image: { photo(for: $0) },
                         uiImage: { closet.image(for: $0) }
@@ -244,6 +261,7 @@ private struct AppTabs: View {
                 image: image,
                 ownerId: userId,
                 closet: closet,
+                recognizer: sharedRecognitionService,
                 onLater: {
                     deferredSharedId = image.id
                     pendingSharedImage = nil
@@ -310,7 +328,8 @@ private struct AppTabs: View {
                         ownerId: userId,
                         withCandidates: arguments.contains(
                             "-seedTwoCandidates"
-                        )
+                        ),
+                        interruptedManual: arguments.contains("-seedInterruptedManual")
                     )
                 } catch {
                     sharedImageError = error.localizedDescription
@@ -328,6 +347,16 @@ private struct AppTabs: View {
     }
 
     // MARK: - Sign Out
+
+    private var sharedRecognitionService: any GarmentRecognitionService {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-delaySharedRecognition") {
+            return DelayedImportRecognitionTestService()
+        }
+        #endif
+        return OnDeviceImportRecognitionService()
+    }
+
 
     private func signOut() {
         do {

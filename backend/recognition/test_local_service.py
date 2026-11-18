@@ -67,6 +67,15 @@ class LocalServiceTests(unittest.TestCase):
             caught.exception.close()
         provider.assert_called_once_with(b"sample", "dressed-511821")
 
+    def test_fixture_with_clues_returns_possible_missing(self):
+        Handler.fixture = json.loads((Path(__file__).parent / "fixtures/gap-demo-response.json").read_text())
+        with urlopen(self.request()) as response:
+            result = json.load(response)
+        self.assertEqual([item["suggestedCategory"] for item in result["candidates"]], ["outerwear"])
+        self.assertEqual(len(result["possibleMissing"]), 1)
+        self.assertEqual(result["possibleMissing"][0]["piece"], "tops")
+        self.assertIn("collar", result["possibleMissing"][0]["reason"])
+
 
 if __name__ == "__main__":
     unittest.main()

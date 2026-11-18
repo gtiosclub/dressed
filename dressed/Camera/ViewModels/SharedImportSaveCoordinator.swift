@@ -5,9 +5,11 @@ struct SharedImportSaveCoordinator {
     let closet: PrototypeClosetStore
     let outfits: PrototypeOutfitStore
 
-    func confirm(draft: ImportDraft, imageData: Data, outfitName: String) throws -> Outfit {
+    func confirm(draft: ImportDraft, imageData: Data, outfitName: String,
+                 mode: ImportSaveMode = .outfit) throws -> Outfit? {
         guard draft.expiresAt > Date(), draft.status == .review,
-              closet.belongs(to: draft.ownerId), outfits.belongs(to: draft.ownerId),
+              closet.belongs(to: draft.ownerId),
+              (mode == .individualPieces || outfits.belongs(to: draft.ownerId)),
               UUID(uuidString: draft.id) != nil else {
             throw SharedImportDraftError.invalidDraft
         }
@@ -18,10 +20,18 @@ struct SharedImportSaveCoordinator {
             throw SharedImportDraftError.invalidDraft
         }
 
+        if mode == .outfit {
+            guard !outfitName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                throw PrototypeOutfitError.emptyName
+            }
+            guard outfits.error == nil else { throw PrototypeOutfitError.unavailableStorage }
+        }
+
         let outfitID = SharedImportDraftStore.stableID(importID: draft.id, part: "outfit")
-        if let existing = outfits.outfits.first(where: { $0.id == outfitID }) {
+        if mode == .outfit, let existing = outfits.outfits.first(where: { $0.id == outfitID }) {
             guard existing.ownerId == draft.ownerId,
-                  Set(existing.placements.map(\.itemId)) == Set(selected.map(\.id)) else {
+                  Set(existing.placements.map(\.itemId)) == Set(selected.map(\.id)),
+                  selected.allSatisfy({ closet.item(id: $0.id) != nil }) else {
                 throw SharedImportDraftError.invalidDraft
             }
             return existing
@@ -35,6 +45,7 @@ struct SharedImportSaveCoordinator {
                 try closet.save(imageData: crop, draftId: candidate.id,
                                 name: candidate.name, category: candidate.category)
             }
+            guard mode == .outfit else { return nil }
             let placements = selected.enumerated().map { index, candidate in
                 OutfitPlacement(
                     itemId: candidate.id,
