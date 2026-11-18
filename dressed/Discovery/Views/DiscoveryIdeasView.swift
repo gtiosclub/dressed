@@ -8,40 +8,40 @@ struct DiscoveryIdeasView: View {
     @State private var selectedStyles: [String] = []
     @State private var dismissedStyles: Set<String> = []
     @State private var isSearchFocused = false
-    let onProfile: () -> Void
     private let usesDemoStyles: Bool
 
-    private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+    private let columns = [GridItem(.flexible(), spacing: DSSpacing.md), GridItem(.flexible(), spacing: DSSpacing.md)]
     private let styles = ["Y2K", "Colorful", "Trendy", "Comfortable", "Monotone", "Vintage", "Minimal", "Streetwear"]
 
-    init(service: any CatalogSearching = DiscoveryCatalogSource.current, onProfile: @escaping () -> Void = {}) {
+    init(service: any CatalogSearching = DiscoveryCatalogSource.current) {
         _model = StateObject(wrappedValue: CatalogViewModel(service: service))
-        self.onProfile = onProfile
         usesDemoStyles = service is DemoCatalogService
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            DiscoveryIdeasSearchField(
-                query: $query,
-                selectedStyles: selectedStyles,
-                isFocused: $isSearchFocused,
-                onRemoveStyle: removeStyle,
-                onSubmit: submitSearch,
-                onClear: clearSearch
-            )
-                .padding(.horizontal, 16)
-                .padding(.top, 4)
-                .padding(.bottom, selectedStyles.isEmpty || isSearchFocused ? 0 : 12)
+            // The mockup keeps search in a floating button; the field appears only while searching.
+            if isSearchFocused {
+                DiscoveryIdeasSearchField(
+                    query: $query,
+                    selectedStyles: selectedStyles,
+                    isFocused: $isSearchFocused,
+                    onRemoveStyle: removeStyle,
+                    onSubmit: submitSearch,
+                    onClear: clearSearch
+                )
+                .padding(.horizontal, DSSpacing.lg)
+            }
 
             if !selectedStyles.isEmpty && !isSearchFocused {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: DSSpacing.sm) {
                         ForEach(selectedStyles, id: \.self) { style in
                             styleChip(style)
                         }
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, DSSpacing.lg)
+                    .padding(.vertical, DSSpacing.md)
                 }
             }
 
@@ -52,21 +52,15 @@ struct DiscoveryIdeasView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .overlay(alignment: .bottomTrailing) {
+        .background(DSColor.background)
+        .overlay(alignment: .bottom) {
             if !isSearchFocused {
-                Button(action: onProfile) {
-                    Image("TablerUserFilled")
-                        .renderingMode(.template)
-                        .resizable()
-                        .frame(width: 24, height: 24)
-                        .foregroundStyle(.white)
-                        .frame(width: 56, height: 56)
-                        .background(Color(red: 0.17, green: 0.17, blue: 0.17), in: Circle())
+                DSFloatingSearchButton(title: submittedQuery.isEmpty ? "Search Styles" : submittedQuery) {
+                    isSearchFocused = true
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Profile")
-                .accessibilityIdentifier("app.profileButton")
-                .padding(16)
+                .accessibilityIdentifier("discovery.searchButton")
+                .padding(.horizontal, DSSpacing.lg)
+                .padding(.bottom, DSSpacing.sm)
             }
         }
         .task { search() }
@@ -79,52 +73,46 @@ struct DiscoveryIdeasView: View {
     private var suggestions: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(usesDemoStyles ? "Suggested styles" : "Search by name or category")
-                .font(.system(size: 13))
-                .foregroundStyle(.secondary)
-                .padding(.leading, 4)
-                .padding(.top, 20)
-                .padding(.bottom, 8)
+                .font(DSFont.search)
+                .foregroundStyle(DSColor.textMuted)
+                .padding(.leading, DSSpacing.xs)
+                .padding(.top, DSSpacing.lg)
+                .padding(.bottom, DSSpacing.sm)
 
-            VStack(spacing: 8) {
+            VStack(spacing: DSSpacing.sm) {
                 ForEach(Array((usesDemoStyles ? styles : []).filter { !selectedStyles.contains($0) && !dismissedStyles.contains($0) }.prefix(3)), id: \.self) { style in
                     HStack(spacing: 0) {
                         Button(style) {
                             selectedStyles.append(style)
                         }
-                        .font(.system(size: 17))
+                        .font(DSFont.label)
+                        .foregroundStyle(DSColor.textStrong)
                         .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-                        .padding(.leading, 16)
+                        .padding(.leading, DSSpacing.lg)
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("discovery.style.select.\(style)")
 
                         Button {
                             dismissedStyles.insert(style)
                         } label: {
-                            Image("TablerX")
-                                .renderingMode(.template)
-                                .resizable()
-                                .frame(width: 20, height: 20)
-                                .foregroundStyle(.secondary)
+                            DSIcon("TablerX", size: 20)
+                                .foregroundStyle(DSColor.textMuted)
                                 .frame(width: 48, height: 48)
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Dismiss \(style)")
                     }
-                    .background(Color.black.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                    .background(DSColor.tile, in: RoundedRectangle(cornerRadius: DSRadius.md, style: .continuous))
                 }
             }
 
             if !selectedStyles.isEmpty {
                 Button(action: submitSearch) {
-                    Text("Show results")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .background(.black, in: RoundedRectangle(cornerRadius: 10))
+                    Text("Show results").frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.ds(.primary))
                 .accessibilityIdentifier("discovery.showResults")
-                .padding(.top, 16)
+                .padding(.top, DSSpacing.lg)
             }
             Color.clear
                 .contentShape(Rectangle())
@@ -132,7 +120,7 @@ struct DiscoveryIdeasView: View {
                 .accessibilityLabel("Back to Discovery ideas")
                 .accessibilityAddTraits(.isButton)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, DSSpacing.lg)
     }
 
     @ViewBuilder
@@ -143,7 +131,7 @@ struct DiscoveryIdeasView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .failed(let message):
             ContentUnavailableView {
-                Label("Ideas unavailable", systemImage: "wifi.exclamationmark")
+                Label("Ideas unavailable", tabler: "TablerWifiOff", size: 48)
             } description: {
                 Text(message)
             } actions: {
@@ -152,11 +140,11 @@ struct DiscoveryIdeasView: View {
         case .loaded(let products):
             let visible = products.filter(matchesStyles)
             if visible.isEmpty {
-                ContentUnavailableView("No matching ideas", systemImage: "magnifyingglass",
+                ContentUnavailableView("No matching ideas", tabler: "TablerSearch",
                                        description: Text("Try another search or style."))
             } else {
                 ScrollView {
-                    LazyVGrid(columns: columns, spacing: 12) {
+                    LazyVGrid(columns: columns, spacing: DSSpacing.md) {
                         ForEach(visible) { product in
                             NavigationLink {
                                 DiscoveryIdeaDetailView(product: product)
@@ -168,9 +156,8 @@ struct DiscoveryIdeasView: View {
                             .accessibilityIdentifier("discovery.idea.\(product.id)")
                         }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 12)
-                    .padding(.bottom, 20)
+                    .padding(.horizontal, DSSpacing.lg)
+                    .padding(.bottom, DSFloatingSearchButton.height + DSSpacing.sm + DSSpacing.lg)
                 }
                 .accessibilityIdentifier("discovery.ideaGrid")
             }
@@ -202,27 +189,9 @@ struct DiscoveryIdeasView: View {
     }
 
     private func styleChip(_ style: String) -> some View {
-        Button {
-            removeStyle(style)
-        } label: {
-            HStack(spacing: 4) {
-                Image("TablerX")
-                    .renderingMode(.template)
-                    .resizable()
-                    .frame(width: 14, height: 14)
-                Text(style)
-            }
-            .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(.white)
-            .padding(.leading, 8)
-            .padding(.trailing, 12)
-            .frame(height: 30)
-            .background(.black, in: Capsule())
-        }
-        .buttonStyle(.plain)
-        .frame(minHeight: 44)
-        .accessibilityLabel("Remove \(style) style")
-        .accessibilityIdentifier("discovery.style.remove.\(style)")
+        DSChip(title: style, isSelected: true, icon: "TablerX") { removeStyle(style) }
+            .accessibilityLabel("Remove \(style) style")
+            .accessibilityIdentifier("discovery.style.remove.\(style)")
     }
 
     private func search() {
@@ -241,42 +210,23 @@ private struct DiscoveryIdeasSearchField: View {
     @FocusState private var fieldFocused: Bool
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image("TablerSearch")
-                .renderingMode(.template)
-                .resizable()
-                .frame(width: 20, height: 20)
-                .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
+        HStack(spacing: DSSpacing.sm) {
+            DSIcon("TablerSearch", size: 20)
+                .foregroundStyle(DSColor.textMuted)
 
             if fieldFocused {
                 ForEach(selectedStyles, id: \.self) { style in
-                    Button {
+                    DSChip(title: style, isSelected: true, icon: "TablerX") {
                         onRemoveStyle(style)
                         fieldFocused = true
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image("TablerX")
-                                .renderingMode(.template)
-                                .resizable()
-                                .frame(width: 14, height: 14)
-                            Text(style)
-                        }
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .padding(.leading, 8)
-                        .padding(.trailing, 12)
-                        .frame(height: 30)
-                        .background(.black, in: Capsule())
                     }
-                    .buttonStyle(.plain)
                     .accessibilityLabel("Remove \(style) style")
                     .accessibilityIdentifier("discovery.style.remove.\(style)")
                 }
             }
 
             TextField("Search", text: $query)
-                .font(.system(size: 17))
+                .font(DSFont.label)
                 .textFieldStyle(.plain)
                 .autocorrectionDisabled()
                 .submitLabel(.search)
@@ -288,18 +238,25 @@ private struct DiscoveryIdeasSearchField: View {
 
             if !query.isEmpty {
                 Button(action: onClear) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
+                    DSIcon("TablerCircleXFilled", size: 18)
+                        .foregroundStyle(DSColor.textMuted)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Clear")
                 .accessibilityIdentifier("searchField.clearButton")
             }
         }
-        .padding(.horizontal, 12)
-        .frame(minHeight: 44)
-        .background(Color.black.opacity(fieldFocused ? 0.12 : 0.08),
-                    in: RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, DSSpacing.lg)
+        .frame(minHeight: 56)
+        .background {
+            RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous)
+                .fill(DSColor.tile)
+                .overlay(
+                    RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous)
+                        .stroke(fieldFocused ? DSColor.fieldBorder : .clear, lineWidth: 1)
+                )
+        }
+        .onAppear { fieldFocused = isFocused }
         .onChange(of: fieldFocused) { _, newValue in
             isFocused = newValue
         }
@@ -313,10 +270,9 @@ private struct DiscoveryIdeaTile: View {
     let product: CatalogProduct
 
     var body: some View {
-        CatalogProductImage(product: product)
-            .aspectRatio(1, contentMode: .fit)
-            .background(Color(red: 0.85, green: 0.85, blue: 0.85))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+        DSTile(style: .photo) {
+            CatalogProductImage(product: product)
+        }
     }
 }
 
@@ -331,28 +287,34 @@ private struct DiscoveryIdeaDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                CatalogProductImage(product: product)
-                    .aspectRatio(1, contentMode: .fit)
-                    .background(Color(.systemGray5))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                Text(product.title).font(.title2.weight(.semibold))
+            VStack(alignment: .leading, spacing: DSSpacing.md) {
+                DSTile(style: .photo) {
+                    CatalogProductImage(product: product)
+                }
+                Text(product.title)
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(DSColor.textPrimary)
                 Text(product.category.rawValue.capitalized)
-                    .foregroundStyle(.secondary)
+                    .font(DSFont.body)
+                    .foregroundStyle(DSColor.textMuted)
                 Text("Source: \(product.sourceName)")
-                    .font(.subheadline)
-                if let price = product.formattedPrice { Text(price) }
+                    .font(DSFont.body)
+                if let price = product.formattedPrice {
+                    Text(price).font(DSFont.bodyEmphasis)
+                }
                 if let usableProductURL {
-                    Link("View at \(product.sourceName)", destination: usableProductURL)
-                        .buttonStyle(.borderedProminent)
-                        .tint(.black)
+                    Link(destination: usableProductURL) {
+                        Label("View at \(product.sourceName)", tabler: "TablerExternalLink", size: 20)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.ds(.primary))
                 } else {
                     Text("Product link unavailable")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(DSFont.body)
+                        .foregroundStyle(DSColor.textMuted)
                 }
             }
-            .padding(16)
+            .padding(DSSpacing.lg)
         }
         .navigationTitle("Clothing idea")
         .navigationBarTitleDisplayMode(.inline)

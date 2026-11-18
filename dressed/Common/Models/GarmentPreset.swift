@@ -52,22 +52,22 @@ enum GarmentPreset: String, CaseIterable, Identifiable, Codable {
 
     var icon: String {
         switch self {
-        case .tShirt: return "tshirt"
-        case .hoodie: return "cloud"
-        case .sweater, .sweatshirt: return "waveform"
-        case .jersey: return "sportscourt"
-        case .tankTop: return "figure.arms.open"
-        case .blouse: return "sparkles"
-        case .cropTop: return "scissors"
-        case .bikini: return "water.waves"
-        case .jeans, .pants: return "figure.walk"
-        case .shorts: return "sun.max"
-        case .capris: return "arrow.down.forward.and.arrow.up.backward"
-        case .leggings: return "figure.run"
-        case .skirt: return "triangle"
-        case .dress, .longDress: return "figure.stand.dress"
-        case .beanie: return "circle"
-        case .sneakers, .boots: return "shoe"
+        case .tShirt: return "TablerShirt"
+        case .hoodie: return "TablerCloud"
+        case .sweater, .sweatshirt: return "TablerWaveSine"
+        case .jersey: return "TablerShirtSport"
+        case .tankTop: return "TablerMan"
+        case .blouse: return "TablerSparkles"
+        case .cropTop: return "TablerScissors"
+        case .bikini: return "TablerRipple"
+        case .jeans, .pants: return "TablerWalk"
+        case .shorts: return "TablerSun"
+        case .capris: return "TablerArrowsDiagonalMinimize2"
+        case .leggings: return "TablerRun"
+        case .skirt: return "TablerTriangle"
+        case .dress, .longDress: return "TablerWoman"
+        case .beanie: return "TablerCircle"
+        case .sneakers, .boots: return "TablerShoe"
         }
     }
 

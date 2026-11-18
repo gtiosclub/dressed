@@ -28,7 +28,7 @@ struct SavePostToggle: View {
                 if isWorking {
                     ProgressView()
                 } else {
-                    Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
+                    DSIcon(isSaved ? "TablerBookmarkFilled" : "TablerBookmark", size: 20)
                 }
             }
         }

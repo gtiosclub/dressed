@@ -9,6 +9,7 @@ import Foundation
 import FirebaseFirestore
 
 protocol PostFunctions {
+    func fetchPost(id: String) async throws -> Post?
     func fetchRecentPosts() async throws -> [Post]
     /// The posts that can be shown for these IDs. A missing post is left out, not an error.
     func fetchPosts(ids: [String]) async throws -> [Post]
@@ -52,5 +53,17 @@ struct FirebasePostFunctions: PostFunctions {
             }
         }
         return posts
+    }
+    // Reads posts/{id}. Signed-in users may read posts under the current rules;
+    // a missing document means the post is gone, which is not an error.
+    func fetchPost(id: String) async throws -> Post? {
+        guard isValidFirestoreDocumentId(id) else { return nil }
+        let document = try await db
+            .collection("posts")
+            .document(id)
+            .getDocument()
+
+        guard document.exists else { return nil }
+        return try document.data(as: Post.self)
     }
 }

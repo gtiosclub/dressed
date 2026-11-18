@@ -13,7 +13,7 @@ struct CategorySelector: View {
                         selection = type
                     } label: {
                         if isSelected {
-                            Label(type?.rawValue ?? "All", systemImage: "checkmark").plumEditorialChip(isSelected: true)
+                            Label(type?.rawValue ?? "All", tabler: "TablerCheck", size: 15).plumEditorialChip(isSelected: true)
                         } else {
                             Text(type?.rawValue ?? "All").plumEditorialChip(isSelected: isSelected)
                         }
