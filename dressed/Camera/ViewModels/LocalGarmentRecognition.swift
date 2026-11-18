@@ -6,6 +6,24 @@ protocol GarmentRecognitionService {
     func detect(imageData: Data, importID: String) async throws -> [ImportCandidate]
 }
 
+// A piece the recognizer could not confirm but saw a visual clue for. It is NOT a
+// detected candidate and is never saved automatically. P18 flags it and asks for
+// another photo or manual details.
+struct PossibleMissingPiece: Codable, Identifiable {
+    var id: String
+    var piece: String
+    var clueLabel: String?
+    var reason: String
+    var region: NormalizedImageRegion?
+}
+
+// Everything a single recognition pass returns for review: confirmed candidates
+// plus any "possible missing piece" hints that need more evidence.
+struct RecognizedOutcome {
+    var candidates: [ImportCandidate]
+    var possibleMissing: [PossibleMissingPiece]
+}
+
 enum LocalRecognitionError: LocalizedError {
     case unavailable
     case invalidResponse
@@ -24,6 +42,14 @@ struct LocalGarmentRecognition: GarmentRecognitionService {
     private struct Result: Decodable {
         let importId: String
         let candidates: [Candidate]
+        let possibleMissing: [Clue]?
+
+        struct Clue: Decodable {
+            let piece: String
+            let clueLabel: String?
+            let reason: String
+            let region: NormalizedImageRegion?
+        }
     }
 
     private struct Candidate: Decodable {
@@ -34,6 +60,10 @@ struct LocalGarmentRecognition: GarmentRecognitionService {
     }
 
     func detect(imageData: Data, importID: String) async throws -> [ImportCandidate] {
+        try await recognize(imageData: imageData, importID: importID).candidates
+    }
+
+    func recognize(imageData: Data, importID: String) async throws -> RecognizedOutcome {
         guard !imageData.isEmpty, imageData.count <= 5_000_000 else {
             throw LocalRecognitionError.imageTooLarge
         }
@@ -55,7 +85,7 @@ struct LocalGarmentRecognition: GarmentRecognitionService {
               result.importId == importID else {
             throw LocalRecognitionError.invalidResponse
         }
-        return result.candidates.compactMap { value in
+        let candidates = result.candidates.compactMap { value -> ImportCandidate? in
             guard value.boundingBox.isValid,
                   let category = ClothingCategory(rawValue: value.suggestedCategory) else { return nil }
             return ImportCandidate(
@@ -66,6 +96,16 @@ struct LocalGarmentRecognition: GarmentRecognitionService {
                 tags: [], suggestedTags: []
             )
         }
+        let clues = (result.possibleMissing ?? []).enumerated().compactMap { index, clue -> PossibleMissingPiece? in
+            guard !clue.reason.isEmpty else { return nil }
+            return PossibleMissingPiece(
+                id: SharedImportDraftStore.stableID(importID: importID,
+                                                    part: "possible-\(clue.piece)-\(index)"),
+                piece: clue.piece, clueLabel: clue.clueLabel, reason: clue.reason,
+                region: clue.region?.isValid == true ? clue.region : nil
+            )
+        }
+        return RecognizedOutcome(candidates: candidates, possibleMissing: clues)
         #else
         throw LocalRecognitionError.unavailable
         #endif

@@ -18,8 +18,28 @@ struct DelayedImportRecognitionTestService: GarmentRecognitionService {
 #endif
 
 enum AutomaticImportSuggestions {
+    struct ReviewResult {
+        var candidates: [ImportCandidate]
+        var possibleMissing: [PossibleMissingPiece]
+    }
+
+    static func review(imageData: Data, importID: String) async throws -> ReviewResult {
+        #if DEBUG
+        // Explicit diagnostic opt-in preserves the on-device default from #208.
+        if ProcessInfo.processInfo.arguments.contains("-recognitionGapFixture"),
+           let outcome = try? await LocalGarmentRecognition().recognize(imageData: imageData, importID: importID) {
+            try Task.checkCancellation()
+            return ReviewResult(
+                candidates: await SharedImportDraftStore.addAutomaticCutouts(to: outcome.candidates, imageData: imageData),
+                possibleMissing: outcome.possibleMissing
+            )
+        }
+        #endif
+        return ReviewResult(candidates: try await detect(imageData: imageData, importID: importID), possibleMissing: [])
+    }
+
     static func detect(imageData: Data, importID: String) async throws -> [ImportCandidate] {
-        // No loopback service or hosted provider, including in Debug.
+        // The default recognition pipeline stays on-device.
         // Keep the original processing path as the default until the phone quality/speed gate passes.
         let mode: RecognitionMode = UserDefaults.standard.bool(forKey: "recognition.nativeProcessing")
             ? .nativePixels : .baseline
