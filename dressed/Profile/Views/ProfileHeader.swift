@@ -1,45 +1,49 @@
-//
-//  ProfileView.swift
-//  dressed
-//
-//  Created by Tiana Prem  on 9/29/26.
-//
-
 import SwiftUI
 
+/// Community identity only; the parent supplies an already-approved avatar.
 struct ProfileHeader: View {
-    let avatar : Image
+    var avatar: Image? = nil
     let name: String
     let username: String
 
+    @ScaledMetric(relativeTo: .title) private var avatarSize = 80.0
+
     var body: some View {
-        VStack {
-            HStack {
-                avatar
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 80, height: 80)
-                    .clipShape(Circle())
-                    .padding(.leading, 10)
-                VStack(alignment: .leading) {
-                    Text(name)
-                        .font(.system(size: 24))
-                    Text(username)
-                        .font(.system(size: 18))
-                }
-                .padding()
-            }
-            Spacer()
+        HStack(alignment: .center, spacing: DSSpacing.lg) {
+            avatarView
+            identity
         }
-
-        //.padding(.top)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
-}
 
-#Preview {
-    ProfileHeader(avatar: Image("TablerUserCircle"),
-        name: "Alexandra Elizabeth Montgomery-Williams",
-        username: "@alexandra")
+    private var avatarView: some View {
+        Circle()
+            .fill(DSColor.tile)
+            .frame(width: avatarSize, height: avatarSize)
+            .overlay {
+                if let avatar {
+                    avatar.resizable().scaledToFill()
+                } else {
+                    DSIcon("TablerUserCircle", size: avatarSize)
+                        .foregroundStyle(DSColor.iconMuted)
+                }
+            }
+            .clipShape(Circle())
+            .overlay(Circle().stroke(DSColor.brand.opacity(0.3), lineWidth: 1))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(avatar == nil ? "No profile photo" : "Profile photo")
+    }
+
+    private var identity: some View {
+        VStack(alignment: .leading, spacing: DSSpacing.xs) {
+            Text(name)
+                .font(DSFont.bodyEmphasis)
+                .foregroundStyle(DSColor.textPrimary)
+            Text(username.hasPrefix("@") ? username : "@\(username)")
+                .font(DSFont.body)
+                .foregroundStyle(DSColor.textMuted)
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
 }
