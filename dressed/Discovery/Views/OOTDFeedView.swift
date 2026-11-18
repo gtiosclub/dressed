@@ -706,10 +706,7 @@ struct OOTDCreatePostView: View {
                 Text(value)
                     .foregroundStyle(.black.opacity(0.55))
                     .lineLimit(1)
-                DSIcon("TablerChevronRight", size: 20)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 16, height: 16)
+                DSIcon("TablerChevronRight", size: 16)
                     .frame(width: 20, height: 20)
                     .foregroundStyle(.black.opacity(0.55))
             }
