@@ -36,7 +36,6 @@ private struct AppTabs: View {
     @State private var selectedTab: Int
     @State private var isKeyboardVisible = false
     @State private var isCreatingPost = false
-    @State private var showingSavedPosts = false
     @State private var discoverySection = 0
     @State private var signOutError: String?
     @State private var pendingSharedImage: ReviewImage?
@@ -77,21 +76,16 @@ private struct AppTabs: View {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         if !DiscoveryPostSource.isDemo {
-            InfiniteDiscoveryFeed.live(
-                section: $discoverySection, showingCreate: $isCreatingPost, savedPosts: savedPosts
-            )
+            InfiniteDiscoveryFeed.live(section: $discoverySection, showingCreate: $isCreatingPost, savedPosts: savedPosts)
         } else {
             InfiniteDiscoveryFeed.demo(
                 failSecondPage: arguments.contains("-failDiscoveryPage"),
                 section: $discoverySection,
-                showingCreate: $isCreatingPost,
-                savedPosts: savedPosts
+                showingCreate: $isCreatingPost, savedPosts: savedPosts
             )
         }
         #else
-        InfiniteDiscoveryFeed.live(
-                section: $discoverySection, showingCreate: $isCreatingPost, savedPosts: savedPosts
-            )
+        InfiniteDiscoveryFeed.live(section: $discoverySection, showingCreate: $isCreatingPost, savedPosts: savedPosts)
         #endif
     }
 
@@ -118,7 +112,6 @@ private struct AppTabs: View {
                         DiscoveryHeader(
                             section: $discoverySection,
                             onProfile: { selectedTab = 3 },
-                            onSavedPosts: { showingSavedPosts = true },
                             onCreatePost: {
                                 discoverySection = 1
                                 isCreatingPost = true
@@ -126,9 +119,6 @@ private struct AppTabs: View {
                         )
 
                         ootdFeed
-                            .navigationDestination(isPresented: $showingSavedPosts) {
-                                SavedPostsView(model: savedPosts)
-                            }
                     }
                     .toolbar(.hidden, for: .navigationBar)
                     // Hide on the navigation content too, so the system bar cannot intercept feed taps.

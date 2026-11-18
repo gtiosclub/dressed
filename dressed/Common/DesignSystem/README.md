@@ -107,12 +107,10 @@ comparison with the live Figma file has not been performed.
 
 ## Open items
 
-- The main-branch merge retains Saved Posts through an extra Discovery header
-  bookmark button. Compact shared spacing keeps the four controls within 375 pt;
-  this is an intentional addition to the original three-control mockup.
-
 - The persistent comment sheet uses shared tokens and button styles. Live Figma
   design-context access was unavailable; an independent frame comparison is pending.
+
+- The main-branch integration retains Saved Posts access in a separate bookmark row below the Discovery header, plus the existing save control on Friends cards and outfit previews. This preserves the working saved-post flow; the added access has not been compared to the live Figma frame.
 
 - The Discovery header shows a profile icon where the mockup shows the user's initial;
   the session does not expose a display name yet.

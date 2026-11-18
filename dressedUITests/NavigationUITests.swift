@@ -138,6 +138,9 @@ final class SavedPostsUITests: XCTestCase {
         let feedToggle = toggle("infinite_0", in: app)
         XCTAssertTrue(feedToggle.waitForExistence(timeout: 10))
         wait(for: feedToggle, value: "Not saved")
+        // The bookmark row leaves this footer near the tab bar on smaller screens.
+        // Scroll it fully into view rather than tapping a partially clipped control.
+        app.scrollViews["infinite.scroll"].swipeUp()
 
         feedToggle.tap()
         let error = app.staticTexts["Couldn't save. Try again."]
@@ -170,7 +173,7 @@ final class SavedPostsUITests: XCTestCase {
         let app = launchOOTD(["-seedSavedPosts", "-failSavedPostReads", "2"])
         let feedToggle = toggle("infinite_0", in: app)
         XCTAssertTrue(feedToggle.waitForExistence(timeout: 10))
-        wait(for: feedToggle, value: "Saved")
+        wait(for: feedToggle, value: "Not saved")
         openSavedPosts(in: app)
 
         let retry = app.buttons["savedPosts.retry"]

@@ -5,17 +5,16 @@ import SwiftUI
 struct DiscoveryHeader: View {
     @Binding var section: Int
     let onProfile: () -> Void
-    var onSavedPosts: () -> Void = {}
     let onCreatePost: () -> Void
 
     var body: some View {
-        HStack(spacing: DSSpacing.xs) {
+        HStack {
             DSCircleButton(content: .icon("TablerUser"), accessibilityLabel: "Profile", action: onProfile)
                 .accessibilityIdentifier("app.profileButton")
+            Spacer(minLength: DSSpacing.sm)
             DSSegmentedControl(options: [0, 1], selection: $section) { $0 == 0 ? "For You" : "Friends" }
                 .accessibilityIdentifier("discovery.sectionPicker")
-            DSCircleButton(content: .icon("TablerBookmark"), accessibilityLabel: "Saved Posts", action: onSavedPosts)
-                .accessibilityIdentifier("ootd.savedPosts")
+            Spacer(minLength: DSSpacing.sm)
             DSCircleButton(content: .icon("TablerPlus"), accessibilityLabel: "Create Post", action: onCreatePost)
                 .accessibilityIdentifier("ootd.createPost")
         }

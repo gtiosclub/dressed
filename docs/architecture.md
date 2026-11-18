@@ -37,6 +37,16 @@ identifiers on the new button; the card now explicitly contains its child elemen
 After the interrupted run, both focused fixture-backed UI checks passed, including
 comment submission and reopening from both feed layouts. No hot reload is claimed for this structural change.
 
+Before pushing to main, PR #257 arrived with newer saved-post integration and
+profile work. Those commits are preserved, including the bookmark row below the
+Discovery header and both post-fetch contracts. The four affected UI cases passed
+across the latest merged-tree run and a focused retry rerun: comment submit/reopen,
+feed switching, saved-post relaunch/unsave, and failed-save retry. The retry test now
+waits for enabled state and scrolls its footer fully into view before tapping. The
+earlier merged-tree checks also covered removed saved posts, pieces, read failures
+and failed refresh. All 11 saved-post state scenarios passed. Screenshots of the
+comment sheet and feed were inspected; these UI checks use synthetic demo data.
+
 Local rules are emulator-tested; the live Firebase rule change and a real-account
 save/relaunch/cross-account check are **not yet performed**. Existing legacy
 uppercase collections are untouched. See `backend/schemas/comments.md` for mapping
@@ -44,6 +54,12 @@ and test commands. The new sheet reuses design-system tokens and buttons; no liv
 Figma design-context tool was available for an independent frame comparison.
 
 # Architecture and shared contracts
+
+## Social branch promotion (November 17, 2026)
+
+The integration preserves main’s per-user saved-post state and adds its existing Save controls and Saved Posts destination to the infinite Discovery feed. The Friends cards and outfit-preview sheet share the same saved state. Demo saved-post lookups also resolve the paged fixtures after relaunch. Both bulk saved-post lookup and single-post detail lookup remain in `PostFunctions`. The public profile component from #256 is included without introducing a live profile route or backend service.
+
+Validation: the signed Debug simulator build and 10 focused fixture-backed XCUITests passed on iPhone 17 Pro / iOS 26.2, covering saved-post persistence, unavailable posts, read/write failures, pieces, navigation, composition, layout switching, and pagination retry. Discovery and Saved Posts screenshots were inspected. Ranking, pagination, and all 11 saved-state command-line scenarios passed. SwiftLint was unavailable; fresh authentication, live backend access, and the full UI suite were not reverified.
 
 ## Eric design system integration (November 17, 2026)
 
@@ -119,21 +135,6 @@ unchanged. The bar hides while the keyboard is visible. UI tests locate tabs by
 Tabler icons from `Assets.xcassets`; SF Symbols are no longer used. The product scope's
 three-tab description predates the Avatar tab and is unchanged. See
 [the design system README](../dressed/Common/DesignSystem/README.md).
-
-## Saved-post merge with the current feed (November 17, 2026)
-
-The main-branch saved-post state and services are retained. Friends cards and For
-You previews now include their save control; the Discovery header bookmark opens
-Saved Posts. The merged `PostFunctions` supports both single-post rechecks and
-bounded lookup by IDs. Demo lookups recognize current infinite-feed fixtures as
-well as historical OOTD examples. Saved-post rules remain closed pending #94;
-this comment change does not deploy or expand saved-post access. Main's historical
-saved-post UI checks now use the current feed's first fixture ID. All eight targeted UI
-cases passed across the merged-tree run and focused rerun. The save-retry check
-now waits for both the expected value and an enabled button before tapping; the
-first run exposed a test race during initial saved-state loading. All 11 saved-post
-state scenarios passed. Comment-sheet and feed screenshots were inspected. The design-system
-header adds the bookmark to preserve main's existing entry point.
 
 ## Saved posts on OOTD (November 2026)
 

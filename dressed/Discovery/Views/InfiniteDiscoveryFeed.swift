@@ -10,10 +10,11 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     @State private var commentsPost: Post?
     @State private var previewCommentsPost: Post?
     @State private var commentService: any CommentService
-    private let savedPosts: SavedPostsViewModel?
     @State private var likedIDs: Set<String> = []
     @State private var previewPosts: [Post] = []
     @Binding private var showingCreate: Bool
+    @State private var showingSaved = false
+    private let savedPosts: SavedPostsViewModel?
     private let canSharePreview: Bool
     private let artwork: (Post) -> Artwork
     private let ranker: FeedRanker
@@ -49,6 +50,16 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if savedPosts != nil {
+                HStack {
+                    Spacer()
+                    DSCircleButton(content: .icon("TablerBookmark"), accessibilityLabel: "Saved Posts") {
+                        showingSaved = true
+                    }
+                    .accessibilityIdentifier("ootd.savedPosts")
+                }
+                .padding(.horizontal, DSSpacing.lg)
+            }
             ScrollView {
                 LazyVStack(spacing: 20) {
                     if section == 0 {
@@ -97,6 +108,9 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { await model.loadInitial() }
         .task { await savedPosts?.loadIfNeeded() }
+        .navigationDestination(isPresented: $showingSaved) {
+            if let savedPosts { SavedPostsView(model: savedPosts) }
+        }
         .onAppear { loadNextPageIfNeeded() }
         .onDisappear { pageTask?.cancel() }
         .navigationDestination(isPresented: $showingCreate) {

@@ -7,27 +7,21 @@ struct OOTDFeedView: View {
     @State private var comments: [String: [OOTDComment]] = [:]
     @State private var commentsPost: Post?
     @State private var itemsPost: Post?
+    @State private var showingCreate = false
     @State private var showingSaved = false
     @State private var previewPosts: [Post] = []
     private let demo: Bool
     private let savedPosts: SavedPostsViewModel
 
-    /// The Discovery header's create button sets `showingCreate`.
-    @Binding var showingCreate: Bool
-
-    init(
-        service: any PostFunctions = DiscoveryPostSource.current,
-        showingCreate: Binding<Bool>,
-        savedPosts: SavedPostsViewModel
-    ) {
+    init(service: any PostFunctions = DiscoveryPostSource.current, savedPosts: SavedPostsViewModel) {
         _model = StateObject(wrappedValue: DiscoveryFeedViewModel(service: service))
-        _showingCreate = showingCreate
         demo = service is DemoPostFunctions
         self.savedPosts = savedPosts
     }
 
     var body: some View {
         VStack(spacing: 0) {
+            header
             switch model.state {
             case .idle, .loading: FeedStatusView(status: .loading)
             case .failed(let message): FeedStatusView(status: .error(message: message), onRetry: model.load)
@@ -85,6 +79,41 @@ struct OOTDFeedView: View {
         .navigationDestination(isPresented: $showingSaved) {
             SavedPostsView(model: savedPosts)
         }
+    }
+
+    private var header: some View {
+        HStack(spacing: 0) {
+            Button { showingCreate = true } label: {
+                Image("TablerPlus")
+                    .renderingMode(.template)
+                    .resizable()
+                    .frame(width: 28, height: 28)
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Create Post")
+            .accessibilityIdentifier("ootd.createPost")
+            Spacer()
+            Text("Fit check")
+                .font(.system(size: 17, weight: .semibold))
+                .padding(.horizontal, 14)
+                .frame(height: 34)
+                .background(Color.black.opacity(0.08), in: Capsule())
+            Spacer()
+            Button { showingSaved = true } label: {
+                Image("TablerBookmark")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 22, height: 22)
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Saved Posts")
+            .accessibilityIdentifier("ootd.savedPosts")
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 14)
+        .padding(.bottom, 16)
     }
 
     private func demoLikes(_ post: Post) -> Int {
@@ -484,7 +513,7 @@ struct OOTDItemsSheet: View {
                         Text(price.formatted(.currency(code: "USD").precision(.fractionLength(0))))
                             .font(.system(size: 17, weight: .semibold))
                         if item.verified {
-                            Label("Verified by creator", tabler: "TablerRosetteDiscountCheck", size: 14)
+                            Label("Verified by creator", tabler: "TablerRosetteDiscountCheck")
                                 .font(.system(size: 13))
                                 .foregroundStyle(.black.opacity(0.55))
                                 .lineLimit(1)
@@ -677,7 +706,7 @@ struct OOTDCreatePostView: View {
                 Text(value)
                     .foregroundStyle(.black.opacity(0.55))
                     .lineLimit(1)
-                Image("TablerChevronRight")
+                Image(systemName: "chevron.right")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 16, height: 16)
@@ -722,7 +751,7 @@ struct PostArtwork: View {
 
 #Preview {
     NavigationStack {
-        OOTDFeedView(service: DemoPostFunctions(), showingCreate: .constant(false), savedPosts: SavedPostsViewModel(
+        OOTDFeedView(service: DemoPostFunctions(), savedPosts: SavedPostsViewModel(
             ownerId: "preview_user",
             saves: DemoSavedPostFunctions(arguments: ["-seedSavedPosts"]),
             posts: DemoPostFunctions()

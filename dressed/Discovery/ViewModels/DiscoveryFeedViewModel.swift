@@ -118,19 +118,16 @@ struct DemoPostFunctions: PostFunctions {
             )
         }
     }
+
+    func fetchPosts(ids: [String]) async throws -> [Post] {
+        let wanted = Set(ids)
+        let recent = try await fetchRecentPosts().filter { wanted.contains($0.id) }
+        let paged = (0..<48).filter { $0 != 2 }.map(InfiniteFeedFixtures.post)
+        return recent + paged.filter { wanted.contains($0.id) }
+    }
+
     // An unknown ID returns nil, the same as a deleted post in Firestore.
     func fetchPost(id: String) async throws -> Post? {
         try await fetchRecentPosts().first { $0.id == id }
     }
-
-    func fetchPosts(ids: [String]) async throws -> [Post] {
-        let wanted = Set(ids)
-        let demoPosts = try await fetchRecentPosts().filter { wanted.contains($0.id) }
-        let infinitePosts = await MainActor.run {
-            (0..<48).filter { wanted.contains("infinite_\($0)") && $0 != 2 }.map(InfiniteFeedFixtures.post)
-        }
-        return demoPosts + infinitePosts
-    }
 }
-
-

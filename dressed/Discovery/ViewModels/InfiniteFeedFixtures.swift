@@ -35,7 +35,7 @@ final class InfiniteFeedFixtures {
         )
     }
 
-    static func post(_ index: Int) -> Post {
+    nonisolated static func post(_ index: Int) -> Post {
         let names = ["Soft layers", "City essentials", "Weekend denim", "Coffee run",
                      "Neutral tones", "A little color", "Vintage mood", "Everyday classics"]
         let authors = ["jane", "alex", "riley", "sam", "jordan", "lee"]
