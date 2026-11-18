@@ -176,7 +176,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                 .aspectRatio(0.82, contentMode: .fit)
 
             HStack(alignment: .center, spacing: 12) {
-                if let savedPosts {
+                if let savedPosts, !previewPosts.contains(where: { $0.id == post.id }) {
                     SavedPostControl(postId: post.id, post: post, model: savedPosts)
                 }
                 Text(post.caption).font(.body.weight(.medium))
@@ -199,6 +199,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         .clipShape(RoundedRectangle(cornerRadius: 18))
         .overlay(RoundedRectangle(cornerRadius: 18).stroke(accent.opacity(0.22)))
         .shadow(color: accent.opacity(0.12), radius: 8, y: 4)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("infinite.card.\(post.id)")
     }
 }

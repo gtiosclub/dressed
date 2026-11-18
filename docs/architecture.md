@@ -1,5 +1,11 @@
 # Architecture and shared contracts
 
+## Social branch promotion (November 17, 2026)
+
+The integration preserves main’s per-user saved-post state and adds its existing Save controls and Saved Posts destination to the infinite Discovery feed. The Friends cards and outfit-preview sheet share the same saved state. Demo saved-post lookups also resolve the paged fixtures after relaunch. Both bulk saved-post lookup and single-post detail lookup remain in `PostFunctions`. The public profile component from #256 is included without introducing a live profile route or backend service.
+
+Validation: the signed Debug simulator build and 10 focused fixture-backed XCUITests passed on iPhone 17 Pro / iOS 26.2, covering saved-post persistence, unavailable posts, read/write failures, pieces, navigation, composition, layout switching, and pagination retry. Discovery and Saved Posts screenshots were inspected. Ranking, pagination, and all 11 saved-state command-line scenarios passed. SwiftLint was unavailable; fresh authentication, live backend access, and the full UI suite were not reverified.
+
 ## Eric design system integration (November 17, 2026)
 
 `social_main` incorporates Eric's shared tokens, presentational components, Tabler
