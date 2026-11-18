@@ -9,9 +9,14 @@ protocol OutfitFunctions {
 
     /// Read and decode users/{ownerId}/outfits; throw on read or decoding failure.
     func fetchOutfits(ownerId: String) async throws -> [Outfit]
+<<<<<<< HEAD
 
     /// Read and decode users/{ownerId}/outfits/{outfitId}; nil if absent; throw on read or decoding failure.
     func fetchOutfit(ownerId: String, outfitId: String) async throws -> Outfit?
+=======
+    
+    func deleteOutfit(ownerId: String, outfitId: String) async throws
+>>>>>>> origin/113-data-11---delete-a-saved-outfit-record
 }
 
 extension OutfitFunctions {
@@ -46,6 +51,15 @@ extension OutfitFunctions {
 
         return try snapshot.documents.map { document in
             try document.data(as: Outfit.self)
+        }
+        
+        func deleteOutfit(ownerId: String, outfitId: String) async throws {
+            try await Firestore.firestore()
+                .collection("users")
+                .document(ownerId)
+                .collection("outfits")
+                .document(outfitId)
+                .delete()
         }
     }
 
