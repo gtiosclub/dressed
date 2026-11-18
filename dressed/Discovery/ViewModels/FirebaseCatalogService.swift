@@ -20,4 +20,3 @@ struct FirebaseCatalogService: CatalogSearching {
         return CatalogSearchResponse(products: products, total: products.count, nextOffset: nil)
     }
 }
-
