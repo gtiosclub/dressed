@@ -29,12 +29,14 @@ private struct AppTabs: View {
     let userId: String
 
     @StateObject private var closet: PrototypeClosetStore
+    @StateObject private var savedPosts: SavedPostsViewModel
 
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var selectedTab: Int
     @State private var isKeyboardVisible = false
     @State private var isCreatingPost = false
+    @State private var showingSavedPosts = false
     @State private var discoverySection = 0
     @State private var signOutError: String?
     @State private var pendingSharedImage: ReviewImage?
@@ -55,6 +57,11 @@ private struct AppTabs: View {
         _closet = StateObject(
             wrappedValue: PrototypeClosetStore(ownerId: userId)
         )
+        _savedPosts = StateObject(wrappedValue: SavedPostsViewModel(
+            ownerId: userId,
+            saves: DiscoveryPostSource.currentSavedPosts,
+            posts: DiscoveryPostSource.current
+        ))
 
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
@@ -70,16 +77,21 @@ private struct AppTabs: View {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         if !DiscoveryPostSource.isDemo {
-            InfiniteDiscoveryFeed.live(section: $discoverySection, showingCreate: $isCreatingPost)
+            InfiniteDiscoveryFeed.live(
+                section: $discoverySection, showingCreate: $isCreatingPost, savedPosts: savedPosts
+            )
         } else {
             InfiniteDiscoveryFeed.demo(
                 failSecondPage: arguments.contains("-failDiscoveryPage"),
                 section: $discoverySection,
-                showingCreate: $isCreatingPost
+                showingCreate: $isCreatingPost,
+                savedPosts: savedPosts
             )
         }
         #else
-        InfiniteDiscoveryFeed.live(section: $discoverySection, showingCreate: $isCreatingPost)
+        InfiniteDiscoveryFeed.live(
+                section: $discoverySection, showingCreate: $isCreatingPost, savedPosts: savedPosts
+            )
         #endif
     }
 
@@ -106,6 +118,7 @@ private struct AppTabs: View {
                         DiscoveryHeader(
                             section: $discoverySection,
                             onProfile: { selectedTab = 3 },
+                            onSavedPosts: { showingSavedPosts = true },
                             onCreatePost: {
                                 discoverySection = 1
                                 isCreatingPost = true
@@ -113,6 +126,9 @@ private struct AppTabs: View {
                         )
 
                         ootdFeed
+                            .navigationDestination(isPresented: $showingSavedPosts) {
+                                SavedPostsView(model: savedPosts)
+                            }
                     }
                     .toolbar(.hidden, for: .navigationBar)
                     // Hide on the navigation content too, so the system bar cannot intercept feed taps.

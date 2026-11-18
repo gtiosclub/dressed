@@ -34,8 +34,8 @@ passed, and the five new Swift files pass focused SwiftLint. Full-repository lin
 still reports pre-existing violations. A signed iPhone 17 Pro iOS 26.0 build passed.
 The first focused UI run passed feed switching but found inherited accessibility
 identifiers on the new button; the card now explicitly contains its child elements.
-The rerun was interrupted to hand the simulator to the user, so the corrected
-comment flow is not yet verified. No hot reload is claimed for this structural change.
+After the interrupted run, both focused fixture-backed UI checks passed, including
+comment submission and reopening from both feed layouts. No hot reload is claimed for this structural change.
 
 Local rules are emulator-tested; the live Firebase rule change and a real-account
 save/relaunch/cross-account check are **not yet performed**. Existing legacy
@@ -120,6 +120,77 @@ Tabler icons from `Assets.xcassets`; SF Symbols are no longer used. The product 
 three-tab description predates the Avatar tab and is unchanged. See
 [the design system README](../dressed/Common/DesignSystem/README.md).
 
+## Saved-post merge with the current feed (November 17, 2026)
+
+The main-branch saved-post state and services are retained. Friends cards and For
+You previews now include their save control; the Discovery header bookmark opens
+Saved Posts. The merged `PostFunctions` supports both single-post rechecks and
+bounded lookup by IDs. Demo lookups recognize current infinite-feed fixtures as
+well as historical OOTD examples. Saved-post rules remain closed pending #94;
+this comment change does not deploy or expand saved-post access. Main's historical
+saved-post UI checks now use the current feed's first fixture ID. All eight targeted UI
+cases passed across the merged-tree run and focused rerun. The save-retry check
+now waits for both the expected value and an enabled button before tapping; the
+first run exposed a test race during initial saved-state loading. All 11 saved-post
+state scenarios passed. Comment-sheet and feed screenshots were inspected. The design-system
+header adds the bookmark to preserve main's existing entry point.
+
+## Saved posts on OOTD (November 2026)
+
+Each published OOTD card has a Save control, and the bookmark button in the feed
+header opens a Saved Posts screen inside the Discovery tab. `SavedPostsState` builds
+the grid from the saved IDs: one entry per ID, sorted by post ID, so the toggle and
+the grid can't disagree and a refresh doesn't reorder them. A saved ID with no post
+gets a "No longer available" entry that can still be unsaved, never a post card. A
+save or unsave changes the state only after the write succeeds. `AppTabs` creates
+one `SavedPostsViewModel` per signed-in user, so signing out discards it. It reads
+and writes through the injected `SavedPostFunctions` and `PostFunctions.fetchPosts(ids:)`.
+Tapping a saved post opens its published pieces, because posts have no separate page.
+
+Debug builds use `DemoSavedPostFunctions`, which keeps synthetic IDs in UserDefaults.
+`-livePosts` and Release builds use Firestore. Live saving can't work until
+[#94](https://github.com/gtiosclub/dressed/issues/94): `firestore.rules` still denies
+`users/{uid}/savedPosts`, so reads show an error with Retry and writes show "Couldn't
+save". Debug launch arguments for checking these states: `-resetSavedPosts`,
+`-seedSavedPosts` (two posts and one removed post), `-failSavedPostReads 1,2` and
+`-failNextSavedPostWrite`.
+
+Still undecided: newest-first order needs `createdAt`, which `fetchSavedPostIds`
+doesn't return, and Firestore finishes a write only once the server confirms it, so
+offline the toggle keeps its spinner until the connection returns. If the first load
+fails, feed cards show Save even for a post that's already saved; saving it again is
+harmless.
+
+To check the state logic without a simulator, from the repository root:
+
+```sh
+xcrun swiftc dressed/Common/Models/*.swift dressed/Discovery/ViewModels/SavedPostsState.swift \
+  dressedStateChecks/*.swift -o /private/tmp/saved-posts-state-check
+/private/tmp/saved-posts-state-check
+```
+
+`SavedPostsUITests` in `dressedUITests/NavigationUITests.swift` covers the fixture-backed
+screens with the mock session. Neither check covers real sign-in or the Firestore rules.
+
+Checked on November 2, 2026, on an iPhone 17 Pro simulator with iOS 27.0:
+
+- The state check passed all 11 scenarios.
+- `SavedPostsUITests` passed 6 of 6, and each screen was checked in its screenshots.
+- The whole `dressedUITests` target passed 11 of 15. The four failures are
+  `testThreeTabsClosetSectionsAndAvatarEntry`, `testManualPieceWhenNoSuggestions`,
+  `testSelectTop` and `testReviewSelectTwoSkipOneSaveOutfitAndReopen`. They fail at the
+  same lines on `main` without this work.
+- A scratch app ran the real Firebase functions and `SavedPostsViewModel` against the
+  Firestore emulator. Lookups across two batches, a missing post, a malformed post,
+  invalid IDs, repeated saves and unsaves, an unavailable entry and an offline lookup
+  behaved as described above. Writes passed a stand-in rule requiring the document shape
+  in #94; that rule doesn't check ownership.
+- With `firestore.rules` on the emulator, a signed-in test token can't read or write
+  its own `savedPosts` and can look up posts by ID. A signed-out client can do neither.
+
+Not checked: real sign-in and sign-out in the running app, the live Firebase project,
+the owner-only rule itself, a physical device, dark mode and a Release build.
+
 ## Discovery and OOTD navigation update (October 18, 2026)
 
 Historical prototype behavior; the November 17 integration above supersedes its shell and feed routing.
@@ -138,7 +209,7 @@ in-feed pin, Find items, comment and like controls. Find items shows published
 pieces in a category-filtered sheet. Debug builds use synthetic posts by default;
 `-livePosts` selects Firestore. The Debug Share button inserts only a local
 preview. There is still no connected publication, public media loader,
-persistent comments, likes, or saved-post state. The earlier midsemester
+persistent comments or likes. Saved posts are described above. The earlier midsemester
 Discovery post prototype below records previous behavior, not the current
 navigation.
 

@@ -107,6 +107,10 @@ comparison with the live Figma file has not been performed.
 
 ## Open items
 
+- The main-branch merge retains Saved Posts through an extra Discovery header
+  bookmark button. Compact shared spacing keeps the four controls within 375 pt;
+  this is an intentional addition to the original three-control mockup.
+
 - The persistent comment sheet uses shared tokens and button styles. Live Figma
   design-context access was unavailable; an independent frame comparison is pending.
 

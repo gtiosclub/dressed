@@ -10,6 +10,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     @State private var commentsPost: Post?
     @State private var previewCommentsPost: Post?
     @State private var commentService: any CommentService
+    private let savedPosts: SavedPostsViewModel?
     @State private var likedIDs: Set<String> = []
     @State private var previewPosts: [Post] = []
     @Binding private var showingCreate: Bool
@@ -28,6 +29,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         showingCreate: Binding<Bool> = .constant(false),
         canSharePreview: Bool = false,
         commentService: (any CommentService)? = nil,
+        savedPosts: SavedPostsViewModel? = nil,
         @ViewBuilder artwork: @escaping (Post) -> Artwork
     ) {
         _model = StateObject(wrappedValue: ChronologicalFeedModel(loadPage: loadPage))
@@ -38,6 +40,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         _showingCreate = showingCreate
         self.canSharePreview = canSharePreview
         _commentService = State(initialValue: commentService ?? FirebaseCommentService())
+        self.savedPosts = savedPosts
     }
 
     private var forYouPosts: [Post] {
@@ -93,6 +96,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         .navigationTitle("Discovery")
         .navigationBarTitleDisplayMode(.inline)
         .task { await model.loadInitial() }
+        .task { await savedPosts?.loadIfNeeded() }
         .onAppear { loadNextPageIfNeeded() }
         .onDisappear { pageTask?.cancel() }
         .navigationDestination(isPresented: $showingCreate) {
@@ -193,6 +197,10 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
+            if let savedPosts, !previewPosts.contains(where: { $0.id == post.id }) {
+                SavedPostControl(postId: post.id, post: post, model: savedPosts)
+                    .padding(DSSpacing.md)
+            }
         }
         .background(Color(white: 0.98))
         .clipShape(RoundedRectangle(cornerRadius: 18))
@@ -207,7 +215,8 @@ extension InfiniteDiscoveryFeed where Artwork == DemoOutfitPhoto {
     static func demo(
         failSecondPage: Bool = false,
         section: Binding<Int> = .constant(0),
-        showingCreate: Binding<Bool> = .constant(false)
+        showingCreate: Binding<Bool> = .constant(false),
+        savedPosts: SavedPostsViewModel? = nil
     ) -> Self {
         let fixtures = InfiniteFeedFixtures(failSecondPage: failSecondPage)
         return Self(
@@ -215,7 +224,8 @@ extension InfiniteDiscoveryFeed where Artwork == DemoOutfitPhoto {
             section: section,
             showingCreate: showingCreate,
             canSharePreview: true,
-            commentService: DemoCommentService()
+            commentService: DemoCommentService(),
+            savedPosts: savedPosts
         ) { post in
             DemoOutfitPhoto(post: post)
         }
@@ -228,7 +238,8 @@ extension InfiniteDiscoveryFeed where Artwork == PostArtwork {
     static func live(
         service: any PostFunctions = DiscoveryPostSource.current,
         section: Binding<Int> = .constant(0),
-        showingCreate: Binding<Bool> = .constant(false)
+        showingCreate: Binding<Bool> = .constant(false),
+        savedPosts: SavedPostsViewModel? = nil
     ) -> Self {
         Self(loadPage: { cursor in
             guard cursor == nil else {
@@ -239,7 +250,7 @@ extension InfiniteDiscoveryFeed where Artwork == PostArtwork {
                 nextCursor: nil,
                 removedPostIDs: []
             )
-        }, section: section, showingCreate: showingCreate) { post in
+        }, section: section, showingCreate: showingCreate, savedPosts: savedPosts) { post in
             PostArtwork(post: post)
         }
     }

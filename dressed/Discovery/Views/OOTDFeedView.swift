@@ -7,16 +7,23 @@ struct OOTDFeedView: View {
     @State private var comments: [String: [OOTDComment]] = [:]
     @State private var commentsPost: Post?
     @State private var itemsPost: Post?
+    @State private var showingSaved = false
     @State private var previewPosts: [Post] = []
     private let demo: Bool
+    private let savedPosts: SavedPostsViewModel
 
     /// The Discovery header's create button sets `showingCreate`.
     @Binding var showingCreate: Bool
 
-    init(service: any PostFunctions = DiscoveryPostSource.current, showingCreate: Binding<Bool>) {
+    init(
+        service: any PostFunctions = DiscoveryPostSource.current,
+        showingCreate: Binding<Bool>,
+        savedPosts: SavedPostsViewModel
+    ) {
         _model = StateObject(wrappedValue: DiscoveryFeedViewModel(service: service))
         _showingCreate = showingCreate
         demo = service is DemoPostFunctions
+        self.savedPosts = savedPosts
     }
 
     var body: some View {
@@ -33,6 +40,9 @@ struct OOTDFeedView: View {
                                          likes: demoLikes(post) + (liked.contains(post.id) ? 1 : 0),
                                          isLiked: liked.contains(post.id),
                                          commentCount: postComments(post).count,
+                                         // A local preview isn't published yet, so there's nothing to save.
+                                         saveControl: index < previewPosts.count ? nil :
+                                            SavedPostControl(postId: post.id, post: post, model: savedPosts),
                                          onItems: { itemsPost = post },
                                          onComments: { commentsPost = post },
                                          onLike: {
@@ -48,6 +58,7 @@ struct OOTDFeedView: View {
             }
         }
         .task { model.load() }
+        .task { await savedPosts.loadIfNeeded() }
         .onDisappear { model.cancel() }
         .sheet(item: $commentsPost) { post in
             OOTDCommentsSheet(comments: postComments(post)) { text in
@@ -70,6 +81,9 @@ struct OOTDFeedView: View {
                                          mediaPath: "", createdAt: .now), at: 0)
                 showingCreate = false
             }
+        }
+        .navigationDestination(isPresented: $showingSaved) {
+            SavedPostsView(model: savedPosts)
         }
     }
 
@@ -98,6 +112,7 @@ private struct OOTDPostCard: View {
     let likes: Int
     let isLiked: Bool
     let commentCount: Int
+    let saveControl: SavedPostControl?
     let onItems: () -> Void
     let onComments: () -> Void
     let onLike: () -> Void
@@ -106,6 +121,11 @@ private struct OOTDPostCard: View {
     private var dateLabel: String {
         let date = Calendar.current.dateComponents([.month, .day, .year], from: post.createdAt)
         return "\(date.month ?? 0).\(date.day ?? 0).\(String(format: "%02d", (date.year ?? 0) % 100))"
+    }
+
+    private var captionCanExpand: Bool {
+        let explicitLineCount = post.caption.split(separator: "\n", omittingEmptySubsequences: false).count
+        return explicitLineCount > 3 || post.caption.count > 90
     }
 
     var body: some View {
@@ -170,7 +190,10 @@ private struct OOTDPostCard: View {
 
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(post.caption).font(.system(size: 13.5))
+                    ExpandablePostCaption(
+                        caption: post.caption,
+                        canExpand: captionCanExpand
+                    )
                     Text("song....").font(.system(size: 11.5)).foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -185,6 +208,11 @@ private struct OOTDPostCard: View {
                 }
             }
             .padding(.top, 10)
+
+            if let saveControl {
+                saveControl
+                    .padding(.top, 6)
+            }
         }
     }
 
@@ -314,7 +342,7 @@ private struct OOTDCommentsSheet: View {
     }
 }
 
-private struct OOTDItemsSheet: View {
+struct OOTDItemsSheet: View {
     let post: Post
     @State private var category: String?
     @State private var sort: OOTDItemSort = .bestMatch
@@ -693,8 +721,13 @@ struct PostArtwork: View {
 }
 
 #Preview {
-    @Previewable @State var showingCreate = false
-    NavigationStack { OOTDFeedView(service: DemoPostFunctions(), showingCreate: $showingCreate) }
+    NavigationStack {
+        OOTDFeedView(service: DemoPostFunctions(), showingCreate: .constant(false), savedPosts: SavedPostsViewModel(
+            ownerId: "preview_user",
+            saves: DemoSavedPostFunctions(arguments: ["-seedSavedPosts"]),
+            posts: DemoPostFunctions()
+        ))
+    }
 }
 
 #Preview("New post") {
