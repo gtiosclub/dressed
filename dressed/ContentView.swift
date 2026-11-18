@@ -30,6 +30,7 @@ private struct AppTabs: View {
 
     @StateObject private var closet: PrototypeClosetStore
     @StateObject private var outfits: PrototypeOutfitStore
+    @StateObject private var savedPosts: SavedPostsViewModel
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -60,6 +61,11 @@ private struct AppTabs: View {
         _outfits = StateObject(
             wrappedValue: PrototypeOutfitStore(ownerId: userId)
         )
+        _savedPosts = StateObject(wrappedValue: SavedPostsViewModel(
+            ownerId: userId,
+            saves: DiscoveryPostSource.currentSavedPosts,
+            posts: DiscoveryPostSource.current
+        ))
 
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
@@ -129,7 +135,7 @@ private struct AppTabs: View {
                             showingProfile = true
                         }
                     } else {
-                        OOTDFeedView()
+                        OOTDFeedView(savedPosts: savedPosts)
                     }
                 }
                 .toolbar(.hidden, for: .navigationBar)
