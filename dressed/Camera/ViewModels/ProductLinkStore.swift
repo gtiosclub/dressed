@@ -7,6 +7,16 @@ struct ReviewProductLink: Identifiable {
     let isShared: Bool
 }
 
+// Details the person kept on the review screen. Anything not listed here is not saved.
+struct ConfirmedProductDetails {
+    var importId: String? = nil
+    var retailer: String? = nil
+    var imageURL: URL? = nil
+    var price: ProductPrice? = nil
+    var availability: String? = nil
+    var variant: String? = nil
+}
+
 enum ProductLinkError: LocalizedError {
     case invalidURL
     case emptyName
@@ -73,7 +83,8 @@ final class ProductLinkStore: ObservableObject {
         }
     }
 
-    func save(_ review: ReviewProductLink, name: String, category: ClothingCategory) throws {
+    func save(_ review: ReviewProductLink, name: String, category: ClothingCategory,
+              details: ConfirmedProductDetails? = nil) throws {
         guard error == nil else { throw ProductLinkError.unavailableStorage }
         guard let url = ProductLinkValidation.normalize(review.url.absoluteString) else {
             throw ProductLinkError.invalidURL
@@ -83,7 +94,10 @@ final class ProductLinkStore: ObservableObject {
         let old = links.first { $0.productURL == url }
         let item = SavedProductLink(id: old?.id ?? review.id, ownerId: ownerId,
                                     name: title, category: category, productURL: url,
-                                    createdAt: old?.createdAt ?? Date())
+                                    createdAt: old?.createdAt ?? Date(),
+                                    retailer: details?.retailer, imageURL: details?.imageURL,
+                                    price: details?.price, availability: details?.availability,
+                                    variant: details?.variant, importId: details?.importId)
         let updated = [item] + links.filter { $0.id != item.id && $0.productURL != url }
         try persist(updated)
         links = updated

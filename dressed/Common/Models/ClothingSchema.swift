@@ -2,7 +2,7 @@ import Foundation
 
 // First closet milestone: one manually described item and its private photo.
 // The lead supplies the ID and owner ID. Firebase access rules remain separate work.
-enum ClothingCategory: String, Codable, CaseIterable {
+nonisolated enum ClothingCategory: String, Codable, CaseIterable {
     case tops, pants, skirts, dresses, shoes, outerwear, accessories, other
 }
 

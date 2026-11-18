@@ -1,0 +1,21 @@
+{
+  "method": "in-house",
+  "latencyMs": 2400,
+  "visionCalls": 3,
+  "candidates": [
+    {"category": "outerwear", "name": "Jacket", "sightings": [
+      {"photoId": "front", "category": "outerwear", "name": "Jacket", "boundingBox": {"x": 0.21, "y": 0.11, "width": 0.58, "height": 0.39}},
+      {"photoId": "back", "category": "outerwear", "name": "Jacket", "boundingBox": {"x": 0.25, "y": 0.12, "width": 0.55, "height": 0.4}}
+    ]},
+    {"category": "pants", "name": "Jeans", "sightings": [
+      {"photoId": "front", "category": "pants", "name": "Jeans", "boundingBox": {"x": 0.3, "y": 0.5, "width": 0.4, "height": 0.44}},
+      {"photoId": "back", "category": "pants", "name": "Jeans", "boundingBox": {"x": 0.31, "y": 0.52, "width": 0.39, "height": 0.42}}
+    ]},
+    {"category": "pants", "name": "Pants", "sightings": [
+      {"photoId": "side", "category": "pants", "name": "Pants", "boundingBox": {"x": 0.35, "y": 0.51, "width": 0.3, "height": 0.44}}
+    ]},
+    {"category": "accessories", "name": "Necklace", "sightings": [
+      {"photoId": "side", "category": "accessories", "name": "Necklace", "boundingBox": {"x": 0.45, "y": 0.15, "width": 0.1, "height": 0.08}}
+    ]}
+  ]
+}

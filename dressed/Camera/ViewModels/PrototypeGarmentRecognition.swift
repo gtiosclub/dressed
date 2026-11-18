@@ -1,19 +1,28 @@
 import Foundation
+import CoreML
 import Vision
 
 // A whole-image hint for one garment photo. This does not locate separate pieces
 // or identify a specific product; a user must approve the details before saving.
-enum PrototypeGarmentRecognition {
+nonisolated enum PrototypeGarmentRecognition {
     struct Suggestion {
         let name: String
         let category: ClothingCategory
+        let confidence: Double
     }
 
-    static func analyze(_ imageData: Data) async throws -> Suggestion? {
-        try await Task.detached(priority: .userInitiated) {
+    static func analyze(_ imageData: Data, metrics: RecognitionMetrics? = nil) async throws -> Suggestion? {
+        try await RecognitionExecution.offMain {
             try Task.checkCancellation()
-            let request = VNClassifyImageRequest()
-            try VNImageRequestHandler(data: imageData).perform([request])
+            let request: VNClassifyImageRequest
+            do {
+                let start = ProcessInfo.processInfo.systemUptime
+                defer { metrics?.record("classification", since: start) }
+                request = try VisionRequestRunner.perform({ VNClassifyImageRequest() }, on: imageData)
+            } catch {
+                metrics?.warning("Vision classification failed; category quality was not evaluated for this call.", error: error)
+                throw error
+            }
             try Task.checkCancellation()
 
             // Vision's general classifier is often uncertain about clothing.
@@ -34,10 +43,15 @@ enum PrototypeGarmentRecognition {
             for observation in observations {
                 let label = observation.identifier.lowercased()
                 if let match = mappings.first(where: { $0.keywords.contains(where: label.contains) }) {
-                    return Suggestion(name: match.name, category: match.category)
+                    return Suggestion(
+                        name: match.name,
+                        category: match.category,
+                        confidence: Double(observation.confidence)
+                    )
                 }
             }
             return nil
-        }.value
+        }
     }
+
 }

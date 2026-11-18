@@ -55,6 +55,41 @@ Figma design-context tool was available for an independent frame comparison.
 
 # Architecture and shared contracts
 
+## Data branch retirement integration (November 17, 2026)
+
+All seven remaining Data PRs are included in the integration: #142, #157, #158,
+#159, #160, #228 and #229. The clothing update follows `users/{ownerId}/items`;
+outfit deletion remains scoped to `users/{ownerId}/outfits`. Existing shared test
+targets are retained alongside the standalone recognition lab.
+
+Recognition uses the on-device pipeline by default and preserves interrupted
+manual drafts. The P18 loopback clue demonstration requires the explicit Debug
+argument `-recognitionGapFixture`; it does not replace the normal recognizer.
+The multi-photo Vision safeguard against degenerate simulator CPU outputs remains
+in place. The recognition prototype's device performance and accuracy gates are
+still open; merging it does not establish those results.
+
+## Subteam integration (November 10, 2026)
+
+The data, viz, and social integration histories are combined in this revision.
+The signed-in shell keeps My Closet, Discovery, and Camera
+as its three top-level tabs. Profile opens as a child sheet from My Closet or
+Discovery; Try On opens its Avatar Studio destination. The social team's
+`DiscoverySectionSwitch` now selects the current Discovery ideas and OOTD
+sections. Both the data team's multi-photo import and the viz team's outfit
+studio are present in the combined app.
+The studio model uses `ObservableObject` with a nonisolated type declaration:
+on the iOS 18.6 and 26.2 simulators, actor-isolated deallocation crashed all
+model tests, while the nonisolated declaration passed the 20-test viz suite.
+
+`PublishedPostImageView` and the social post-detail screen remain separate components.
+The saved-post controls and grid are connected to OOTD as described below; live post
+media remains unavailable. The current Firestore
+rules still deny saved-post writes, and the feed has no public media loader.
+Their presence in the project does not establish a production publication or
+bookmark flow. The local changes on `feat/camera-capture-screen` are separate
+from this committed branch integration.
+
 ## Social branch promotion (November 17, 2026)
 
 The integration preserves main’s per-user saved-post state and adds its existing Save controls and Saved Posts destination to the infinite Discovery feed. The Friends cards and outfit-preview sheet share the same saved state. Demo saved-post lookups also resolve the paged fixtures after relaunch. Both bulk saved-post lookup and single-post detail lookup remain in `PostFunctions`. The public profile component from #256 is included without introducing a live profile route or backend service.
@@ -236,9 +271,9 @@ Search response into separate, unselected garment candidates with normalized
 boxes. It resolves similar product IDs only against active records in the local
 catalog and leaves an empty/manual result when no regions are found. A developer
 can run it against a saved response. `object_localization.py` separately parses
-generic Google Vision garment boxes. A Debug-only Camera action calls
-`local_service.py` over simulator loopback for reviewed multi-piece suggestions;
-that local service serves fixtures only and makes no cloud request. There is no
+generic Google Vision garment boxes. The legacy `local_service.py` serves fixtures
+only and makes no cloud request; current Camera and shared-image recognition do
+not call it. There is no
 hosted/authenticated endpoint, indexed product set, live catalog match, or
 measured recognition quality on user photos. A local evaluation harness compares
 saved responses with annotated garment boxes; its bundled example is synthetic
@@ -251,9 +286,18 @@ The local product-link flow accepts pasted HTTPS links in Camera and URL shares 
 the Share Extension. Both reach review, where the user enters a name and
 category and explicitly confirms Wishlist. The separate owner-scoped
 `SavedProductLink` record persists on-device without a photo; it does not alter
-the six-field `ClothingItem`. Dressed does not fetch retailer page metadata or
-infer exact identity from a photo. Shared link drafts expire after 24 hours;
-Wishlist storage is not backend-enforced or synced across devices.
+the six-field `ClothingItem`. Dressed does not infer exact identity from a photo.
+Shared link drafts expire after 24 hours; Wishlist storage is not backend-enforced
+or synced across devices.
+
+P19 prototype (not deployed): in Debug, link review asks the loopback-only
+`backend/links/local_service.py` (port 8767) to read the page and return a draft.
+Each field carries its source. Name and category prefill only when the page states
+them; price, availability and image appear as optional details the person can turn
+off; variant stays open unless the link names one. A blocked, failed or missing
+service leaves the manual form with the link filled in. The app never fetches store
+pages and holds no keys. A hosted, authenticated endpoint and the Dressed category
+list are TBD. Real-store accuracy has not been measured; see `backend/links/README.md`.
 
 `backend/catalog/catalog.py` ingests a synthetic fixture feed into local
 SQLite and serves a read-only API on loopback. It records stable product IDs,
@@ -347,9 +391,21 @@ returned three Dress boxes for Google's public sample image. This does not
 verify live Google recognition from inside the app or accuracy on personal photos.
 
 The shared-image review now keeps an owner-bound, 24-hour review draft in the App
-Group. Recognition starts when a new review opens. In Debug the app first tries
-the local Google Vision service; otherwise it uses on-device body landmarks and
-whole-image classification as fallbacks.
+Group. Recognition starts when a new review opens. Both Debug and Release use
+on-device body landmarks and whole-image classification. The #208 pipeline
+offers an opt-in native-resolution crop/context-reuse/scanline-mask trial and removes a
+duplicate Camera classifier task. Imports default to original processing until
+physical-phone speed and quality checks pass. Simulator builds explicitly select a supported
+CPU for image classification; device builds keep automatic compute selection. Current iOS
+27 simulator body-pose and foreground-mask inference still fail, as recorded in the
+[environment investigation](verification/recognition-208/vision-environment.md). The diagnostic compares the
+original processing path against the new path without writing closet records.
+Interrupted processing drafts restart on return, including drafts with manual
+pieces; this is restart, not guaranteed execution while the app is suspended.
+The standalone `DressedSpeedLab` target references the same source files and runs without
+Firebase, authentication or an App Group entitlement. It supplies independent diagnostics,
+not a closet-save flow. See [recognition performance guide](recognition-speed-demo.md) for measured results,
+cancellation behavior and physical-device verification limits.
 Each suggestion starts unselected. The user can adjust a rectangular region
 or trace a polygon around a garment. Each suggested region attempts a
 transparent cutout with Apple's foreground-instance mask, then a local edge
@@ -423,7 +479,7 @@ The current planning branch adds schema-only Codable types in `dressed/Common/Mo
 
 The access-rules work added Firestore and Storage rules with emulator tests for synthetic users. Firestore rules were published to `out-fitted` on September 28, 2026; live Rules Playground simulations confirmed owner and non-owner read decisions. Storage rules remain local because live Storage is unavailable. See [Firebase testing](officers/firebase-testing.md) before assigning live database work.
 
-The visualization prototype lives in `Closet/Views` and opens from the Profile sheet, preserving the three top-level tabs and the Closet's Pieces, Outfits, and Wishlist sections. `AvatarStudioView` offers customization, try-on, full-body viewing, and a picture flow. `AvatarView` renders a faceless procedural mannequin (`Mannequin`, `MannequinGeometry`) with RealityKit's non-AR camera. Users drag it to turn it on a turntable (`AvatarOrbit`), and clothes are still flat 2D images that narrow and fade as it turns. Body, face, hair and bangs are presets, and skin is a light tint on porcelain. This is outfit visualization, not fit prediction. Studio saved fits are temporary in-memory state and do not replace the persisted Outfit flow. The 3D model source, 3D garment representation and take-pic capture of the 3D view are TBD. A replacement model must keep the procedural figure's framing: 1 unit tall, feet at y = 0, facing +z.
+The visualization prototype lives in `Closet/Views` and opens from the Profile sheet, preserving the three top-level tabs and the Closet's Pieces, Outfits, and Wishlist sections. `AvatarStudioView` offers customization, try-on, full-body viewing, and a picture flow. `AvatarView` renders a faceless procedural mannequin (`Mannequin`, `MannequinGeometry`) with RealityKit's non-AR camera. Users drag it to turn it on a turntable (`AvatarOrbit`), and clothes are still flat 2D images that narrow and fade as it turns. Body, face, hair and bangs are presets, and skin is a light tint on porcelain. This is outfit visualization, not fit prediction. The chosen look is saved on the device for each account (`AvatarLookStore`, `PrototypeCloset/<ownerId>/avatar.json`), like prototype closet pieces and outfits, so it survives sign-out; syncing it to the backend Avatar record below is TBD. Studio saved fits are temporary in-memory state and do not replace the persisted Outfit flow. The 3D model source, 3D garment representation and take-pic capture of the 3D view are TBD. A replacement model must keep the procedural figure's framing: 1 unit tall, feet at y = 0, facing +z.
 
 Everything below is a proposed contract. Confirm details in the lead planning tickets before implementation. Firestore plus Storage is the proposed primary persistence stack; do not build a parallel Realtime Database model merely because that dependency is linked.
 
