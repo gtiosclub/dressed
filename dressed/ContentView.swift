@@ -49,7 +49,6 @@ private struct AppTabs: View {
 
     @StateObject private var studio: OutfitStudioModel
     @StateObject private var outfits: PrototypeOutfitStore
-    @State private var openStudioOnPresent = false
 
     init(session: SessionViewModel, userId: String) {
         self.session = session
@@ -107,7 +106,6 @@ private struct AppTabs: View {
                         ownerId: userId,
                         onTryOn: { item in
                             studio.worn[item.category] = item
-                            openStudioOnPresent = true
                             selectedTab = 3
                         },
                         onTryOutfit: { outfit in
@@ -116,7 +114,6 @@ private struct AppTabs: View {
                                 if let item = closet.item(id: placement.itemId) { worn[item.category] = item }
                             }
                             studio.worn = worn
-                            openStudioOnPresent = true
                             selectedTab = 3
                         }
                     )
@@ -178,7 +175,6 @@ private struct AppTabs: View {
                         model: studio,
                         closet: closet,
                         outfits: outfits,
-                        openStudioOnPresent: openStudioOnPresent,
                         onSignOut: signOut,
                         image: { photo(for: $0) },
                         uiImage: { closet.image(for: $0) }

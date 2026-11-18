@@ -302,7 +302,7 @@ struct PrototypeItemDetailView: View {
                                 onTryOn(item)
                                 dismiss()
                             } label: {
-                                Label("Try On", systemImage: "person.crop.circle")
+                                Label("Try On", tabler: "TablerUserCircle")
                             }
                             Button("Delete Piece", role: .destructive) { confirmsDeletion = true }
                         }

@@ -18,7 +18,7 @@ struct SavedPostControl: View {
             .tint(.primary)
 
             if let message = model.errorMessage(for: postId) {
-                Label(message, systemImage: "exclamationmark.triangle")
+                Label(message, tabler: "TablerAlertTriangle")
                     .font(.caption)
                     .foregroundStyle(.red)
             }

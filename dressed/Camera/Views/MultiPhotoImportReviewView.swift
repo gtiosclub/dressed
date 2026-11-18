@@ -53,7 +53,7 @@ struct MultiPhotoImportReviewView: View {
                                             Button {
                                                 removePhoto(photo.id)
                                             } label: {
-                                                Image(systemName: "xmark.circle.fill")
+                                                DSIcon("TablerCircleXFilled", size: 20)
                                                     .symbolRenderingMode(.palette)
                                                     .foregroundStyle(.white, .black.opacity(0.65))
                                             }
@@ -98,7 +98,7 @@ struct MultiPhotoImportReviewView: View {
                         Toggle("Select this piece", isOn: $candidate.selected)
                         if mode == .oneItem, MultiPhotoCandidateGrouper.photosDisagree(candidate) {
                             Label("Photos disagree on the category. Choose one below.",
-                                  systemImage: "exclamationmark.triangle")
+                                  tabler: "TablerAlertTriangle")
                                 .font(.footnote)
                                 .foregroundStyle(.orange)
                         }
@@ -492,7 +492,7 @@ struct MultiPhotoImportReviewView: View {
                     .resizable()
                     .scaledToFill()
             } else {
-                Image(systemName: "photo")
+                DSIcon("TablerPhoto", size: 20)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color(.secondarySystemGroupedBackground))

@@ -470,11 +470,11 @@ private struct StudioUndoRedoButtons: View {
     var body: some View {
         HStack(spacing: 10) {
             button(
-                "arrow.uturn.backward", label: "Undo outfit change", id: "studio.undo",
+                "TablerArrowBackUp", label: "Undo outfit change", id: "studio.undo",
                 enabled: canUndo, action: undo
             )
             button(
-                "arrow.uturn.forward", label: "Redo outfit change", id: "studio.redo",
+                "TablerArrowForwardUp", label: "Redo outfit change", id: "studio.redo",
                 enabled: canRedo, action: redo
             )
         }
@@ -484,7 +484,7 @@ private struct StudioUndoRedoButtons: View {
         _ symbol: String, label: String, id: String, enabled: Bool, action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Image(systemName: symbol)
+            DSIcon(symbol, size: 20)
                 .font(.body.weight(.semibold))
                 .frame(width: 40, height: 40)
                 .background(.thinMaterial, in: Circle())

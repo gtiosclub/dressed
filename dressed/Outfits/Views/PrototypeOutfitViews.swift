@@ -200,7 +200,7 @@ struct PrototypeOutfitDetailView: View {
                     onTryOutfit(outfit)
                     dismiss()
                 } label: {
-                    Label("Try On Outfit", systemImage: "person.crop.circle")
+                    Label("Try On Outfit", tabler: "TablerUserCircle")
                 }
                 Text("Pieces")
                     .font(.title2.bold())

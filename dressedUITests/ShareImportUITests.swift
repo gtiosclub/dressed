@@ -317,11 +317,17 @@ final class ShareImportUITests: XCTestCase {
         app.keyboards.buttons["return"].tap()
         let manual = app.buttons["Manual sweater"]
         reveal(manual, in: app)
+        XCTAssertEqual(manual.value as? String, "Not selected")
         manual.tap()
+        XCTAssertEqual(manual.value as? String, "Selected")
         let confirm = app.buttons["sharedImport.confirm"]
         reveal(confirm, in: app)
         confirm.tap()
         app.buttons["tab.closet"].tap()
+        let search = app.searchFields["Search pieces"]
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        search.tap()
+        search.typeText("Manual sweater")
         XCTAssertTrue(app.staticTexts["Manual sweater"].waitForExistence(timeout: 5))
     }
 

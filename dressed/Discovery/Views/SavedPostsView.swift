@@ -48,7 +48,7 @@ struct SavedPostsView: View {
 
     private var refreshFailedBanner: some View {
         HStack(spacing: 10) {
-            Image(systemName: "exclamationmark.triangle")
+            DSIcon("TablerAlertTriangle", size: 20)
                 .accessibilityHidden(true)
             Text("Couldn't refresh. Showing your last saved posts.")
                 .font(.footnote)

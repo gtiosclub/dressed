@@ -97,11 +97,11 @@ struct SharedImportReviewView: View {
                             Text("\(selectedCount) of \(draft.candidates.count) pieces selected")
                                 .foregroundStyle(.secondary)
                         }
-                        Button("Find more", systemImage: "lasso", action: addManualCandidate)
+                        Button("Find more", tabler: "TablerLasso", action: addManualCandidate)
                             .accessibilityIdentifier("sharedImport.findMore")
                             .disabled(isProcessing)
                         if draft.candidates.isEmpty {
-                            Button("Try Recognition Again", systemImage: "arrow.clockwise", action: processImage)
+                            Button("Try Recognition Again", tabler: "TablerRefresh", action: processImage)
                                 .disabled(isProcessing)
                         }
                     }

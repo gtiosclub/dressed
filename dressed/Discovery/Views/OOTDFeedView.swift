@@ -706,7 +706,7 @@ struct OOTDCreatePostView: View {
                 Text(value)
                     .foregroundStyle(.black.opacity(0.55))
                     .lineLimit(1)
-                Image(systemName: "chevron.right")
+                DSIcon("TablerChevronRight", size: 20)
                     .resizable()
                     .scaledToFit()
                     .frame(width: 16, height: 16)

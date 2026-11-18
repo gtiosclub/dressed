@@ -69,7 +69,7 @@ struct PrototypeImportView: View {
                                             .resizable()
                                             .scaledToFill()
                                     } else {
-                                        Image(systemName: "photo")
+                                        DSIcon("TablerPhoto", size: 20)
                                             .font(.title2)
                                             .foregroundStyle(.secondary)
                                             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -84,7 +84,7 @@ struct PrototypeImportView: View {
                                 Button {
                                     removeSelectedPhoto(selectedPhoto)
                                 } label: {
-                                    Image(systemName: "xmark.circle.fill")
+                                    DSIcon("TablerCircleXFilled", size: 20)
                                         .font(.title3)
                                         .symbolRenderingMode(.palette)
                                         .foregroundStyle(.white, .black.opacity(0.65))
@@ -469,13 +469,13 @@ struct ImportReviewView: View {
                     Section {
                         ForEach(possibleMissing) { hint in
                             VStack(alignment: .leading, spacing: 10) {
-                                Label("Possible missing piece", systemImage: "questionmark.circle")
+                                Label("Possible missing piece", tabler: "TablerHelpCircle")
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundStyle(.orange)
                                 Text(hint.reason)
                                     .foregroundStyle(.secondary)
                                 PhotosPicker(selection: $additionalPhoto, matching: .images) {
-                                    Label("Add Another Photo", systemImage: "plus.rectangle.on.rectangle")
+                                    Label("Add Another Photo", tabler: "TablerLibraryPhoto")
                                         .font(.footnote)
                                 }
                                 HStack {

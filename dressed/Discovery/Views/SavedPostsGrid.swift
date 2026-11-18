@@ -20,7 +20,7 @@ struct SavedPostGrid<Control: View>: View {
         if entries.isEmpty {
             ContentUnavailableView(
                 "No saved posts yet",
-                systemImage: "bookmark",
+                tabler: "TablerBookmark",
                 description: Text("Posts you save in OOTD appear here.")
             )
             .containerRelativeFrame(.vertical)
@@ -67,7 +67,7 @@ struct SavedPostGrid<Control: View>: View {
     private func unavailableCard(postId: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             VStack(spacing: 8) {
-                Image(systemName: "eye.slash")
+                DSIcon("TablerEyeOff", size: 20)
                     .font(.title2)
                 Text("This post was removed or is hidden.")
                     .font(.caption)

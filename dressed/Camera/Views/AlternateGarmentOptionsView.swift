@@ -65,7 +65,7 @@ struct ManualCategorySearchView: View {
 
     private var searchField: some View {
         HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
+            DSIcon("TablerSearch", size: 20)
                 .foregroundStyle(.secondary)
             TextField("Search categories", text: $query)
                 .textInputAutocapitalization(.never)
@@ -74,7 +74,7 @@ struct ManualCategorySearchView: View {
                 Button {
                     query = ""
                 } label: {
-                    Image(systemName: "xmark.circle.fill")
+                    DSIcon("TablerCircleXFilled", size: 20)
                         .foregroundStyle(.secondary)
                 }
                 .accessibilityLabel("Clear search")

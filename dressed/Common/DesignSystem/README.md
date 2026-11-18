@@ -107,6 +107,8 @@ comparison with the live Figma file has not been performed.
 
 ## Open items
 
+- The Data integration preserves the four-tab navigation and direct Avatar Studio entry, adds outfit persistence to that studio, and uses Tabler icons in the incoming import and saved-post views. These prototype layouts have not had an independent Figma comparison.
+
 - The main-branch integration retains Saved Posts access in a separate bookmark row below the Discovery header, plus the existing save control on Friends cards and outfit previews. This preserves the working saved-post flow; the added access has not been compared to the live Figma frame.
 
 - The Discovery header shows a profile icon where the mockup shows the user's initial;
