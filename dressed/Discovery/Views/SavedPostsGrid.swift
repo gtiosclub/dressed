@@ -67,7 +67,7 @@ struct SavedPostGrid<Control: View>: View {
     private func unavailableCard(postId: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             VStack(spacing: 8) {
-                DSIcon("TablerEyeOff", size: 20)
+                DSIcon("TablerEyeOff", size: 24)
                     .font(.title2)
                 Text("This post was removed or is hidden.")
                     .font(.caption)

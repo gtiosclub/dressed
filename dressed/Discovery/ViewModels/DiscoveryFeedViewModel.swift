@@ -4,7 +4,9 @@ import Foundation
 enum DiscoveryPostSource {
     static var isDemo: Bool {
         #if DEBUG
-        return !ProcessInfo.processInfo.arguments.contains("-livePosts")
+        let arguments = ProcessInfo.processInfo.arguments
+        return !arguments.contains("-livePosts")
+            && (arguments.contains("-demoPosts") || arguments.contains("-mockSignedIn"))
         #else
         return false
         #endif

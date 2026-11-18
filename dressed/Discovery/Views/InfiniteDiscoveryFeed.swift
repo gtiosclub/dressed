@@ -7,6 +7,9 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     @State private var nearBottom = false
     @State private var pageTask: Task<Void, Never>?
     @State private var selectedPost: Post?
+    @State private var commentsPost: Post?
+    @State private var previewCommentsPost: Post?
+    @State private var commentService: any CommentService
     @State private var likedIDs: Set<String> = []
     @State private var previewPosts: [Post] = []
     @Binding private var showingCreate: Bool
@@ -26,6 +29,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         section: Binding<Int> = .constant(0),
         showingCreate: Binding<Bool> = .constant(false),
         canSharePreview: Bool = false,
+        commentService: (any CommentService)? = nil,
         savedPosts: SavedPostsViewModel? = nil,
         @ViewBuilder artwork: @escaping (Post) -> Artwork
     ) {
@@ -36,6 +40,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         _section = section
         _showingCreate = showingCreate
         self.canSharePreview = canSharePreview
+        _commentService = State(initialValue: commentService ?? FirebaseCommentService())
         self.savedPosts = savedPosts
     }
 
@@ -120,9 +125,15 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                 showingCreate = false
             }
         }
+        .sheet(item: $commentsPost) { post in
+            PostCommentsSheet(postId: post.id, service: commentService)
+        }
         .sheet(item: $selectedPost) { post in
             NavigationStack {
-                ScrollView { friendCard(post).padding(20) }
+                ScrollView { friendCard(post, inPreview: true).padding(20) }
+                    .sheet(item: $previewCommentsPost) { selected in
+                        PostCommentsSheet(postId: selected.id, service: commentService)
+                    }
                     .navigationTitle("Outfit preview")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
@@ -162,7 +173,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         pageTask = Task { @MainActor in await model.loadMore() }
     }
 
-    private func friendCard(_ post: Post) -> some View {
+    private func friendCard(_ post: Post, inPreview: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text("@\(post.authorId)").fontWeight(.semibold)
@@ -176,11 +187,17 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                 .aspectRatio(0.82, contentMode: .fit)
 
             HStack(alignment: .center, spacing: 12) {
-                if let savedPosts, !previewPosts.contains(where: { $0.id == post.id }) {
-                    SavedPostControl(postId: post.id, post: post, model: savedPosts)
-                }
                 Text(post.caption).font(.body.weight(.medium))
                     .frame(maxWidth: .infinity, alignment: .leading)
+                Button {
+                    if inPreview { previewCommentsPost = post } else { commentsPost = post }
+                } label: {
+                    DSIcon("TablerMessageCircle", size: 20)
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Comments")
+                .accessibilityIdentifier("infinite.comments.\(post.id)")
                 Button {
                     if !likedIDs.insert(post.id).inserted { likedIDs.remove(post.id) }
                 } label: {
@@ -194,6 +211,10 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
+            if let savedPosts, !previewPosts.contains(where: { $0.id == post.id }) {
+                SavedPostControl(postId: post.id, post: post, model: savedPosts)
+                    .padding(DSSpacing.md)
+            }
         }
         .background(Color(white: 0.98))
         .clipShape(RoundedRectangle(cornerRadius: 18))
@@ -217,6 +238,7 @@ extension InfiniteDiscoveryFeed where Artwork == DemoOutfitPhoto {
             section: section,
             showingCreate: showingCreate,
             canSharePreview: true,
+            commentService: DemoCommentService(),
             savedPosts: savedPosts
         ) { post in
             DemoOutfitPhoto(post: post)

@@ -136,7 +136,10 @@ final class SavedPostsUITests: XCTestCase {
     }
 
     private func wait(for element: XCUIElement, value: String) {
-        expectation(for: NSPredicate(format: "value == %@", value), evaluatedWith: element)
+        expectation(for: NSPredicate { object, _ in
+            guard let control = object as? XCUIElement else { return false }
+            return control.value as? String == value && control.isEnabled
+        }, evaluatedWith: element)
         waitForExpectations(timeout: 10)
     }
 
@@ -193,13 +196,13 @@ final class SavedPostsUITests: XCTestCase {
         let unavailable = app.descendants(matching: .any)["savedPosts.unavailable.demo_post_removed"]
         XCTAssertTrue(unavailable.waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["savedPosts.post.demo_post_removed"].exists)
-        XCTAssertTrue(app.buttons["savedPosts.post.demo_post_1"].exists)
+        XCTAssertTrue(app.buttons["savedPosts.post.infinite_0"].exists)
         XCTAssertTrue(app.buttons["savedPosts.post.demo_post_2"].exists)
         attachScreenshot("Saved posts with a deleted post", of: app)
 
         toggle("demo_post_removed", in: app).tap()
         waitForDisappearance(of: unavailable)
-        XCTAssertTrue(app.buttons["savedPosts.post.demo_post_1"].exists)
+        XCTAssertTrue(app.buttons["savedPosts.post.infinite_0"].exists)
         XCTAssertTrue(app.buttons["savedPosts.post.demo_post_2"].exists)
     }
 
@@ -218,6 +221,9 @@ final class SavedPostsUITests: XCTestCase {
         let feedToggle = toggle("infinite_0", in: app)
         XCTAssertTrue(feedToggle.waitForExistence(timeout: 10))
         wait(for: feedToggle, value: "Not saved")
+        // The bookmark row leaves this footer near the tab bar on smaller screens.
+        // Scroll it fully into view rather than tapping a partially clipped control.
+        app.scrollViews["infinite.scroll"].swipeUp()
 
         feedToggle.tap()
         let error = app.staticTexts["Couldn't save. Try again."]
@@ -242,7 +248,7 @@ final class SavedPostsUITests: XCTestCase {
         attachScreenshot("Saved posts, first load failed", of: app)
 
         retry.tap()
-        XCTAssertTrue(app.buttons["savedPosts.post.demo_post_1"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["savedPosts.post.infinite_0"].waitForExistence(timeout: 10))
     }
 
     func testFailedRefreshKeepsTheGridAndOffersRetry() {
@@ -255,7 +261,7 @@ final class SavedPostsUITests: XCTestCase {
 
         let retry = app.buttons["savedPosts.retry"]
         XCTAssertTrue(retry.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["savedPosts.post.demo_post_1"].exists)
+        XCTAssertTrue(app.buttons["savedPosts.post.infinite_0"].exists)
         // Above the scroll view, the banner hides the large title, though the title still reports as
         // hittable. So this checks where the banner is rather than the title.
         XCTAssertTrue(app.scrollViews["savedPosts.content"].buttons["savedPosts.retry"].exists)
@@ -263,6 +269,6 @@ final class SavedPostsUITests: XCTestCase {
 
         retry.tap()
         waitForDisappearance(of: retry)
-        XCTAssertTrue(app.buttons["savedPosts.post.demo_post_1"].exists)
+        XCTAssertTrue(app.buttons["savedPosts.post.infinite_0"].exists)
     }
 }

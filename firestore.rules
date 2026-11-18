@@ -55,6 +55,29 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Comments belong only to existing published posts. Reads are bounded;
+    // clients cannot impersonate authors, edit records, or revive removed posts.
+    match /posts/{postId}/comments/{commentId} {
+      function visiblePost() {
+        return request.auth != null
+          && exists(/databases/$(database)/documents/posts/$(postId));
+      }
+      function validComment() {
+        let comment = request.resource.data;
+        return comment.keys().hasAll(['id', 'authorId', 'text', 'createdAt'])
+          && comment.keys().hasOnly(['id', 'authorId', 'text', 'createdAt'])
+          && comment.id == commentId
+          && comment.authorId == request.auth.uid
+          && comment.text is string && comment.text.size() <= 1000
+          && comment.text.matches('[\\s\\S]*[^\\s][\\s\\S]*')
+          && comment.createdAt == request.time;
+      }
+      allow get: if visiblePost();
+      allow list: if visiblePost() && request.query.limit != null && request.query.limit <= 50;
+      allow create: if visiblePost() && validComment();
+      allow update, delete: if false;
+    }
+
     // Includes the existing uppercase legacy collections and unapproved models.
     match /{document=**} {
       allow read, write: if false;

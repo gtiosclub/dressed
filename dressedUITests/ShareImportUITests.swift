@@ -32,6 +32,34 @@ final class ShareImportUITests: XCTestCase {
         XCTAssertTrue(forYou.isSelected)
     }
 
+    func testCommentsSubmitAndReopenFromBothFeedLayouts() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-mockSignedIn", "-showDiscovery"]
+        app.launch()
+        XCTAssertTrue(app.buttons["infinite.post.infinite_0"].waitForExistence(timeout: 10))
+        app.buttons["infinite.post.infinite_0"].tap()
+        app.buttons["infinite.comments.infinite_0"].tap()
+        let input = app.textFields["comments.input"]
+        // A vertically growing TextField is exposed as a text view on newer iOS.
+        let editor = input.waitForExistence(timeout: 3) ? input : app.textViews["comments.input"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["comments.send"].isEnabled)
+        editor.tap()
+        editor.typeText("Nice fit")
+        app.buttons["comments.send"].tap()
+        XCTAssertTrue(app.staticTexts["Nice fit"].waitForExistence(timeout: 5))
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Comments - submitted in preview"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        app.buttons["Close comments"].tap()
+        app.buttons["Done"].tap()
+        app.buttons["Friends"].tap()
+        app.buttons["infinite.comments.infinite_0"].tap()
+        XCTAssertTrue(app.staticTexts["Nice fit"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Demo comments · saved only for this preview"].exists)
+    }
+
     func testDiscoveryIdeasAndOOTDPostsAreSeparate() {
         let app = XCUIApplication()
         app.launchArguments = ["-mockSignedIn", "-showDiscovery"]

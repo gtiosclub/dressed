@@ -96,7 +96,7 @@ final class DemoSavedPostFunctions: SavedPostFunctions {
     init(defaults: UserDefaults = .standard, arguments: [String] = ProcessInfo.processInfo.arguments) {
         self.defaults = defaults
         if arguments.contains("-seedSavedPosts") {
-            startingIds = ["demo_post_1", "demo_post_2", "demo_post_removed"]
+            startingIds = ["infinite_0", "demo_post_2", "demo_post_removed"]
         } else if arguments.contains("-resetSavedPosts") {
             startingIds = []
         }
