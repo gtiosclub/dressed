@@ -24,7 +24,15 @@ Use three top-level tabs, in this order. Names below are proposed UI copy.
 
 Discovery uses a Discovery / OOTD switch inside the tab. Discovery shows individual public clothing ideas; OOTD shows user-published outfit posts. Profile and settings are child destinations, not extra tabs. Camera must offer a photo-library fallback if permission is denied or the device lacks a camera. Authentication gates the app shell; signing out clears user-specific state.
 
-For the current prototype, Discovery opens to a two-column grid of individual catalog ideas with search and suggested styles. OOTD contains the outfit post feed. Post cards do not navigate; garment pins, Find items, comments and likes act on the feed, and Find items opens a sheet of published pieces. The plus button opens a new-post screen; Share inserts a local preview only for Debug demo posts. Likes and comments are local UI state, not backend records. Synthetic items and posts support the Debug UI walkthrough while live catalog sourcing, publication, public media loading, and saved-post access remain lead work. This does not add another top-level tab. See the [implementation plan](discovery-ootd-implementation-plan.md).
+Following the user's November 17 UI correction, the current prototype's one top
+For You / Friends switch controls a ranked outfit-photo grid and chronological
+outfit cards in `InfiniteDiscoveryFeed`. The former inner switch is removed;
+paging, refresh, retry and loaded posts are shared across both layouts. The catalog
+clothing-ideas view remains in the repository but is no longer this tab's default
+destination. This is an observed prototype change; the first-release roadmap below
+still requires live publication and service integration.
+
+The earlier catalog/OOTD prototype opened to a two-column grid of individual catalog ideas with search and suggested styles. OOTD contains the outfit post feed. Post cards do not navigate; garment pins, Find items, comments and likes act on the feed, and Find items opens a sheet of published pieces. The plus button opens a new-post screen; Share inserts a local preview only for Debug demo posts. Likes and comments are local UI state, not backend records. Synthetic items and posts support the Debug UI walkthrough while live catalog sourcing, publication, public media loading, and saved-post access remain lead work. This does not add another top-level tab. See the [implementation plan](discovery-ootd-implementation-plan.md).
 
 ## First release: capture, closet, outfits, OOTD
 

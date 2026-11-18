@@ -8,6 +8,7 @@ Working scope based on the team's feature notes and attached setup/backlog plan,
 - [Data roadmap and feature spec](data-roadmap.md): My Closet pieces and outfits, plus Share to Dressed recognition, review, and save flows.
 - [Retail catalog and recognition spec](catalog-and-recognition-spec.md): proposed source connectors, product freshness, garment detection, provider evaluation, and catalog matching.
 - [Viz roadmap and feature spec](viz-roadmap.md): Closet cards, details, outfit views, and import-result presentation.
+- [Public profile prototype](proposals/public-profile.md): #245 grid presentation, supplied inputs and integration boundary.
 - [Social roadmap and feature spec](social-roadmap.md): OOTD posts, post breakdown, saved posts, Discovery search, and publication handoffs.
 - [Discovery clothing ideas and OOTD implementation plan](discovery-ootd-implementation-plan.md): proposed move from outfit posts in Discovery to item ideas, with a separate OOTD page.
 - [Feature backlog](backlog.md): small work units, dependencies, acceptance criteria.
@@ -17,6 +18,7 @@ Working scope based on the team's feature notes and attached setup/backlog plan,
 - [Backend schema templates](../backend/schemas/README.md): canonical types, examples and storage map.
 - [Local catalog prototype](../backend/catalog/README.md): fixture ingestion, SQLite state, read-only demo API, and test commands.
 - [Recognition experiment](../backend/recognition/README.md): live development Object Localization bridge plus fixture-backed Product Search adapter; no live product matching.
+- [Design system](../dressed/Common/DesignSystem/README.md): tokens and SwiftUI components from the high-fidelity Figma mockups, with a Debug gallery.
 - [SwiftLint guide](linting.md): local lint command, CI behavior, and fix workflow.
 - [iOS development and agent testing](IOS_DEVELOPMENT.md): simulator automation, hot reload setup, verification and troubleshooting.
 - [Agent instructions](../AGENTS.md): repository-specific guidance for coding agents.

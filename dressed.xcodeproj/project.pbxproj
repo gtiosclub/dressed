@@ -188,7 +188,6 @@
 		8B87D85E30537AB400F3CF9E = {
 			isa = PBXGroup;
 			children = (
-				360046AA3074769B00F78859 /* .swiftlint.yml */,
 				8B87D86930537AB400F3CF9E /* dressed */,
 				A10500000000000000000001 /* DressedShareExtension */,
 				B20500000000000000000001 /* dressedUITests */,
@@ -450,7 +449,13 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				360046AB307476B400F78859 /* .swiftlint.yml in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A10900000000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -754,6 +759,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = WDRKBQFYRJ;
+				DEVELOPMENT_ASSET_PATHS = dressed/PreviewContent;
 				EMIT_FRONTEND_COMMAND_LINES = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -796,6 +802,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = WDRKBQFYRJ;
+				DEVELOPMENT_ASSET_PATHS = dressed/PreviewContent;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CatalogAPIBaseURL = "$(CATALOG_API_BASE_URL)";

@@ -313,8 +313,10 @@ struct SharedImportReviewView: View {
 
     private func candidateImage(_ candidate: ImportCandidate) -> Image {
         if let data = try? SharedImportDraftStore.imageData(for: candidate, in: image.data),
-           let preview = UIImage(data: data) { return Image(uiImage: preview) }
-        return Image(systemName: "photo")
+           let preview = UIImage(data: data) {
+            return Image(uiImage: preview)
+        }
+        return Image("TablerPhoto")
     }
 
     private func confirm() {

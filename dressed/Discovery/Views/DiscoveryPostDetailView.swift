@@ -42,12 +42,12 @@ struct DiscoveryPostDetailView: View {
         case .removed:
             ContentUnavailableView(
                 "Post unavailable",
-                systemImage: "eye.slash",
+                tabler: "TablerCircleXFilled",
                 description: Text("This post is no longer available.")
             )
         case .failed(let message):
             ContentUnavailableView {
-                Label("Couldn't load this post", systemImage: "exclamationmark.triangle")
+                Label("Couldn't load this post", tabler: "TablerAlertTriangle")
             } description: {
                 Text(message)
             } actions: {
@@ -135,7 +135,7 @@ struct PostDetailView: View {
                 .clipShape(Circle())
                 .accessibilityHidden(true)
         } else {
-            Image(systemName: "person.crop.circle.fill")
+            DSIcon("TablerUserCircle", size: 24)
                 .font(.system(size: 36))
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
@@ -146,7 +146,7 @@ struct PostDetailView: View {
         Button {
             showingPieces = true
         } label: {
-            Image(systemName: "tag.fill")
+            DSIcon("TablerTag", size: 20)
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: 44, height: 44)
@@ -223,7 +223,7 @@ private struct PostPiecesSheet: View {
             } label: {
                 HStack(spacing: 8) {
                     Text("Sort by: \(sortOrder.title)")
-                    Image(systemName: "chevron.down")
+                    DSIcon("TablerChevronDown", size: 16)
                 }
                 .font(.subheadline)
                 .foregroundStyle(.primary)
@@ -241,7 +241,7 @@ private struct PostPiecesSheet: View {
                 if pieces.isEmpty {
                     ContentUnavailableView(
                         "No pieces in this post",
-                        systemImage: "hanger",
+                        tabler: "TablerHanger2",
                         description: Text("The author did not include a clothing breakdown.")
                     )
                 } else {
@@ -313,7 +313,7 @@ private struct PublishedPieceRow: View {
                 Button {
                     onProductLinkTap(url)
                 } label: {
-                    Label("View product", systemImage: "arrow.up.right")
+                    Label("View product", tabler: "TablerArrowUpRight")
                         .font(.caption)
                 }
                 .frame(minHeight: 44)
@@ -336,7 +336,7 @@ private struct PieceThumbnail: View {
                     .scaledToFit()
                     .padding(6)
             } else {
-                Image(systemName: "photo")
+                DSIcon("TablerPhoto", size: 24)
                     .font(.title3)
                     .foregroundStyle(.secondary)
             }

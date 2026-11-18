@@ -1,19 +1,21 @@
 import XCTest
 
 final class NavigationUITests: XCTestCase {
-    func testThreeTabsClosetSectionsAndAvatarEntry() {
+    func testDesignSystemTabsClosetSectionsAndAvatarEntry() {
         let app = XCUIApplication()
         app.launchArguments = ["-mockSignedIn"]
         app.launch()
         if app.buttons["Later"].waitForExistence(timeout: 2) {
             app.buttons["Later"].tap()
         }
-        app.tabBars.buttons["My Closet"].tap()
-
-        XCTAssertTrue(app.tabBars.buttons["My Closet"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.tabBars.buttons["Discovery"].exists)
-        XCTAssertTrue(app.tabBars.buttons["Camera"].exists)
-        XCTAssertEqual(app.tabBars.buttons.count, 3)
+        // DSTabBar replaces the system tab bar, so tabs are found by identifier.
+        XCTAssertTrue(app.buttons["tab.closet"].waitForExistence(timeout: 10))
+        app.buttons["tab.closet"].tap()
+        XCTAssertTrue(app.buttons["tab.closet"].isSelected)
+        XCTAssertTrue(app.buttons["tab.discovery"].exists)
+        XCTAssertTrue(app.buttons["tab.avatar"].exists)
+        XCTAssertTrue(app.buttons["tab.camera"].exists)
+        XCTAssertEqual(app.buttons["tab.closet"].label, "Closet")
 
         XCTAssertTrue(app.segmentedControls.buttons["Pieces"].waitForExistence(timeout: 5))
         app.segmentedControls.buttons["Outfits"].tap()
@@ -21,10 +23,18 @@ final class NavigationUITests: XCTestCase {
         app.segmentedControls.buttons["Wishlist"].tap()
         XCTAssertTrue(app.segmentedControls.buttons["Wishlist"].isSelected)
 
+        app.buttons["tab.discovery"].tap()
+        XCTAssertTrue(app.buttons["infinite.post.infinite_0"].waitForExistence(timeout: 10))
         app.buttons["app.profileButton"].tap()
-        XCTAssertTrue(app.navigationBars["Profile"].waitForExistence(timeout: 10))
-        app.buttons["Open studio"].tap()
+        XCTAssertTrue(app.buttons["tab.avatar"].isSelected)
         XCTAssertTrue(app.navigationBars["Avatar Studio"].waitForExistence(timeout: 10))
+        app.buttons["tab.camera"].tap()
+        XCTAssertTrue(app.buttons["tab.camera"].isSelected)
+        XCTAssertTrue(app.buttons["Choose from Photos"].waitForExistence(timeout: 5))
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Design system tabs on Camera"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
     }
 
     func testPhotoLibraryImportModeAndPickerEntry() {
@@ -150,7 +160,7 @@ final class SavedPostsUITests: XCTestCase {
 
     func testSaveInFeedShowsInSavedPostsSurvivesRelaunchAndUnsaves() {
         let app = launchOOTD(["-resetSavedPosts"])
-        let feedToggle = toggle("demo_post_1", in: app)
+        let feedToggle = toggle("infinite_0", in: app)
         XCTAssertTrue(feedToggle.waitForExistence(timeout: 10))
         wait(for: feedToggle, value: "Not saved")
         attachScreenshot("OOTD card, not saved", of: app)
@@ -159,7 +169,7 @@ final class SavedPostsUITests: XCTestCase {
         wait(for: feedToggle, value: "Saved")
         attachScreenshot("OOTD card, saved", of: app)
         openSavedPosts(in: app)
-        XCTAssertTrue(app.buttons["savedPosts.post.demo_post_1"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["savedPosts.post.infinite_0"].waitForExistence(timeout: 10))
 
         app.terminate()
         app.launchArguments = ["-mockSignedIn", "-showDiscovery", "-showOOTD"]
@@ -168,9 +178,9 @@ final class SavedPostsUITests: XCTestCase {
         wait(for: feedToggle, value: "Saved")
         openSavedPosts(in: app)
 
-        let savedCard = app.buttons["savedPosts.post.demo_post_1"]
+        let savedCard = app.buttons["savedPosts.post.infinite_0"]
         XCTAssertTrue(savedCard.waitForExistence(timeout: 10))
-        toggle("demo_post_1", in: app).tap()
+        toggle("infinite_0", in: app).tap()
         waitForDisappearance(of: savedCard)
         XCTAssertTrue(app.staticTexts["No saved posts yet"].waitForExistence(timeout: 5))
         attachScreenshot("Saved posts, empty", of: app)
@@ -205,7 +215,7 @@ final class SavedPostsUITests: XCTestCase {
 
     func testFailedSaveGoesBackToSaveAndCanBeRetried() {
         let app = launchOOTD(["-resetSavedPosts", "-failNextSavedPostWrite"])
-        let feedToggle = toggle("demo_post_1", in: app)
+        let feedToggle = toggle("infinite_0", in: app)
         XCTAssertTrue(feedToggle.waitForExistence(timeout: 10))
         wait(for: feedToggle, value: "Not saved")
 
@@ -238,9 +248,9 @@ final class SavedPostsUITests: XCTestCase {
     func testFailedRefreshKeepsTheGridAndOffersRetry() {
         // The feed's read succeeds; the Saved screen's refresh is the one that fails.
         let app = launchOOTD(["-seedSavedPosts", "-failSavedPostReads", "2"])
-        let feedToggle = toggle("demo_post_1", in: app)
+        let feedToggle = toggle("infinite_0", in: app)
         XCTAssertTrue(feedToggle.waitForExistence(timeout: 10))
-        wait(for: feedToggle, value: "Saved")
+        wait(for: feedToggle, value: "Not saved")
         openSavedPosts(in: app)
 
         let retry = app.buttons["savedPosts.retry"]

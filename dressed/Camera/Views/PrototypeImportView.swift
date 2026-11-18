@@ -22,8 +22,7 @@ struct PrototypeImportView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-            Image(systemName: "camera.viewfinder")
-                .font(.system(size: 64))
+            DSIcon("TablerScan", size: 64)
                 .foregroundStyle(.tint)
             Text("Add a piece")
                 .font(.title2.bold())
@@ -45,7 +44,7 @@ struct PrototypeImportView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             PhotosPicker(selection: $selectedPhotos, maxSelectionCount: 8, matching: .images) {
-                Label("Choose from Photos", systemImage: "photo.on.rectangle")
+                Label("Choose from Photos", tabler: "TablerLibraryPhoto")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -138,7 +137,7 @@ struct PrototypeImportView: View {
                     importError = "Camera is unavailable on this device. Choose a photo instead."
                 }
             } label: {
-                Label("Take a Photo", systemImage: "camera")
+                Label("Take a Photo", tabler: "TablerCamera")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
@@ -400,7 +399,7 @@ struct ImportReviewView: View {
                             Spacer()
 
                             if stylized.graphicEmblem != nil {
-                                Label("Design Extracted", systemImage: "sparkles")
+                                Label("Design Extracted", tabler: "TablerSparkles", size: 11)
                                     .font(.caption2.bold())
                                     .foregroundStyle(.purple)
                             }
@@ -535,8 +534,7 @@ struct ImportReviewView: View {
                                     selectPreset(preset)
                                 } label: {
                                     VStack(spacing: 6) {
-                                        Image(systemName: preset.icon)
-                                            .font(.system(size: 22))
+                                        DSIcon(preset.icon, size: 22)
                                             .foregroundStyle(selectedPreset == preset ? Color.white : Color.accentColor)
                                             .frame(height: 26)
 
@@ -563,7 +561,7 @@ struct ImportReviewView: View {
 
                     // Preset description
                     HStack(spacing: 6) {
-                        Image(systemName: selectedPreset.coversShoulders ? "shield.fill" : "sparkles")
+                        DSIcon(selectedPreset.coversShoulders ? "TablerShieldFilled" : "TablerSparkles", size: 16)
                             .foregroundStyle(selectedPreset.coversShoulders ? .blue : .purple)
                         Text(selectedPreset.coverageDescription)
                             .font(.caption)
@@ -721,7 +719,7 @@ struct ImportReviewView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 14))
 
                 HStack(spacing: 4) {
-                    Image(systemName: "arrow.triangle.2.circlepath")
+                    DSIcon("TablerRefresh", size: 12)
                     Text("Drag to rotate 360°")
                 }
                 .font(.caption2.weight(.medium))

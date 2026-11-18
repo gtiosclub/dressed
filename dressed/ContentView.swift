@@ -29,15 +29,14 @@ private struct AppTabs: View {
     let userId: String
 
     @StateObject private var closet: PrototypeClosetStore
-    @StateObject private var outfits: PrototypeOutfitStore
     @StateObject private var savedPosts: SavedPostsViewModel
 
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var selectedTab: Int
-    @State private var discoverySection: DiscoverySection
-    @State private var showingProfile = false
-    @State private var openStudioOnPresent = false
+    @State private var isKeyboardVisible = false
+    @State private var isCreatingPost = false
+    @State private var discoverySection = 0
     @State private var signOutError: String?
     @State private var pendingSharedImage: ReviewImage?
     @State private var presentedSharedId: String?
@@ -49,17 +48,17 @@ private struct AppTabs: View {
     @State private var deferredSharedLinkId: String?
 
     @StateObject private var studio: OutfitStudioModel
+    @StateObject private var outfits: PrototypeOutfitStore
+    @State private var openStudioOnPresent = false
 
     init(session: SessionViewModel, userId: String) {
         self.session = session
         self.userId = userId
         _studio = StateObject(wrappedValue: OutfitStudioModel(ownerId: userId))
+        _outfits = StateObject(wrappedValue: PrototypeOutfitStore(ownerId: userId))
 
         _closet = StateObject(
             wrappedValue: PrototypeClosetStore(ownerId: userId)
-        )
-        _outfits = StateObject(
-            wrappedValue: PrototypeOutfitStore(ownerId: userId)
         )
         _savedPosts = StateObject(wrappedValue: SavedPostsViewModel(
             ownerId: userId,
@@ -71,114 +70,141 @@ private struct AppTabs: View {
         let arguments = ProcessInfo.processInfo.arguments
         _selectedTab = State(initialValue: arguments.contains("-showCamera") ? 2 :
             (arguments.contains("-showCatalog") || arguments.contains("-showDiscovery") ? 1 : 0))
-        _discoverySection = State(initialValue: arguments.contains("-showOOTD") ? .ootd : .discovery)
+        _discoverySection = State(initialValue: arguments.contains("-showOOTD") ? 1 : 0)
         #else
         _selectedTab = State(initialValue: 0)
-        _discoverySection = State(initialValue: .discovery)
+        #endif
+    }
+
+    @ViewBuilder private var ootdFeed: some View {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-livePosts") {
+            InfiniteDiscoveryFeed.live(section: $discoverySection, showingCreate: $isCreatingPost, savedPosts: savedPosts)
+        } else {
+            InfiniteDiscoveryFeed.demo(
+                failSecondPage: arguments.contains("-failDiscoveryPage"),
+                section: $discoverySection,
+                showingCreate: $isCreatingPost, savedPosts: savedPosts
+            )
+        }
+        #else
+        InfiniteDiscoveryFeed.live(section: $discoverySection, showingCreate: $isCreatingPost, savedPosts: savedPosts)
         #endif
     }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
+        // The system tab bar is hidden; DSTabBar sits below the tabs so their content ends above it.
+        VStack(spacing: 0) {
+            TabView(selection: $selectedTab) {
 
-            // MARK: - My Closet
+                // MARK: - My Closet
 
-            NavigationStack {
-                PrototypeClosetView(
-                    closet: closet,
-                    outfits: outfits,
-                    ownerId: userId,
-                    onTryOn: { item in
-                        studio.worn[item.category] = item
-                        openStudioOnPresent = true
-                        showingProfile = true
-                    },
-                    onTryOutfit: { outfit in
-                        var wornItems: [ClothingCategory: ClothingItem] = [:]
-
-                        for placement in outfit.placements {
-                            if let item = closet.item(id: placement.itemId) {
-                                wornItems[item.category] = item
+                NavigationStack {
+                    PrototypeClosetView(
+                        closet: closet,
+                        outfits: outfits,
+                        ownerId: userId,
+                        onTryOn: { item in
+                            studio.worn[item.category] = item
+                            openStudioOnPresent = true
+                            selectedTab = 3
+                        },
+                        onTryOutfit: { outfit in
+                            var worn: [ClothingCategory: ClothingItem] = [:]
+                            for placement in outfit.placements {
+                                if let item = closet.item(id: placement.itemId) { worn[item.category] = item }
                             }
+                            studio.worn = worn
+                            openStudioOnPresent = true
+                            selectedTab = 3
                         }
-
-                        studio.worn = wornItems
-                        openStudioOnPresent = true
-                        showingProfile = true
-                    }
-                )
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button("Profile", systemImage: "person.crop.circle") {
-                            openStudioOnPresent = false
-                            showingProfile = true
-                        }
-                            .accessibilityIdentifier("app.profileButton")
-                    }
+                    )
                 }
-            }
-            .tabItem { Label("My Closet", image: selectedTab == 0 ? "TablerHanger2Filled" : "TablerHanger2") }
-            .tag(0)
+                .toolbar(.hidden, for: .tabBar)
+                .tag(0)
 
-            // MARK: - Discovery
+                // MARK: - Discovery
 
-            NavigationStack {
-                VStack(spacing: 0) {
-                    DiscoverySectionSwitch(selection: discoverySection) { discoverySection = $0 }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 12)
-                    .padding(.bottom, 8)
+                NavigationStack {
+                    VStack(spacing: 0) {
+                        DiscoveryHeader(
+                            section: $discoverySection,
+                            onProfile: { selectedTab = 3 },
+                            onCreatePost: {
+                                discoverySection = 1
+                                isCreatingPost = true
+                            }
+                        )
 
-                    if discoverySection == .discovery {
-                        DiscoveryIdeasView {
-                            openStudioOnPresent = false
-                            showingProfile = true
-                        }
-                    } else {
-                        OOTDFeedView(savedPosts: savedPosts)
+                        ootdFeed
                     }
+                    .toolbar(.hidden, for: .navigationBar)
+                    // Hide on the navigation content too, so the system bar cannot intercept feed taps.
+                    .toolbar(.hidden, for: .tabBar)
                 }
-                .toolbar(.hidden, for: .navigationBar)
-            }
-            .tabItem { Label("Discovery", image: selectedTab == 1 ? "TablerCompassFilled" : "TablerCompass") }
-            .tag(1)
+                .toolbar(.hidden, for: .tabBar)
+                .tag(1)
 
-            // MARK: - Camera
+                // MARK: - Camera
 
-            NavigationStack {
-                PrototypeImportView(
-                    closet: closet,
-                    ownerId: userId
-                )
-                .toolbar {
-                    if deferredSharedId != nil ||
-                        deferredSharedLinkId != nil {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button("Review Share") {
-                                deferredSharedId = nil
-                                deferredSharedLinkId = nil
-                                presentNextShare()
+                NavigationStack {
+                    PrototypeImportView(
+                        closet: closet,
+                        ownerId: userId
+                    )
+                    .toolbar {
+                        if deferredSharedId != nil ||
+                            deferredSharedLinkId != nil {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button("Review Share") {
+                                    deferredSharedId = nil
+                                    deferredSharedLinkId = nil
+                                    presentNextShare()
+                                }
                             }
                         }
                     }
                 }
-            }
-            .tabItem { Label("Camera", image: selectedTab == 2 ? "TablerCameraFilled" : "TablerCamera") }
-            .tag(2)
+                .toolbar(.hidden, for: .tabBar)
+                .tag(2)
 
+                // MARK: - Avatar
+
+                NavigationStack {
+                    ProfileView(
+                        username: userId,
+                        items: closet.items,
+                        model: studio,
+                        closet: closet,
+                        outfits: outfits,
+                        openStudioOnPresent: openStudioOnPresent,
+                        onSignOut: signOut,
+                        image: { photo(for: $0) },
+                        uiImage: { closet.image(for: $0) }
+                    )
+                }
+                .toolbar(.hidden, for: .tabBar)
+                .tag(3)
+            }
+            // Hidden while typing, like the system tab bar.
+            if !isKeyboardVisible {
+                DSTabBar(
+                    items: [
+                        .init(tag: 0, title: "Closet", icon: "TablerHanger2", accessibilityIdentifier: "tab.closet"),
+                        .init(tag: 1, title: "Discovery", icon: "TablerCompass", accessibilityIdentifier: "tab.discovery"),
+                        .init(tag: 3, title: "Avatar", icon: "TablerUser", accessibilityIdentifier: "tab.avatar"),
+                        .init(tag: 2, title: "Camera", icon: "TablerCamera", accessibilityIdentifier: "tab.camera")
+                    ],
+                    selection: $selectedTab
+                )
+            }
         }
-        .sheet(isPresented: $showingProfile) {
-            ProfileView(
-                username: userId,
-                items: closet.items,
-                model: studio,
-                closet: closet,
-                outfits: outfits,
-                openStudioOnPresent: openStudioOnPresent,
-                onSignOut: signOut,
-                image: { photo(for: $0) },
-                uiImage: { closet.image(for: $0) }
-            )
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            isKeyboardVisible = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            isKeyboardVisible = false
         }
 
         // MARK: - Sign Out Error
@@ -302,17 +328,16 @@ private struct AppTabs: View {
                arguments.indices.contains(marker + 1) {
                 do {
                     try SharedImageInbox.seedFixture(
-                        id: arguments[marker + 1], ownerId: userId,
-                        withCandidates: arguments.contains("-seedTwoCandidates"),
+                        id: arguments[marker + 1],
+                        ownerId: userId,
+                        withCandidates: arguments.contains(
+                            "-seedTwoCandidates"
+                        ),
                         interruptedManual: arguments.contains("-seedInterruptedManual")
                     )
                 } catch {
                     sharedImageError = error.localizedDescription
                 }
-            }
-
-            if arguments.contains("-seedClosetFixture") {
-                try? ClosetFixture.seed(into: closet)
             }
             #endif
 
@@ -324,6 +349,8 @@ private struct AppTabs: View {
             }
         }
     }
+
+    // MARK: - Sign Out
 
     private var sharedRecognitionService: any GarmentRecognitionService {
         #if DEBUG
@@ -349,7 +376,7 @@ private struct AppTabs: View {
     private func photo(for item: ClothingItem) -> Image {
         closet.image(for: item).map {
             Image(uiImage: $0)
-        } ?? Image(systemName: "photo")
+        } ?? Image("TablerPhoto")
     }
 
     // MARK: - Shared Content Presentation

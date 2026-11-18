@@ -43,7 +43,7 @@ struct OutfitPreviewCard: View {
 #Preview {
     OutfitPreviewCard(
         name: "Monday",
-        image: Image(systemName: "photo"),
+        image: Image("TablerPhoto"),
         onTap: {
              print("tapped") }
     )

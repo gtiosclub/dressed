@@ -139,7 +139,7 @@ struct ProfileView: View {
         openStudioOnPresent: Bool = false,
         onSignOut: @escaping () -> Void,
         image: @escaping (ClothingItem) -> Image = {
-            _ in Image(systemName: "photo")
+            _ in Image("TablerPhoto")
         },
         uiImage: ((ClothingItem) -> UIImage?)? = nil,
 

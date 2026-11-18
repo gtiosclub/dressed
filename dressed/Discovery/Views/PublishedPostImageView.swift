@@ -30,7 +30,7 @@ struct PublishedPostImageView: View {
                 .accessibilityLabel("Post image")
         } else {
             VStack(spacing: 8) {
-                Image(systemName: "photo")
+                DSIcon("TablerPhoto", size: 24)
                     .font(.largeTitle)
                 Text("Post image unavailable")
                     .font(.footnote)

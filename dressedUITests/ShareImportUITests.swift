@@ -1,30 +1,35 @@
 import XCTest
 
 final class ShareImportUITests: XCTestCase {
-    func testDiscoveryStyleSearchMatchesPrototype() {
+    func testSingleDiscoveryHeaderSwitchesFeedLayouts() {
         let app = XCUIApplication()
         app.launchArguments = ["-mockSignedIn", "-showDiscovery"]
         app.launch()
 
-        let search = app.textFields["searchField.textField"]
-        XCTAssertTrue(search.waitForExistence(timeout: 10))
-        search.tap()
-        XCTAssertTrue(app.buttons["discovery.style.select.Y2K"].waitForExistence(timeout: 5))
-        app.buttons["discovery.style.select.Y2K"].tap()
-        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["discovery.style.remove.Y2K"].exists)
-        XCTAssertTrue(app.buttons["discovery.style.select.Comfortable"].exists)
-        XCTAssertTrue(app.buttons["discovery.showResults"].exists)
+        let forYou = app.buttons["For You"]
+        let friends = app.buttons["Friends"]
+        XCTAssertTrue(app.buttons["infinite.post.infinite_0"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.buttons.matching(identifier: "For You").count, 1)
+        XCTAssertEqual(app.buttons.matching(identifier: "Friends").count, 1)
+        XCTAssertFalse(app.segmentedControls["infinite.sections"].exists)
+        XCTAssertTrue(forYou.isSelected)
+        let gridScreenshot = XCTAttachment(screenshot: app.screenshot())
+        gridScreenshot.name = "Single header - For You outfit grid"
+        gridScreenshot.lifetime = .keepAlways
+        add(gridScreenshot)
 
-        let focusedScreenshot = XCTAttachment(screenshot: app.screenshot())
-        focusedScreenshot.name = "Discovery focused style search"
-        focusedScreenshot.lifetime = .keepAlways
-        add(focusedScreenshot)
+        friends.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["infinite.card.infinite_0"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(friends.isSelected)
+        XCTAssertFalse(app.buttons["infinite.post.infinite_0"].exists)
+        let friendsScreenshot = XCTAttachment(screenshot: app.screenshot())
+        friendsScreenshot.name = "Single header - Friends outfit cards"
+        friendsScreenshot.lifetime = .keepAlways
+        add(friendsScreenshot)
 
-        app.buttons["discovery.showResults"].tap()
-        XCTAssertTrue(app.buttons["discovery.idea.idea_top_1"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["discovery.idea.idea_shoes_1"].exists)
-        XCTAssertFalse(app.buttons["discovery.idea.idea_pants_1"].exists)
+        forYou.tap()
+        XCTAssertTrue(app.buttons["infinite.post.infinite_0"].waitForExistence(timeout: 5))
+        XCTAssertTrue(forYou.isSelected)
     }
 
     func testDiscoveryIdeasAndOOTDPostsAreSeparate() {
@@ -39,7 +44,7 @@ final class ShareImportUITests: XCTestCase {
         discoveryScreenshot.lifetime = .keepAlways
         add(discoveryScreenshot)
 
-        app.buttons["discoverySwitch.ootd"].tap()
+        app.buttons["Friends"].tap()
         XCTAssertTrue(app.buttons["ootd.findItems.demo_post_1"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["discovery.idea.idea_top_1"].exists)
         let ootdScreenshot = XCTAttachment(screenshot: app.screenshot())
@@ -115,7 +120,7 @@ final class ShareImportUITests: XCTestCase {
         XCTAssertTrue(app.images["Outfit preview image"].exists)
         XCTAssertTrue(app.buttons["ootd.newPost.Audio"].exists)
         XCTAssertTrue(app.buttons["ootd.newPost.Outfit details"].exists)
-        XCTAssertTrue(app.tabBars.buttons["Discovery"].exists)
+        XCTAssertTrue(app.buttons["tab.discovery"].exists)
         let createScreenshot = XCTAttachment(screenshot: app.screenshot())
         createScreenshot.name = "New post creation"
         createScreenshot.lifetime = .keepAlways
@@ -255,7 +260,7 @@ final class ShareImportUITests: XCTestCase {
         )
         XCTAssertEqual(XCTWaiter.wait(for: [reviewDismissed], timeout: 5), .completed)
 
-        app.buttons["My Closet"].tap()
+        app.buttons["tab.closet"].tap()
         let wishlist = app.buttons["Wishlist"]
         XCTAssertTrue(wishlist.waitForExistence(timeout: 5))
         wishlist.tap()
@@ -291,7 +296,7 @@ final class ShareImportUITests: XCTestCase {
         let confirm = app.buttons["sharedImport.confirm"]
         reveal(confirm, in: app)
         confirm.tap()
-        app.tabBars.buttons["My Closet"].tap()
+        app.buttons["tab.closet"].tap()
         XCTAssertTrue(app.staticTexts["Blue sweater"].waitForExistence(timeout: 5))
     }
 
@@ -316,7 +321,7 @@ final class ShareImportUITests: XCTestCase {
         let confirm = app.buttons["sharedImport.confirm"]
         reveal(confirm, in: app)
         confirm.tap()
-        app.tabBars.buttons["My Closet"].tap()
+        app.buttons["tab.closet"].tap()
         XCTAssertTrue(app.staticTexts["Manual sweater"].waitForExistence(timeout: 5))
     }
 
@@ -353,7 +358,7 @@ final class ShareImportUITests: XCTestCase {
         screenshot.lifetime = .keepAlways
         add(screenshot)
         confirm.tap()
-        app.tabBars.buttons["My Closet"].tap()
+        app.buttons["tab.closet"].tap()
         app.segmentedControls.buttons["Outfits"].tap()
         XCTAssertTrue(app.staticTexts[outfitName].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["2 pieces"].exists)
@@ -374,7 +379,7 @@ final class ShareImportUITests: XCTestCase {
         app.keyboards.buttons["return"].tap()
         reviewNextPiece(in: app, approve: true)
         app.buttons["Later"].tap()
-        app.tabBars.buttons["My Closet"].tap()
+        app.buttons["tab.closet"].tap()
         XCTAssertFalse(app.staticTexts[uniqueName].exists)
         app.terminate()
         app.launchArguments = ["-mockSignedIn", "-showCamera"]
@@ -399,7 +404,7 @@ final class ShareImportUITests: XCTestCase {
         reveal(confirm, in: app)
         XCTAssertEqual(confirm.label, "Import as individual pieces")
         confirm.tap()
-        app.tabBars.buttons["My Closet"].tap()
+        app.buttons["tab.closet"].tap()
         XCTAssertTrue(app.staticTexts[uniqueName].waitForExistence(timeout: 5))
         app.segmentedControls.buttons["Outfits"].tap()
         XCTAssertFalse(app.staticTexts[uniqueName].exists)
@@ -439,5 +444,44 @@ final class ShareImportUITests: XCTestCase {
         field.tap()
         let oldValue = field.value as? String ?? ""
         field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: oldValue.count) + value)
+    }
+}
+
+/// Isolated fixture coverage; this does not verify Firebase authentication.
+final class InfiniteFeedUITests: XCTestCase {
+    func testAutomaticPagingPausesOnFailureAndRetries() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-mockSignedIn", "-showDiscovery", "-failDiscoveryPage"]
+        app.launch()
+        XCTAssertTrue(app.buttons["infinite.post.infinite_0"].waitForExistence(timeout: 5))
+        let retry = app.buttons["infinite.retry"]
+        XCTAssertFalse(retry.exists)
+        let friends = app.buttons["Friends"]
+        XCTAssertTrue(friends.exists)
+        friends.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["infinite.card.infinite_0"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertFalse(retry.exists)
+        app.buttons["For You"].tap()
+        let feed = app.scrollViews["infinite.scroll"]
+        for _ in 0..<8 {
+            if retry.isHittable { break }
+            feed.swipeUp()
+        }
+        XCTAssertTrue(retry.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["infinite.post.infinite_11"].exists)
+        XCTAssertFalse(app.buttons["infinite.post.infinite_12"].exists)
+        retry.tap()
+        XCTAssertTrue(app.buttons["infinite.post.infinite_12"].waitForExistence(timeout: 5))
+        XCTAssertFalse(retry.exists)
+        for _ in 0..<30 {
+            if app.staticTexts["infinite.end"].isHittable { break }
+            feed.swipeUp()
+        }
+        XCTAssertTrue(app.staticTexts["infinite.end"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["infinite.post.infinite_47"].exists)
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "Infinite feed reached last fixture page"
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 }

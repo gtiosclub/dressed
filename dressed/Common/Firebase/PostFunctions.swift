@@ -57,6 +57,7 @@ struct FirebasePostFunctions: PostFunctions {
     // Reads posts/{id}. Signed-in users may read posts under the current rules;
     // a missing document means the post is gone, which is not an error.
     func fetchPost(id: String) async throws -> Post? {
+        guard isValidFirestoreDocumentId(id) else { return nil }
         let document = try await db
             .collection("posts")
             .document(id)

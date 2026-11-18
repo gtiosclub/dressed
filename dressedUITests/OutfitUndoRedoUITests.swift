@@ -13,7 +13,7 @@ final class OutfitUndoRedoUITests: XCTestCase {
         if app.buttons["Later"].waitForExistence(timeout: 2) {
             app.buttons["Later"].tap()
         }
-        app.tabBars.buttons["Avatar"].tap()
+        app.buttons["tab.avatar"].tap()
         XCTAssertTrue(app.navigationBars["Avatar Studio"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["studio.undo"].waitForExistence(timeout: 10))
     }

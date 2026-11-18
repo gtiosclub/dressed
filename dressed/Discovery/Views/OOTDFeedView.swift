@@ -101,7 +101,7 @@ struct OOTDFeedView: View {
                 .background(Color.black.opacity(0.08), in: Capsule())
             Spacer()
             Button { showingSaved = true } label: {
-                Image(systemName: "bookmark")
+                Image("TablerBookmark")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 22, height: 22)
@@ -415,7 +415,7 @@ struct OOTDItemsSheet: View {
                 } label: {
                     HStack(spacing: 4) {
                         Text("Sort by: \(sort.title)")
-                        Image(systemName: "chevron.down")
+                        Image("TablerChevronDown")
                             .resizable()
                             .scaledToFit()
                             .frame(width: 16, height: 16)
@@ -444,7 +444,7 @@ struct OOTDItemsSheet: View {
 
             ScrollView {
                 if visible.isEmpty {
-                    ContentUnavailableView("No pieces in this post", systemImage: "hanger",
+                    ContentUnavailableView("No pieces in this post", tabler: "TablerHanger2",
                                            description: Text("The author did not include a clothing breakdown."))
                 } else {
                     LazyVStack(spacing: 10) {
@@ -497,7 +497,7 @@ struct OOTDItemsSheet: View {
                     .padding(.top, item.brand == nil ? 0 : 2)
                 if let rating = item.rating, let reviews = item.reviews {
                     HStack(spacing: 4) {
-                        Image(systemName: "star")
+                        Image("TablerStar")
                             .resizable()
                             .scaledToFit()
                             .frame(width: 13, height: 13)
@@ -513,7 +513,7 @@ struct OOTDItemsSheet: View {
                         Text(price.formatted(.currency(code: "USD").precision(.fractionLength(0))))
                             .font(.system(size: 17, weight: .semibold))
                         if item.verified {
-                            Label("Verified by creator", systemImage: "checkmark.seal")
+                            Label("Verified by creator", tabler: "TablerRosetteDiscountCheck")
                                 .font(.system(size: 13))
                                 .foregroundStyle(.black.opacity(0.55))
                                 .lineLimit(1)
@@ -532,7 +532,7 @@ struct OOTDItemsSheet: View {
             Button {
                 if !savedItemIDs.insert(item.id).inserted { savedItemIDs.remove(item.id) }
             } label: {
-                Image(systemName: savedItemIDs.contains(item.id) ? "bookmark.fill" : "bookmark")
+                Image(savedItemIDs.contains(item.id) ? "TablerBookmarkFilled" : "TablerBookmark")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 22, height: 22)
@@ -619,7 +619,7 @@ private struct OOTDShopItem: Identifiable {
     ]
 }
 
-private struct OOTDCreatePostView: View {
+struct OOTDCreatePostView: View {
     let canSharePreview: Bool
     let onShare: (String) -> Void
     @Environment(\.dismiss) private var dismiss
@@ -668,11 +668,11 @@ private struct OOTDCreatePostView: View {
                 .padding(.top, 16)
                 .accessibilityIdentifier("ootd.newPostCaption")
 
-            row("Audio", icon: "music.note", value: songs[songIndex]) {
+            row("Audio", icon: "TablerMusic", value: songs[songIndex]) {
                 songIndex = (songIndex + 1) % songs.count
             }
             .padding(.top, 8)
-            row("Outfit details", icon: "hanger", value: detailsOpen ? "3 items tagged" : "Tag items") {
+            row("Outfit details", icon: "TablerHanger2", value: detailsOpen ? "3 items tagged" : "Tag items") {
                 detailsOpen.toggle()
             }
             .padding(.top, 8)
@@ -696,7 +696,7 @@ private struct OOTDCreatePostView: View {
         Button(action: action) {
             HStack(spacing: 12) {
                 HStack(spacing: 10) {
-                    Image(systemName: icon)
+                    Image(icon)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 22, height: 22)
