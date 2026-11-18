@@ -54,16 +54,4 @@ nonisolated enum PrototypeGarmentRecognition {
         }
     }
 
-    static func configureCompute(_ request: VNClassifyImageRequest) throws {
-        #if targetEnvironment(simulator)
-        // This runtime's automatic GPU selection fails with an Espresso error.
-        // Use a CPU that Vision explicitly reports as supported. Device builds
-        // retain Apple's automatic compute selection.
-        for (stage, devices) in try request.supportedComputeStageDevices {
-            if let cpu = devices.first(where: { if case .cpu = $0 { return true }; return false }) {
-                request.setComputeDevice(cpu, for: stage)
-            }
-        }
-        #endif
-    }
 }

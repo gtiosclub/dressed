@@ -1,5 +1,19 @@
 # Architecture and shared contracts
 
+## Data branch retirement integration (November 17, 2026)
+
+All seven remaining Data PRs are included in the integration: #142, #157, #158,
+#159, #160, #228 and #229. The clothing update follows `users/{ownerId}/items`;
+outfit deletion remains scoped to `users/{ownerId}/outfits`. Existing shared test
+targets are retained alongside the standalone recognition lab.
+
+Recognition uses the on-device pipeline by default and preserves interrupted
+manual drafts. The P18 loopback clue demonstration requires the explicit Debug
+argument `-recognitionGapFixture`; it does not replace the normal recognizer.
+The multi-photo Vision safeguard against degenerate simulator CPU outputs remains
+in place. The recognition prototype's device performance and accuracy gates are
+still open; merging it does not establish those results.
+
 ## Subteam integration (November 10, 2026)
 
 The data, viz, and social integration histories are combined in this revision.

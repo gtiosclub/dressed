@@ -241,7 +241,7 @@ struct SharedImportReviewView: View {
     }
 
     private func processImage() {
-        guard !isProcessing, draft?.candidates.isEmpty == true,
+        guard !isProcessing, draft != nil,
               mutateDraft({ $0.status = .processing }) else { return }
         isProcessing = true
         detectionTask?.cancel()

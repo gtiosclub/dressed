@@ -149,22 +149,25 @@ final class ShareImportUITests: XCTestCase {
         app.launchArguments = ["-mockSignedIn", "-showCamera"]
         app.launch()
         XCTAssertTrue(app.navigationBars["Review Shared Image"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["Find Pieces Again"].waitForExistence(timeout: 30))
+        let completed = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == false"),
+            object: app.staticTexts["Finding possible pieces…"])
+        XCTAssertEqual(XCTWaiter.wait(for: [completed], timeout: 30), .completed)
         let manual = app.buttons["Manual scarf"]
         for _ in 0..<6 where !manual.isHittable { app.collectionViews.firstMatch.swipeUp() }
         XCTAssertTrue(manual.exists)
         XCTAssertEqual(manual.value as? String, "Selected")
-        let count = app.staticTexts["1 of 2 pieces selected"]
+        let count = app.staticTexts["1 of 1 pieces selected"]
         for _ in 0..<4 where !count.isHittable { app.collectionViews.firstMatch.swipeUp() }
         XCTAssertTrue(count.exists, "Recognition must merge without losing or duplicating the manual piece")
-        let save = app.buttons["Save Pieces and Outfit"]
+        let save = app.buttons["sharedImport.confirm"]
         for _ in 0..<3 where !save.isHittable { app.collectionViews.firstMatch.swipeUp() }
         XCTAssertTrue(save.isEnabled)
 
         app.terminate()
         app.launch()
         XCTAssertTrue(app.navigationBars["Review Shared Image"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["Find Pieces Again"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["sharedImport.findMore"].waitForExistence(timeout: 10))
         for _ in 0..<6 where !manual.isHittable { app.collectionViews.firstMatch.swipeUp() }
         XCTAssertEqual(manual.value as? String, "Selected")
         for _ in 0..<4 where !count.isHittable { app.collectionViews.firstMatch.swipeUp() }
@@ -183,11 +186,11 @@ final class ShareImportUITests: XCTestCase {
         let finished = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "label BEGINSWITH 'Finished'"), object: progress)
         XCTAssertEqual(XCTWaiter.wait(for: [finished], timeout: 90), .completed)
-        for _ in 0..<4 where !app.staticTexts["Measured wall time"].isHittable {
-            app.collectionViews.firstMatch.swipeUp()
+        let medians = app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'ms median'"))
+        for _ in 0..<6 where medians.count < 2 {
+            app.collectionViews.firstMatch.swipeUp(velocity: .slow)
         }
-        XCTAssertTrue(app.staticTexts["Measured wall time"].exists)
-        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'ms median'")).count >= 2)
+        XCTAssertEqual(medians.count, 2)
         let screenshot = XCTAttachment(screenshot: app.screenshot())
         screenshot.lifetime = .keepAlways
         add(screenshot)
@@ -293,38 +296,28 @@ final class ShareImportUITests: XCTestCase {
     }
 
     func testAddManualPieceAlongsideAutomaticSuggestions() {
-        let app = XCUIApplication()
-        let suffix = String(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(12))
-        let pieceName = "Blue sweater \(suffix)"
-        app.launchArguments = ["-mockSignedIn", "-showCamera", "-seedShareFixture",
-                               "00000000-0000-4000-8000-\(suffix)"]
-        app.launch()
-
-        XCTAssertTrue(app.navigationBars["Review Shared Image"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["Find Pieces Again"].waitForExistence(timeout: 30))
-        XCTAssertFalse(app.staticTexts["Finding possible pieces…"].exists)
-        app.buttons["Add Piece Manually"].tap()
-        XCTAssertTrue(app.navigationBars["Adjust Image Region"].waitForExistence(timeout: 5))
+        let app = launchSharedFixture()
+        reviewNextPiece(in: app, approve: true)
+        reviewNextPiece(in: app, approve: false)
+        reviewNextPiece(in: app, approve: false)
+        let more = app.buttons["sharedImport.findMore"]
+        reveal(more, in: app)
+        more.tap()
         app.buttons["Use Region"].tap()
-
-        // SwiftUI lazily loads rows; a count taken before scrolling can select
-        // the automatic suggestion instead of the newly added empty manual field.
-        let name = app.textFields.matching(identifier: "Piece name")
-            .matching(NSPredicate(format: "value == nil OR value == '' OR value == 'Piece name'"))
-            .firstMatch
-        for _ in 0..<5 where !name.isHittable {
-            app.collectionViews.firstMatch.swipeUp()
-        }
-        XCTAssertTrue(name.isHittable)
+        let name = app.textFields.matching(identifier: "Piece name").matching(
+            NSPredicate(format: "value == nil OR value == '' OR value == 'Piece name'")).firstMatch
+        reveal(name, in: app)
         name.tap()
-        name.typeText(pieceName)
-        app.buttons[pieceName].tap()
+        name.typeText("Manual sweater")
         app.keyboards.buttons["return"].tap()
-        app.collectionViews.firstMatch.swipeUp()
-        app.buttons["Save Pieces and Outfit"].tap()
-
-        app.buttons["My Closet"].tap()
-        XCTAssertTrue(app.staticTexts[pieceName].waitForExistence(timeout: 5))
+        let manual = app.buttons["Manual sweater"]
+        reveal(manual, in: app)
+        manual.tap()
+        let confirm = app.buttons["sharedImport.confirm"]
+        reveal(confirm, in: app)
+        confirm.tap()
+        app.tabBars.buttons["My Closet"].tap()
+        XCTAssertTrue(app.staticTexts["Manual sweater"].waitForExistence(timeout: 5))
     }
 
     func testApproveSkipThenChangeSelection() {

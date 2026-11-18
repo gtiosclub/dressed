@@ -154,7 +154,9 @@ final class PrototypeClosetStore: ObservableObject {
             throw error
         }
         items = updated
+        #if !RECOGNITION_LAB
         GarmentPresetStore.remove(for: id)
+        #endif
         if hadPhoto {
             do {
                 try fileManager.removeItem(at: backupURL)
@@ -324,6 +326,8 @@ enum SharedImageInbox {
                     temporaryCutoutPath: nil,
                     region: NormalizedImageRegion(x: 0.2, y: 0.2, width: 0.6, height: 0.6),
                     suggestionSource: nil, selected: true, tags: ["User tag"], suggestedTags: [])]
+                draft.reviewedCandidateIDs = draft.candidates.map(\.id)
+                draft.hasFinishedPieceReview = true
             }
             try SharedImportDraftStore.save(draft)
         }

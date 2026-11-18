@@ -137,7 +137,7 @@ final class RecognitionBenchmarkModel: ObservableObject {
         let configuration = "Release"
         #endif
         let report = RecognitionBenchmarkReport(
-            schemaVersion: 5, implementation: "scanline-v3-simulator-cpu-classifier",
+            schemaVersion: 5, implementation: "scanline-v3-vision-runner",
             applicationIdentifier: Bundle.main.bundleIdentifier ?? "unknown",
             visionExecution: visionExecution, createdAt: Date(),
             device: hardwareIdentifier(),
@@ -165,9 +165,9 @@ final class RecognitionBenchmarkModel: ObservableObject {
 
     private var visionExecution: String {
         #if targetEnvironment(simulator)
-        "Simulator: CPU classifier; automatic body pose and foreground mask"
+        "Simulator: automatic Vision compute; no CPU retry for failed inference"
         #else
-        "Device: automatic compute selection for all Vision requests"
+        "Device: automatic Vision compute with CPU retry for classification and body pose"
         #endif
     }
 
