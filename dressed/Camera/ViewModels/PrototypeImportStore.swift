@@ -2,14 +2,14 @@ import Combine
 import Foundation
 import UIKit
 
-struct ReviewImage: Identifiable {
+nonisolated struct ReviewImage: Identifiable {
     let id: String
     let data: Data
     let source: String
     let isShared: Bool
 }
 
-enum PrototypeImportError: LocalizedError {
+nonisolated enum PrototypeImportError: LocalizedError {
     case unavailableStorage
     case invalidImage
     case emptyName
@@ -188,7 +188,7 @@ struct SharedImageEnvelope: Codable {
 }
 
 enum SharedImageInbox {
-    static let groupId = "group.gtiosclub.dressed"
+    nonisolated static let groupId = "group.gtiosclub.dressed"
     private static let ownerKey = "activeOwnerId"
     private static let draftLifetime: TimeInterval = 24 * 60 * 60
 
@@ -263,7 +263,8 @@ enum SharedImageInbox {
     }
 
     #if DEBUG
-    static func seedFixture(id: String, ownerId: String, withCandidates: Bool) throws {
+    static func seedFixture(id: String, ownerId: String, withCandidates: Bool,
+                            interruptedManual: Bool = false) throws {
         guard UUID(uuidString: id) != nil,
               let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId) else {
             throw SharedImportDraftError.unavailable
@@ -315,6 +316,15 @@ enum SharedImageInbox {
                                 region: NormalizedImageRegion(x: 0.3, y: 0.01, width: 0.4, height: 0.12),
                                 suggestionSource: "Fixture region", selected: false, tags: [], suggestedTags: [])
             ] : []
+            if interruptedManual {
+                draft.status = .processing
+                draft.candidates = [ImportCandidate(
+                    id: SharedImportDraftStore.stableID(importID: id, part: "manual-0"),
+                    name: "Manual scarf", category: .accessories, destination: .closet,
+                    temporaryCutoutPath: nil,
+                    region: NormalizedImageRegion(x: 0.2, y: 0.2, width: 0.6, height: 0.6),
+                    suggestionSource: nil, selected: true, tags: ["User tag"], suggestedTags: [])]
+            }
             try SharedImportDraftStore.save(draft)
         }
     }

@@ -1,8 +1,7 @@
 import Foundation
 
-// Development-only bridge. Google credentials stay in the loopback service,
-// never in the app. In Debug, import review tries this bridge automatically
-// and falls back to on-device suggestions when it is unavailable.
+// Shared recognition interface. Imports use OnDeviceImportRecognitionService;
+// LocalGarmentRecognition below is the legacy, explicitly invoked fixture client.
 protocol GarmentRecognitionService {
     func detect(imageData: Data, importID: String) async throws -> [ImportCandidate]
 }

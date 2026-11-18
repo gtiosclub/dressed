@@ -1,19 +1,28 @@
 import Foundation
+import CoreML
 import Vision
 
 // A whole-image hint for one garment photo. This does not locate separate pieces
 // or identify a specific product; a user must approve the details before saving.
-enum PrototypeGarmentRecognition {
+nonisolated enum PrototypeGarmentRecognition {
     struct Suggestion {
         let name: String
         let category: ClothingCategory
         let confidence: Double
     }
 
-    static func analyze(_ imageData: Data) async throws -> Suggestion? {
-        try await Task.detached(priority: .userInitiated) {
+    static func analyze(_ imageData: Data, metrics: RecognitionMetrics? = nil) async throws -> Suggestion? {
+        try await RecognitionExecution.offMain {
             try Task.checkCancellation()
-            let request = try VisionRequestRunner.perform({ VNClassifyImageRequest() }, on: imageData)
+            let request: VNClassifyImageRequest
+            do {
+                let start = ProcessInfo.processInfo.systemUptime
+                defer { metrics?.record("classification", since: start) }
+                request = try VisionRequestRunner.perform({ VNClassifyImageRequest() }, on: imageData)
+            } catch {
+                metrics?.warning("Vision classification failed; category quality was not evaluated for this call.", error: error)
+                throw error
+            }
             try Task.checkCancellation()
 
             // Vision's general classifier is often uncertain about clothing.
@@ -42,6 +51,19 @@ enum PrototypeGarmentRecognition {
                 }
             }
             return nil
-        }.value
+        }
+    }
+
+    static func configureCompute(_ request: VNClassifyImageRequest) throws {
+        #if targetEnvironment(simulator)
+        // This runtime's automatic GPU selection fails with an Espresso error.
+        // Use a CPU that Vision explicitly reports as supported. Device builds
+        // retain Apple's automatic compute selection.
+        for (stage, devices) in try request.supportedComputeStageDevices {
+            if let cpu = devices.first(where: { if case .cpu = $0 { return true }; return false }) {
+                request.setComputeDevice(cpu, for: stage)
+            }
+        }
+        #endif
     }
 }

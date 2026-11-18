@@ -5,6 +5,7 @@ struct SharedImportReviewView: View {
     let image: ReviewImage
     let ownerId: String
     @ObservedObject var closet: PrototypeClosetStore
+    let recognizer: any GarmentRecognitionService
     let onLater: () -> Void
     let onDiscard: () -> Void
     let onSaved: () -> Void
@@ -14,16 +15,19 @@ struct SharedImportReviewView: View {
     @State private var isProcessing = false
     @State private var isSaving = false
     @State private var detectionTask: Task<Void, Never>?
+    @State private var detectionID = UUID()
     @State private var errorMessage: String?
     @State private var cropCandidateID: String?
     @State private var confirmsDiscard = false
 
     init(image: ReviewImage, ownerId: String, closet: PrototypeClosetStore,
+         recognizer: any GarmentRecognitionService = OnDeviceImportRecognitionService(),
          onLater: @escaping () -> Void, onDiscard: @escaping () -> Void,
          onSaved: @escaping () -> Void) {
         self.image = image
         self.ownerId = ownerId
         self.closet = closet
+        self.recognizer = recognizer
         self.onLater = onLater
         self.onDiscard = onDiscard
         self.onSaved = onSaved
@@ -176,8 +180,14 @@ struct SharedImportReviewView: View {
                 }
             }
             .interactiveDismissDisabled(isSaving)
-            .task { loadDraft() }
-            .onDisappear { detectionTask?.cancel() }
+            .task {
+                if draft == nil { loadDraft() }
+                else if draft?.status == .processing { processImage() }
+            }
+            .onDisappear {
+                detectionTask?.cancel()
+                isProcessing = false
+            }
         }
     }
 
@@ -216,14 +226,18 @@ struct SharedImportReviewView: View {
         do {
             var loaded = try SharedImportDraftStore.loadOrCreate(image: image, ownerId: ownerId)
             if loaded.status == .saved { onSaved(); return }
-            if loaded.status == .saving || loaded.status == .processing {
+            if loaded.status == .saving {
                 loaded.status = loaded.candidates.isEmpty ? .received : .review
                 try SharedImportDraftStore.save(loaded)
             }
             draft = loaded
             errorMessage = nil
-            if loaded.status == .received { processImage() }
-        } catch { errorMessage = error.localizedDescription }
+            if SharedImportDraftStore.shouldRecognize(loaded) {
+                processImage()
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     private func processImage() {
@@ -231,12 +245,12 @@ struct SharedImportReviewView: View {
               mutateDraft({ $0.status = .processing }) else { return }
         isProcessing = true
         detectionTask?.cancel()
+        let attempt = UUID()
+        detectionID = attempt
         detectionTask = Task {
-            defer { isProcessing = false }
+            defer { if detectionID == attempt { isProcessing = false } }
             do {
-                // Consume the existing recognition service; background recovery and
-                // pipeline changes belong to #208 / #228.
-                let found = try await AutomaticImportSuggestions.detect(imageData: image.data, importID: image.id)
+                let found = try await recognizer.detect(imageData: image.data, importID: image.id)
                 guard !Task.isCancelled else {
                     SharedImportDraftStore.removeAutomaticCutouts(for: found)
                     return
@@ -266,7 +280,7 @@ struct SharedImportReviewView: View {
                                         destination: .closet, temporaryCutoutPath: nil,
                                         region: nil, suggestionSource: nil, selected: false,
                                         tags: [], suggestedTags: [])
-        if mutateDraft({ $0.candidates.append(candidate); $0.status = .review }) {
+        if mutateDraft({ $0.candidates.append(candidate); $0.status = isProcessing ? .processing : .review }) {
             // Keep the combined review visible while correcting a missed piece.
             cropCandidateID = candidate.id
         }

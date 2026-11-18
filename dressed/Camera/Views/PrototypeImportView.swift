@@ -143,6 +143,11 @@ struct PrototypeImportView: View {
             }
             .buttonStyle(.bordered)
 
+            #if DEBUG
+            NavigationLink("On-device speed test") { RecognitionLabView() }
+                .buttonStyle(.bordered)
+            #endif
+
             Text("You can also share an image to Dressed from another app, then open Dressed to review it.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
@@ -308,7 +313,6 @@ struct ImportReviewView: View {
 
     private enum RecognitionState: Equatable {
         case analyzing
-        case suggested
         case noMatch
         case failed
         case manual
@@ -330,7 +334,6 @@ struct ImportReviewView: View {
     @State private var hasEditedName = false
     @State private var hasEditedCategory = false
     @State private var recognitionState: RecognitionState = .analyzing
-    @State private var recognitionAttempt = 0
     @State private var isSaving = false
     @State private var saveError: String?
     @State private var candidates: [ImportCandidate] = []
@@ -347,6 +350,7 @@ struct ImportReviewView: View {
         }
         return GarmentPreset.allCases.filter { $0.filterCategory == activeFilter }
     }
+    @State private var detectionID = UUID()
 
     var body: some View {
         NavigationStack {
@@ -419,6 +423,7 @@ struct ImportReviewView: View {
                     Section {
                         Button("Add Missed Piece", action: addManualPiece)
                         Button("Enter One Piece Manually Instead") {
+                            SharedImportDraftStore.removeAutomaticCutouts(for: candidates)
                             candidates = []
                             recognitionState = .manual
                         }
@@ -539,12 +544,10 @@ struct ImportReviewView: View {
                             Text("Filling preset with details from photo…")
                         }
                         Button("Enter details manually") {
+                            detectionTask?.cancel()
+                            isDetectingPieces = false
                             recognitionState = .manual
-                            recognitionAttempt += 1
                         }
-                    case .suggested:
-                        Label("Suggested preset: \(selectedPreset.rawValue)", systemImage: "sparkles")
-                            .foregroundStyle(.secondary)
                     case .noMatch:
                         Text("Choose a preset above and name your piece.")
                             .foregroundStyle(.secondary)
@@ -560,7 +563,7 @@ struct ImportReviewView: View {
 
                     TextField("Name (for example, Blue \(selectedPreset.rawValue))", text: Binding(
                         get: { name },
-                        set: { name = $0; hasEditedName = true }
+                        set: { name = $0 }
                     ))
 
                     Picker("Category", selection: Binding(
@@ -625,32 +628,6 @@ struct ImportReviewView: View {
                         }
                         editingCandidateID = nil
                     }
-                }
-            }
-            .task(id: recognitionAttempt) {
-                guard recognitionState == .analyzing else { return }
-                async let suggestionTask = PrototypeGarmentRecognition.analyze(image.data)
-                async let stylizerTask = GarmentStylizer.convert(image.data)
-
-                do {
-                    let (suggestion, stylized) = try await (suggestionTask, stylizerTask)
-                    guard !Task.isCancelled, recognitionState == .analyzing else { return }
-                    self.stylizedResult = stylized
-                    self.selectedPreset = stylized.detectedPreset
-                    self.category = stylized.detectedPreset.category
-
-                    if let suggestion {
-                        if !hasEditedName { name = suggestion.name }
-                        if !hasEditedCategory { category = suggestion.category }
-                        recognitionState = .suggested
-                    } else {
-                        if !hasEditedName { name = stylized.detectedPreset.rawValue }
-                        recognitionState = .noMatch
-                    }
-                } catch is CancellationError {
-                } catch {
-                    guard !Task.isCancelled, recognitionState == .analyzing else { return }
-                    recognitionState = .failed
                 }
             }
             .task {
@@ -756,28 +733,32 @@ struct ImportReviewView: View {
 
     private func retryRecognition() {
         recognitionState = .analyzing
-        recognitionAttempt += 1
+        detectPieces()
     }
 
     private func detectPieces() {
         guard !isDetectingPieces else { return }
         isDetectingPieces = true
         detectionMessage = nil
+        let attempt = UUID()
+        detectionID = attempt
         detectionTask = Task {
-            defer { isDetectingPieces = false }
+            defer { if detectionID == attempt { isDetectingPieces = false } }
             do {
                 let found = try await AutomaticImportSuggestions.detect(imageData: image.data, importID: image.id)
                 guard !Task.isCancelled else {
                     SharedImportDraftStore.removeAutomaticCutouts(for: found)
                     return
                 }
-                let previous = Dictionary(uniqueKeysWithValues: candidates.map { ($0.id, $0) })
-                let manual = candidates.filter { $0.suggestionSource == nil }
-                candidates = found.map { previous[$0.id] ?? $0 } + manual
+                candidates = SharedImportDraftStore.mergingSuggestions(found, into: candidates)
+                recognitionState = found.isEmpty ? .noMatch : .manual
                 if found.isEmpty {
                     detectionMessage = "No separate clothing pieces found. You can enter one piece manually below."
                 }
+            } catch is CancellationError {
+                return
             } catch {
+                recognitionState = .failed
                 detectionMessage = "Could not find pieces automatically. You can enter one manually below."
             }
         }
