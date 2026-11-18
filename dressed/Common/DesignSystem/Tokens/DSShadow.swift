@@ -7,10 +7,14 @@ struct DSShadow {
     let x: CGFloat
     let y: CGFloat
 
+    static let none = DSShadow(color: .clear, radius: 0, x: 0, y: 0)
     static let raised = DSShadow(color: .black.opacity(0.25), radius: 5, x: 0, y: 2)       // chips, segment thumb
     static let floating = DSShadow(color: .black.opacity(0.25), radius: 25, x: 0, y: 4)    // search bar
     static let card = DSShadow(color: .black.opacity(0.1), radius: 5, x: 1, y: 1)          // list rows
     static let brandGlow = DSShadow(color: DSColor.brand.opacity(0.25), radius: 5, x: 0, y: 4) // post card
+
+    static let selectedGlow = DSShadow(color: DSColor.brandLight.opacity(0.3), radius: 30, x: 1, y: 1) // selected closet tile
+    static let selectedRow = DSShadow(color: DSColor.brandLight.opacity(0.5), radius: 5, x: 1, y: 1)   // selected candidate row
 
     // Inner shadows for pressed and recessed surfaces.
     static let pressedInner = ShadowStyle.inner(color: .black.opacity(0.4), radius: 1, x: 0, y: 2)

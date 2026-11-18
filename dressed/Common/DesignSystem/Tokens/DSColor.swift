@@ -5,6 +5,7 @@ import SwiftUI
 enum DSColor {
     // Brand
     static let brand = Color(hex: 0x9D83EB)
+    static let brandLight = Color(hex: 0xA98BFF) // selected tile and row outlines, glows
 
     // Text
     static let textPrimary = Color.black
@@ -21,6 +22,8 @@ enum DSColor {
     static let pressed = Color(hex: 0xE9E8E7)
     static let secondaryFill = Color(hex: 0xE5E5E0)
     static let glass = Color.white.opacity(0.85)
+    static let scrim = Color.black.opacity(0.3) // dims the screen behind the search sheet (976:162)
+    static let cameraBar = Color.white.opacity(0.4) // translucent control bar over the camera
 
     // Strokes
     static let pressedBorder = Color(hex: 0xDDDDDD)

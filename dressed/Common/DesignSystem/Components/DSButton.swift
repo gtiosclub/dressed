@@ -1,11 +1,13 @@
 import SwiftUI
 
-// 50 pt rounded-square buttons from the share-to-Dressed mockup.
+// 50 pt rounded-square buttons from the share-to-Dressed, import and create-outfit mockups.
+// Add `.frame(maxWidth: .infinity)` for the full-width Import / Create Outfit buttons.
 struct DSButtonStyle: ButtonStyle {
     enum Kind {
         case primary    // purple, white icon (search)
         case secondary  // warm grey (Back)
-        case glass      // translucent white over photos (Skip, shop)
+        case glass      // translucent white over photos (Skip, shop, close)
+        case text       // no fill (Find More)
     }
 
     var kind: Kind = .secondary
@@ -28,6 +30,7 @@ struct DSButtonStyle: ButtonStyle {
         case .primary: DSColor.brand
         case .secondary: DSColor.secondaryFill
         case .glass: DSColor.glass
+        case .text: .clear
         }
     }
 }

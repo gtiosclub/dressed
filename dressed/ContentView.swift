@@ -34,9 +34,14 @@ private struct AppTabs: View {
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var selectedTab: Int
+    @State private var tabBeforeCamera = 0
     @State private var isKeyboardVisible = false
     @State private var isCreatingPost = false
     @State private var discoverySection = 0
+    @State private var isSearchingDiscovery = false
+    @State private var isSearchingCloset = false
+    @State private var closetSearchText = ""
+    @State private var discoverySearchQuery: String?
     @State private var signOutError: String?
     @State private var pendingSharedImage: ReviewImage?
     @State private var presentedSharedId: String?
@@ -79,16 +84,16 @@ private struct AppTabs: View {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         if !DiscoveryPostSource.isDemo {
-            InfiniteDiscoveryFeed.live(section: $discoverySection, showingCreate: $isCreatingPost, savedPosts: savedPosts)
+            InfiniteDiscoveryFeed.live(section: $discoverySection, showingCreate: $isCreatingPost, isSearching: $isSearchingDiscovery, savedPosts: savedPosts)
         } else {
             InfiniteDiscoveryFeed.demo(
                 failSecondPage: arguments.contains("-failDiscoveryPage"),
                 section: $discoverySection,
-                showingCreate: $isCreatingPost, savedPosts: savedPosts
+                showingCreate: $isCreatingPost, isSearching: $isSearchingDiscovery, savedPosts: savedPosts
             )
         }
         #else
-        InfiniteDiscoveryFeed.live(section: $discoverySection, showingCreate: $isCreatingPost, savedPosts: savedPosts)
+        InfiniteDiscoveryFeed.live(section: $discoverySection, showingCreate: $isCreatingPost, isSearching: $isSearchingDiscovery, savedPosts: savedPosts)
         #endif
     }
 
@@ -104,6 +109,8 @@ private struct AppTabs: View {
                         closet: closet,
                         outfits: outfits,
                         ownerId: userId,
+                        isSearching: $isSearchingCloset,
+                        searchText: $closetSearchText,
                         onTryOn: { item in
                             studio.worn[item.category] = item
                             selectedTab = 3
@@ -139,6 +146,9 @@ private struct AppTabs: View {
                     .toolbar(.hidden, for: .navigationBar)
                     // Hide on the navigation content too, so the system bar cannot intercept feed taps.
                     .toolbar(.hidden, for: .tabBar)
+                    .navigationDestination(item: $discoverySearchQuery) { query in
+                        DiscoveryIdeasView(initialQuery: query)
+                    }
                 }
                 .toolbar(.hidden, for: .tabBar)
                 .tag(1)
@@ -148,20 +158,14 @@ private struct AppTabs: View {
                 NavigationStack {
                     PrototypeImportView(
                         closet: closet,
-                        ownerId: userId
+                        ownerId: userId,
+                        onClose: { selectedTab = tabBeforeCamera },
+                        onReviewShare: deferredSharedId != nil || deferredSharedLinkId != nil ? {
+                            deferredSharedId = nil
+                            deferredSharedLinkId = nil
+                            presentNextShare()
+                        } : nil
                     )
-                    .toolbar {
-                        if deferredSharedId != nil ||
-                            deferredSharedLinkId != nil {
-                            ToolbarItem(placement: .topBarTrailing) {
-                                Button("Review Share") {
-                                    deferredSharedId = nil
-                                    deferredSharedLinkId = nil
-                                    presentNextShare()
-                                }
-                            }
-                        }
-                    }
                 }
                 .toolbar(.hidden, for: .tabBar)
                 .tag(2)
@@ -184,7 +188,8 @@ private struct AppTabs: View {
                 .tag(3)
             }
             // Hidden while typing, like the system tab bar.
-            if !isKeyboardVisible {
+            // The camera is full screen: its close button returns to the previous tab.
+            if !isKeyboardVisible && selectedTab != 2 {
                 DSTabBar(
                     items: [
                         .init(tag: 0, title: "Closet", icon: "TablerHanger2", accessibilityIdentifier: "tab.closet"),
@@ -195,6 +200,38 @@ private struct AppTabs: View {
                     selection: $selectedTab
                 )
             }
+        }
+        .overlay {
+            // Covers the whole screen, header and tab bar included, like the Figma open state.
+            if isSearchingDiscovery {
+                DiscoverySearchOverlay(
+                    onSearch: { query in
+                        isSearchingDiscovery = false
+                        discoverySearchQuery = query
+                    },
+                    onClose: { isSearchingDiscovery = false }
+                )
+                .transition(.opacity)
+            }
+        }
+        .overlay {
+            if isSearchingCloset {
+                ClosetSearchOverlay(
+                    initialQuery: closetSearchText,
+                    names: closet.items.map(\.name) + outfits.outfits.compactMap(\.name),
+                    onSearch: { query in
+                        closetSearchText = query
+                        isSearchingCloset = false
+                    },
+                    onClose: { isSearchingCloset = false }
+                )
+                .transition(.opacity)
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: isSearchingDiscovery)
+        .animation(.easeOut(duration: 0.2), value: isSearchingCloset)
+        .onChange(of: selectedTab) { old, new in
+            if new == 2 && old != 2 { tabBeforeCamera = old }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
             isKeyboardVisible = true

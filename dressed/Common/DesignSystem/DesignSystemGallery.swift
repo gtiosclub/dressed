@@ -7,6 +7,9 @@ struct DesignSystemGallery: View {
     @State private var feed = "For You"
     @State private var liked = false
     @State private var tab = 0
+    @State private var checked: Set<String> = ["PreviewTeeNavy"]
+    @State private var outfitName = ""
+    @State private var filter = "Tops"
 
     var body: some View {
         ScrollView {
@@ -20,6 +23,16 @@ struct DesignSystemGallery: View {
                         }
                         .padding(.vertical, DSSpacing.md)
                         .padding(.horizontal, DSSpacing.xs)
+                    }
+                }
+
+                section("Filter chips (flat)") {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: DSSpacing.sm) {
+                            ForEach(["Outfits", "Tops", "Jackets", "Accessories"], id: \.self) { title in
+                                DSChip(title: title, isSelected: filter == title, style: .flat) { filter = title }
+                            }
+                        }
                     }
                 }
 
@@ -37,9 +50,66 @@ struct DesignSystemGallery: View {
                     LazyVGrid(columns: [GridItem(spacing: DSSpacing.md), GridItem()], spacing: DSSpacing.md) {
                         ForEach(["PreviewShirtGingham", "PreviewTeeBlueGraphic", "PreviewTeeNavy", "PreviewTeeBlack"],
                                 id: \.self) { name in
-                            DSTile { Image(name).resizable().scaledToFit() }
+                            DSTile(isHighlighted: name == "PreviewShirtGingham",
+                                   isChecked: name.hasPrefix("PreviewTee") ? checked.contains(name) : nil) {
+                                Image(name).resizable().scaledToFit()
+                            }
+                            .overlay(alignment: .topLeading) {
+                                if name == "PreviewShirtGingham" { DSBadge(text: "New").padding(14) }
+                            }
+                            .onTapGesture {
+                                if checked.contains(name) { checked.remove(name) } else { checked.insert(name) }
+                            }
                         }
                     }
+                }
+
+                section("Outfit collage and item rows") {
+                    let names = ["PreviewSweaterBrown", "PreviewNecklace", "PreviewJeans"]
+                    HStack(spacing: DSSpacing.md) {
+                        DSOutfitCollage(count: 3) { Image(names[$0]).resizable().scaledToFit() }
+                        DSOutfitCollage(count: 3, cornerRadius: DSRadius.md, showsEmptyCells: false) {
+                            Image(names[$0]).resizable().scaledToFit()
+                        }
+                    }
+                    ForEach(names, id: \.self) { name in
+                        DSItemRow(title: "Lorem Ipsum", trailing: {
+                            DSMoreMenu(accessibilityLabel: "More options") { Button("Try On") {} }
+                        }) { Image(name).resizable().scaledToFit() }
+                    }
+                }
+
+                section("Create outfit") {
+                    DSBackHeader(title: "Select Items", onBack: {}) {
+                        DSThumbnailSlot { Image("PreviewTeeNavy").resizable().scaledToFit() }
+                    }
+                    DSLabeledField(label: "Outfit Name", prompt: "Name your outfit", text: $outfitName)
+                    Button("Create Outfit") {}.buttonStyle(.ds(.primary)).frame(maxWidth: .infinity)
+                    Button("Import as Individual Pieces") {}.buttonStyle(.ds(.secondary)).frame(maxWidth: .infinity)
+                    Button("Find More") {}.buttonStyle(.ds(.text)).frame(maxWidth: .infinity)
+                }
+
+                section("Floating search + new outfit") {
+                    HStack(spacing: DSSpacing.sm) {
+                        DSFloatingSearchButton(title: "Search Your Closet") {}
+                        DSFloatingActionButton(accessibilityLabel: "New outfit") {}
+                    }
+                }
+
+                section("Share badges and crop frames") {
+                    HStack(spacing: DSSpacing.md) {
+                        DSBadge(text: "3 of 3", kind: .counter)
+                        DSBadge(text: "3 of 3", kind: .counterSelected)
+                        DSCropFrame().frame(width: 60, height: 60).background(DSColor.textMuted)
+                        DSCropFrame(color: DSColor.brand).frame(width: 60, height: 60)
+                    }
+                }
+
+                section("Camera controls") {
+                    DSCameraControls(onUpload: {}, onCapture: {}, onFlip: {})
+                        .padding(DSSpacing.md)
+                        .background(Color.black)
+                        .clipShape(RoundedRectangle(cornerRadius: DSRadius.md))
                 }
 
                 section("Buttons") {
@@ -66,7 +136,7 @@ struct DesignSystemGallery: View {
 
                 section("Candidate rows") {
                     ForEach(["PreviewSweaterBrown", "PreviewTeeBrown", "PreviewSweatshirtBrown"], id: \.self) { name in
-                        DSCandidateRow(title: "Lorem Ipsum", subtitle: "Sit amet") {
+                        DSCandidateRow(title: "Lorem Ipsum", subtitle: "Sit amet", isSelected: name == "PreviewSweaterBrown") {
                             Image(name).resizable().scaledToFit()
                         }
                     }

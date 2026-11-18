@@ -16,124 +16,106 @@ enum OutfitCanvasFixture {
     ]
 }
 
+/// Create Outfit (Figma 1273:173): pick pieces from the closet, name the outfit, then Create Outfit.
+/// Pieces are placed automatically; one piece per clothing category.
 struct PrototypeOutfitEditorView: View {
     @ObservedObject var closet: PrototypeClosetStore
     @ObservedObject var outfits: PrototypeOutfitStore
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var placements: [OutfitPlacement] = []
-    @State private var selectedItemId: String?
+    @State private var filter: ClothingCategory?
     @State private var saveError: String?
 
+    private let columns = [GridItem(.flexible(), spacing: DSSpacing.md), GridItem(.flexible(), spacing: DSSpacing.md)]
+
+    private var visibleItems: [ClothingItem] {
+        closet.items.filter { filter == nil || $0.category == filter }
+    }
+
+    private var selectedItems: [ClothingItem] {
+        placements.compactMap { closet.item(id: $0.itemId) }
+    }
+
+    private var canCreate: Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !placements.isEmpty
+    }
+
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Outfit Name") {
-                    TextField("Name", text: $name)
-                        .textInputAutocapitalization(.words)
-                }
-
-                Section("Choose Pieces") {
-                    if closet.items.isEmpty {
-                        Text("Add a piece to your closet first.")
-                            .foregroundStyle(.secondary)
-                    }
-                    ForEach(closet.items) { item in
-                        Button {
-                            toggle(item)
-                        } label: {
-                            HStack {
-                                if let image = closet.image(for: item) {
-                                    Image(uiImage: image)
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 44, height: 44)
-                                        .clipped()
-                                }
-                                VStack(alignment: .leading) {
-                                    Text(item.name)
-                                    Text(item.category.rawValue.capitalized)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                if placements.contains(where: { $0.itemId == item.id }) {
-                                    DSIcon("TablerCircleCheckFilled", size: 22)
-                                        .foregroundStyle(.tint)
-                                }
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("\(item.name), \(placements.contains(where: { $0.itemId == item.id }) ? "selected" : "not selected")")
+        VStack(spacing: DSSpacing.md) {
+            DSBackHeader(title: "Select Items", onBack: { dismiss() }) {
+                HStack(spacing: DSSpacing.xs) {
+                    ForEach(selectedItems.prefix(3)) { item in
+                        DSThumbnailSlot { pieceImage(item) }
                     }
                 }
+            }
+            .padding(.horizontal, DSSpacing.lg)
+            .padding(.top, DSSpacing.sm)
 
-                if !placements.isEmpty {
-                    Section("Arrange Pieces") {
-                        Text("Drag pieces to arrange them.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        OutfitCanvasView(
-                            placements: $placements,
-                            selectedItemId: $selectedItemId,
-                            closet: closet,
-                            editable: true
-                        )
-                            .frame(height: 340)
-                            .listRowInsets(EdgeInsets())
-                        if let selectedItemId,
-                           let index = placements.firstIndex(where: { $0.itemId == selectedItemId }),
-                           let item = closet.item(id: selectedItemId) {
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text("Editing \(item.name)")
-                                    .font(.subheadline.bold())
-                                HStack {
-                                    Text("Size")
-                                    Slider(value: $placements[index].width, in: 0.2...0.8)
-                                        .accessibilityLabel("Size of \(item.name)")
-                                    Text("\(Int(placements[index].width * 100))%")
-                                        .monospacedDigit()
-                                        .frame(width: 44, alignment: .trailing)
-                                }
-                                HStack {
-                                    Button("Send backward", tabler: "TablerArrowDown") {
-                                        moveLayer(itemId: selectedItemId, direction: -1)
-                                    }
-                                    .disabled(index == 0)
-                                    Button("Bring forward", tabler: "TablerArrowUp") {
-                                        moveLayer(itemId: selectedItemId, direction: 1)
-                                    }
-                                    .disabled(index == placements.count - 1)
-                                }
-                                .buttonStyle(.bordered)
-                            }
-                        } else {
-                            Text("Tap a piece to resize it or change its layer. Drag a piece to move it.")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
+            DSLabeledField(label: "Outfit Name", prompt: "Name your outfit", text: $name)
+                .padding(.horizontal, DSSpacing.lg)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: DSSpacing.sm) {
+                    DSChip(title: "All", isSelected: filter == nil, style: .flat) { filter = nil }
+                    ForEach(ClothingCategory.allCases, id: \.self) { category in
+                        DSChip(title: category.rawValue.capitalized, isSelected: filter == category, style: .flat) {
+                            filter = category
                         }
                     }
                 }
+                .padding(.horizontal, DSSpacing.lg)
             }
-            .navigationTitle("New Outfit")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+
+            if closet.items.isEmpty {
+                ContentUnavailableView("Add a piece to your closet first.", tabler: "TablerHanger2")
+                    .frame(maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVGrid(columns: columns, spacing: DSSpacing.md) {
+                        ForEach(visibleItems) { item in
+                            let isChecked = placements.contains { $0.itemId == item.id }
+                            Button { toggle(item) } label: {
+                                DSTile(isChecked: isChecked) { pieceImage(item) }
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("\(item.name), \(isChecked ? "selected" : "not selected")")
+                        }
+                    }
+                    .padding(.horizontal, DSSpacing.lg)
+                    .padding(.bottom, 50 + 2 * DSSpacing.lg)
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
-                        .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || placements.isEmpty)
-                }
             }
-            .alert("Could not save outfit", isPresented: Binding(
-                get: { saveError != nil },
-                set: { if !$0 { saveError = nil } }
-            )) {
-                Button("OK", role: .cancel) { saveError = nil }
-            } message: {
-                Text(saveError ?? "Please try again.")
-            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(DSColor.background)
+        .overlay(alignment: .bottom) {
+            Button("Create Outfit") { save() }
+                .buttonStyle(.ds(.primary))
+                .frame(maxWidth: .infinity)
+                .opacity(canCreate ? 1 : 0.4)
+                .disabled(!canCreate)
+                .padding(.horizontal, DSSpacing.lg)
+                .padding(.bottom, DSSpacing.sm)
+        }
+        .toolbar(.hidden, for: .navigationBar)
+        .alert("Could not create outfit", isPresented: Binding(
+            get: { saveError != nil },
+            set: { if !$0 { saveError = nil } }
+        )) {
+            Button("OK", role: .cancel) { saveError = nil }
+        } message: {
+            Text(saveError ?? "Please try again.")
+        }
+    }
+
+    @ViewBuilder
+    private func pieceImage(_ item: ClothingItem) -> some View {
+        if let image = closet.image(for: item) {
+            Image(uiImage: image).resizable().scaledToFit()
+        } else {
+            DSIcon("TablerPhoto", size: 24).foregroundStyle(DSColor.textMuted)
         }
     }
 
@@ -141,7 +123,7 @@ struct PrototypeOutfitEditorView: View {
         if placements.contains(where: { $0.itemId == item.id }) {
             placements.removeAll { $0.itemId == item.id }
         } else {
-            // remove exisiting item in this category
+            // One piece per category: choosing another replaces the earlier one.
             placements.removeAll { placement in
                 closet.item(id: placement.itemId)?.category == item.category
             }
@@ -165,58 +147,82 @@ struct PrototypeOutfitEditorView: View {
             saveError = error.localizedDescription
         }
     }
-
-    private func moveLayer(itemId: String, direction: Int) {
-        guard let index = placements.firstIndex(where: { $0.itemId == itemId }) else { return }
-        let destination = index + direction
-        guard placements.indices.contains(destination) else { return }
-        placements.swapAt(index, destination)
-        for layer in placements.indices {
-            placements[layer].layer = layer
-        }
-    }
 }
 
+/// Outfit detail (Figma 1280:421): collage of the pieces, then one row per piece.
 struct PrototypeOutfitDetailView: View {
     let outfit: Outfit
     let onTryOutfit: (Outfit) -> Void
+    let onTryOn: (ClothingItem) -> Void
     @ObservedObject var closet: PrototypeClosetStore
-    @State private var placements: [OutfitPlacement]
     @Environment(\.dismiss) private var dismiss
 
-    init(outfit: Outfit, closet: PrototypeClosetStore, onTryOutfit: @escaping (Outfit) -> Void) {
+    init(outfit: Outfit, closet: PrototypeClosetStore,
+         onTryOutfit: @escaping (Outfit) -> Void, onTryOn: @escaping (ClothingItem) -> Void = { _ in }) {
         self.outfit = outfit
         self.closet = closet
         self.onTryOutfit = onTryOutfit
-        _placements = State(initialValue: outfit.placements)
+        self.onTryOn = onTryOn
     }
 
+    private var pieces: [ClothingItem] { outfit.placements.compactMap { closet.item(id: $0.itemId) } }
+    private var missingCount: Int { outfit.placements.count - pieces.count }
+
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                OutfitCanvasView(placements: $placements, selectedItemId: .constant(nil), closet: closet, editable: false)
-                    .frame(height: 400)
-                Button {
-                    onTryOutfit(outfit)
-                    dismiss()
-                } label: {
-                    Label("Try On Outfit", tabler: "TablerUserCircle")
-                }
-                Text("Pieces")
-                    .font(.title2.bold())
-                ForEach(outfit.placements, id: \.itemId) { placement in
-                    if let item = closet.item(id: placement.itemId) {
-                        Label(item.name, tabler: "TablerCircleCheck")
-                    } else {
-                        Label("Piece no longer in closet", tabler: "TablerAlertTriangle")
-                            .foregroundStyle(.orange)
+        VStack(alignment: .leading, spacing: DSSpacing.md) {
+            DSBackHeader(title: outfit.name ?? "Outfit", onBack: { dismiss() })
+                .padding(.horizontal, DSSpacing.lg)
+                .padding(.top, DSSpacing.sm)
+
+            ScrollView {
+                VStack(spacing: DSSpacing.md) {
+                    DSOutfitCollage(count: min(4, pieces.count), cornerRadius: DSRadius.md, showsEmptyCells: false) { index in
+                        pieceImage(pieces[index])
                     }
+
+                    VStack(spacing: DSSpacing.xs) {
+                        ForEach(pieces) { item in
+                            DSItemRow(title: item.name, trailing: {
+                                DSMoreMenu(accessibilityLabel: "More options for \(item.name)") {
+                                    Button { onTryOn(item); dismiss() } label: {
+                                        Label("Try On", tabler: "TablerUserCircle")
+                                    }
+                                }
+                            }) { pieceImage(item) }
+                        }
+                        if missingCount > 0 {
+                            Label(missingCount == 1 ? "A piece is no longer in your closet" : "\(missingCount) pieces are no longer in your closet",
+                                  tabler: "TablerAlertTriangle")
+                                .font(DSFont.body)
+                                .foregroundStyle(.orange)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+
+                    Button {
+                        onTryOutfit(outfit)
+                        dismiss()
+                    } label: {
+                        Label("Try On Outfit", tabler: "TablerUserCircle").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.ds(.secondary))
                 }
+                .padding(.horizontal, DSSpacing.lg)
+                .padding(.bottom, DSSpacing.lg)
             }
-            .padding()
         }
-        .navigationTitle(outfit.name ?? "Outfit")
-        .navigationBarTitleDisplayMode(.inline)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(DSColor.background)
+        .toolbar(.hidden, for: .navigationBar)
+    }
+
+    @ViewBuilder
+    private func pieceImage(_ item: ClothingItem) -> some View {
+        if let image = closet.image(for: item) {
+            Image(uiImage: image).resizable().scaledToFit()
+        } else {
+            DSIcon("TablerPhoto", size: 24).foregroundStyle(DSColor.textMuted)
+        }
     }
 }
 

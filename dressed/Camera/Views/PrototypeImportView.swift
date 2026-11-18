@@ -5,202 +5,71 @@ import UIKit
 struct PrototypeImportView: View {
     @ObservedObject var closet: PrototypeClosetStore
     let ownerId: String
+    /// Leaves the camera and returns to the previous tab.
+    let onClose: () -> Void
+    /// Set while a shared item is deferred; shows a Review Share button over the camera.
+    var onReviewShare: (() -> Void)?
+
     @State private var selectedPhotos: [PhotosPickerItem] = []
-    @State private var selectedPhotoPreviews: [SelectedLibraryPhoto] = []
     @State private var multiPhotoReview: MultiPhotoReviewSession?
-    @State private var importMode: ImportMode = .oneItem
-    @State private var isLoadingSelectedPhotos = false
     @State private var photoLoadingTask: Task<Void, Never>?
     @State private var review: ReviewImage?
-    @State private var showsCamera = false
-    @State private var capturedImage: UIImage?
+    @State private var showsUploadChoices = false
+    @State private var showsPhotoPicker = false
+    @State private var importMode: ImportMode = .oneItem
+    @State private var showsLinkPrompt = false
+    @State private var isLoadingSelectedPhotos = false
     @State private var importError: String?
     @State private var productURLText = ""
     @State private var productLink: ReviewProductLink?
-    @FocusState private var productURLFocused: Bool
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-            DSIcon("TablerScan", size: 64)
-                .foregroundStyle(.tint)
-            Text("Add a piece")
-                .font(.title2.bold())
-            Text("Choose or capture a clothing photo. Review the suggested details before it enters your closet.")
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
-
-            Picker("Import mode", selection: $importMode) {
-                Text("One Item").tag(ImportMode.oneItem)
-                Text("Full Outfit").tag(ImportMode.oneOutfit)
-            }
-            .pickerStyle(.segmented)
-
-            Text(importMode == .oneItem
-                 ? "Choose several views of the same garment."
-                 : "Choose photos of the same outfit.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            PhotosPicker(selection: $selectedPhotos, maxSelectionCount: 8, matching: .images) {
-                Label("Choose from Photos", tabler: "TablerLibraryPhoto")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-
-            if isLoadingSelectedPhotos {
-                ProgressView("Loading selected photos…")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            if !selectedPhotoPreviews.isEmpty {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Selected Photos (\(selectedPhotoPreviews.count))")
-                        .font(.headline)
-
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
-                        ForEach(selectedPhotoPreviews) { selectedPhoto in
-                            ZStack(alignment: .topTrailing) {
-                                Group {
-                                    if let data = selectedPhoto.reviewImage?.data,
-                                       let image = UIImage(data: data) {
-                                        Image(uiImage: image)
-                                            .resizable()
-                                            .scaledToFill()
-                                    } else {
-                                        DSIcon("TablerPhoto", size: 20)
-                                            .font(.title2)
-                                            .foregroundStyle(.secondary)
-                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                            .background(Color(.secondarySystemGroupedBackground))
-                                    }
-                                }
-                                .frame(height: 112)
-                                .frame(maxWidth: .infinity)
-                                .clipped()
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                                Button {
-                                    removeSelectedPhoto(selectedPhoto)
-                                } label: {
-                                    DSIcon("TablerCircleXFilled", size: 20)
-                                        .font(.title3)
-                                        .symbolRenderingMode(.palette)
-                                        .foregroundStyle(.white, .black.opacity(0.65))
-                                }
-                                .buttonStyle(.plain)
-                                .padding(4)
-                                .accessibilityLabel("Remove photo")
-                            }
-                        }
-                    }
-
-                    if selectedPhotoPreviews.count == 1,
-                       let image = selectedPhotoPreviews.first?.reviewImage {
-                        Button("Review Photo") { review = image }
-                            .buttonStyle(.bordered)
-                            .frame(maxWidth: .infinity, alignment: .trailing)
-                    }
-
-                    if selectedPhotoPreviews.count > 1 {
-                        Button("Review \(selectedPhotoPreviews.count) Photos") {
-                            let photos = selectedPhotoPreviews.compactMap(\.reviewImage)
-                            guard photos.count == selectedPhotoPreviews.count else {
-                                importError = "Remove any photo that could not be loaded, then try again."
-                                return
-                            }
-                            let selectionKey = ([importMode.rawValue] + photos.map(\.id).sorted())
-                                .joined(separator: ":")
-                            let importID = SharedImportDraftStore.stableID(
-                                importID: selectionKey,
-                                part: "multi-photo-import"
-                            )
-                            multiPhotoReview = MultiPhotoReviewSession(
-                                id: importID,
-                                mode: importMode,
-                                photos: photos
-                            )
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .disabled(isLoadingSelectedPhotos)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            Button {
-                if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                    showsCamera = true
-                } else {
-                    importError = "Camera is unavailable on this device. Choose a photo instead."
-                }
-            } label: {
-                Label("Take a Photo", tabler: "TablerCamera")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-
-            #if DEBUG
-            NavigationLink("On-device speed test") { RecognitionLabView() }
-                .buttonStyle(.bordered)
-            #endif
-
-            Text("You can also share an image to Dressed from another app, then open Dressed to review it.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Save a product link").font(.headline)
-                TextField("https://store.example/product", text: $productURLText)
-                    .textContentType(.URL)
-                    .keyboardType(.URL)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .textFieldStyle(.roundedBorder)
-                    .accessibilityIdentifier("productURLField")
-                    .focused($productURLFocused)
-                    .submitLabel(.done)
-                    .onSubmit { productURLFocused = false }
-                Button("Review Product Link") {
-                    productURLFocused = false
-                    guard let url = ProductLinkValidation.normalize(productURLText) else {
-                        importError = ProductLinkError.invalidURL.localizedDescription
-                        return
-                    }
-                    productLink = ReviewProductLink(id: UUID().uuidString, url: url, isShared: false)
-                }
-                .buttonStyle(.bordered)
-                Text("Product links go to Wishlist after review; they do not become owned closet pieces.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(24)
-            .frame(maxWidth: 480)
-            .frame(maxWidth: .infinity)
+        CameraCaptureView(
+            onClose: onClose,
+            onUpload: { showsUploadChoices = true },
+            onPhoto: { data in
+                review = ReviewImage(id: UUID().uuidString, data: data, source: "Camera", isShared: false)
+            },
+            onReviewShare: onReviewShare
+        )
+        .overlay {
+            if isLoadingSelectedPhotos { ProgressView("Loading photos…").tint(.white).foregroundStyle(.white) }
         }
-        .navigationTitle("Camera")
+        .toolbar(.hidden, for: .navigationBar)
+        .confirmationDialog("Upload", isPresented: $showsUploadChoices) {
+            Button("Photos of One Item") {
+                importMode = .oneItem
+                showsPhotoPicker = true
+            }
+            Button("Photos of a Full Outfit") {
+                importMode = .oneOutfit
+                showsPhotoPicker = true
+            }
+            Button("Product Link") { showsLinkPrompt = true }
+            Button("Cancel", role: .cancel) {}
+        }
+        .photosPicker(isPresented: $showsPhotoPicker, selection: $selectedPhotos, maxSelectionCount: 8, matching: .images)
+        .alert("Add a product link", isPresented: $showsLinkPrompt) {
+            TextField("https://store.example/product", text: $productURLText)
+                .textContentType(.URL)
+                .keyboardType(.URL)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .accessibilityIdentifier("productURLField")
+            Button("Review Product Link") {
+                guard let url = ProductLinkValidation.normalize(productURLText) else {
+                    importError = ProductLinkError.invalidURL.localizedDescription
+                    return
+                }
+                productLink = ReviewProductLink(id: UUID().uuidString, url: url, isShared: false)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Product links go to Wishlist after review; they do not become owned closet pieces.")
+        }
         .onChange(of: selectedPhotos) { _, photos in
             photoLoadingTask?.cancel()
             photoLoadingTask = Task { await loadSelectedPhotos(photos) }
-        }
-        .sheet(isPresented: $showsCamera, onDismiss: {
-            guard let capturedImage else { return }
-            self.capturedImage = nil
-            guard let data = capturedImage.jpegData(compressionQuality: 0.85) else {
-                importError = PrototypeImportError.invalidImage.localizedDescription
-                return
-            }
-            review = ReviewImage(id: UUID().uuidString, data: data, source: "Camera", isShared: false)
-        }) {
-            PrototypeCameraPicker { image in
-                capturedImage = image
-                showsCamera = false
-            }
         }
         .sheet(item: $review) { image in
             ImportReviewView(
@@ -242,61 +111,56 @@ struct PrototypeImportView: View {
         }
     }
 
+    /// Loads the picked photos, then goes straight to review: one photo to the single-photo review,
+    /// several to the multi-photo review in the mode chosen in the Upload sheet.
     private func loadSelectedPhotos(_ photos: [PhotosPickerItem]) async {
         guard !photos.isEmpty else {
-            selectedPhotoPreviews = []
             isLoadingSelectedPhotos = false
             return
         }
 
         isLoadingSelectedPhotos = true
-        var previews: [SelectedLibraryPhoto] = []
+        var loaded: [ReviewImage] = []
         var failedCount = 0
 
         for photo in photos {
             guard !Task.isCancelled else { return }
-            // Failed loads never reach review or saving, so a random ID is fine there.
-            var id = UUID().uuidString
             do {
                 guard let data = try await photo.loadTransferable(type: Data.self),
                       UIImage(data: data) != nil else {
                     throw PrototypeImportError.invalidImage
                 }
-                id = ImportPhotoID.make(for: data)
-                guard !previews.contains(where: { $0.id == id }) else { continue }
-                let reviewImage = ReviewImage(
-                    id: id,
-                    data: data,
-                    source: "Photo Library",
-                    isShared: false
-                )
-                previews.append(SelectedLibraryPhoto(id: id, pickerItem: photo, reviewImage: reviewImage))
+                let id = ImportPhotoID.make(for: data)
+                guard !loaded.contains(where: { $0.id == id }) else { continue }
+                loaded.append(ReviewImage(id: id, data: data, source: "Photo Library", isShared: false))
             } catch {
-                previews.append(SelectedLibraryPhoto(id: id, pickerItem: photo, reviewImage: nil))
                 failedCount += 1
             }
         }
 
         guard !Task.isCancelled else { return }
-        selectedPhotoPreviews = previews
         isLoadingSelectedPhotos = false
+
         if failedCount > 0 {
+            selectedPhotos = []
             importError = failedCount == 1
-                ? "One selected photo could not be loaded. Remove it or choose it again."
-                : "Some selected photos could not be loaded. Remove them or choose them again."
+                ? "One selected photo could not be loaded. Choose it again."
+                : "Some selected photos could not be loaded. Choose them again."
+            return
+        }
+
+        if loaded.count == 1, let image = loaded.first {
+            selectedPhotos = []
+            review = image
+        } else if loaded.count > 1 {
+            let selectionKey = ([importMode.rawValue] + loaded.map(\.id).sorted()).joined(separator: ":")
+            multiPhotoReview = MultiPhotoReviewSession(
+                id: SharedImportDraftStore.stableID(importID: selectionKey, part: "multi-photo-import"),
+                mode: importMode,
+                photos: loaded
+            )
         }
     }
-
-    private func removeSelectedPhoto(_ photo: SelectedLibraryPhoto) {
-        selectedPhotos.removeAll { $0 == photo.pickerItem }
-        selectedPhotoPreviews.removeAll { $0.id == photo.id }
-    }
-}
-
-private struct SelectedLibraryPhoto: Identifiable {
-    let id: String
-    let pickerItem: PhotosPickerItem
-    let reviewImage: ReviewImage?
 }
 
 private struct MultiPhotoReviewSession: Identifiable {
@@ -869,36 +733,5 @@ struct ImportReviewView: View {
             saveError = error.localizedDescription
         }
         isSaving = false
-    }
-}
-
-private struct PrototypeCameraPicker: UIViewControllerRepresentable {
-    let onResult: (UIImage?) -> Void
-
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.sourceType = .camera
-        picker.delegate = context.coordinator
-        return picker
-    }
-
-    func updateUIViewController(_ controller: UIImagePickerController, context: Context) {}
-
-    func makeCoordinator() -> Coordinator { Coordinator(onResult: onResult) }
-
-    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let onResult: (UIImage?) -> Void
-
-        init(onResult: @escaping (UIImage?) -> Void) {
-            self.onResult = onResult
-        }
-
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            onResult(info[.originalImage] as? UIImage)
-        }
-
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            onResult(nil)
-        }
     }
 }

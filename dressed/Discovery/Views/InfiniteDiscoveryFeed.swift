@@ -13,7 +13,9 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     @State private var likedIDs: Set<String> = []
     @State private var previewPosts: [Post] = []
     @Binding private var showingCreate: Bool
-    @State private var showingSaved = false
+    /// Set when the floating Search Styles button is tapped; the app shell presents the search sheet.
+    @Binding private var isSearching: Bool
+    @StateObject private var catalog = CatalogViewModel(service: DiscoveryCatalogSource.current)
     private let savedPosts: SavedPostsViewModel?
     private let canSharePreview: Bool
     private let artwork: (Post) -> Artwork
@@ -28,6 +30,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         rankingContext: FeedRankingContext = .chronological(),
         section: Binding<Int> = .constant(0),
         showingCreate: Binding<Bool> = .constant(false),
+        isSearching: Binding<Bool> = .constant(false),
         canSharePreview: Bool = false,
         commentService: (any CommentService)? = nil,
         savedPosts: SavedPostsViewModel? = nil,
@@ -39,6 +42,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         self.artwork = artwork
         _section = section
         _showingCreate = showingCreate
+        _isSearching = isSearching
         self.canSharePreview = canSharePreview
         _commentService = State(initialValue: commentService ?? FirebaseCommentService())
         self.savedPosts = savedPosts
@@ -50,30 +54,24 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if savedPosts != nil {
-                HStack {
-                    Spacer()
-                    DSCircleButton(content: .icon("TablerBookmark"), accessibilityLabel: "Saved Posts") {
-                        showingSaved = true
-                    }
-                    .accessibilityIdentifier("ootd.savedPosts")
-                }
-                .padding(.horizontal, DSSpacing.lg)
-            }
             ScrollView {
                 LazyVStack(spacing: 20) {
                     if section == 0 {
-                        DiscoveryRetailShelf()
-                        LazyVGrid(columns: columns, spacing: 12) {
-                            ForEach(forYouPosts) { post in
-                                Button { selectedPost = post } label: {
-                                    artwork(post)
-                                        .aspectRatio(1, contentMode: .fit)
-                                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                        LazyVGrid(columns: columns, spacing: DSSpacing.md) {
+                            ForEach(forYouEntries) { entry in
+                                switch entry {
+                                case .post(let post):
+                                    Button { selectedPost = post } label: {
+                                        artwork(post)
+                                            .aspectRatio(1, contentMode: .fit)
+                                            .clipShape(RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous))
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel("\(post.caption), by \(post.authorId)")
+                                    .accessibilityIdentifier("infinite.post.\(post.id)")
+                                case .product(let product):
+                                    DiscoveryRetailPhotoTile(product: product)
                                 }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel("\(post.caption), by \(post.authorId)")
-                                .accessibilityIdentifier("infinite.post.\(post.id)")
                             }
                         }
                     } else {
@@ -85,7 +83,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
-                .padding(.bottom, 24)
+                .padding(.bottom, section == 0 ? DSFloatingSearchButton.height + 2 * DSSpacing.lg : 24)
             }
             .accessibilityIdentifier("infinite.scroll")
             .onScrollGeometryChange(for: CGFloat?.self) { geometry in
@@ -108,9 +106,14 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         .navigationTitle("Discovery")
         .navigationBarTitleDisplayMode(.inline)
         .task { await model.loadInitial() }
-        .task { await savedPosts?.loadIfNeeded() }
-        .navigationDestination(isPresented: $showingSaved) {
-            if let savedPosts { SavedPostsView(model: savedPosts) }
+        .task { catalog.search(query: "", category: nil) }
+        .overlay(alignment: .bottom) {
+            if section == 0 {
+                DSFloatingSearchButton(title: "Search Styles") { isSearching = true }
+                    .accessibilityIdentifier("discovery.searchButton")
+                    .padding(.horizontal, DSSpacing.lg)
+                    .padding(.bottom, DSSpacing.sm)
+            }
         }
         .onAppear { loadNextPageIfNeeded() }
         .onDisappear { pageTask?.cancel() }
@@ -169,6 +172,30 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         }
     }
 
+    private enum GridEntry: Identifiable {
+        case post(Post)
+        case product(CatalogProduct)
+
+        var id: String {
+            switch self {
+            case .post(let post): "post.\(post.id)"
+            case .product(let product): "product.\(product.id)"
+            }
+        }
+    }
+
+    /// Outfit photos with a retailer photo after every two outfits, while retailer products last.
+    private var forYouEntries: [GridEntry] {
+        var products: [CatalogProduct] = []
+        if case .loaded(let loaded) = catalog.state { products = DiscoveryRetailPhotos.featured(loaded) }
+        var entries: [GridEntry] = []
+        for (index, post) in forYouPosts.enumerated() {
+            entries.append(.post(post))
+            if index % 2 == 1, !products.isEmpty { entries.append(.product(products.removeFirst())) }
+        }
+        return entries + products.map(GridEntry.product)
+    }
+
     private func loadNextPageIfNeeded() {
         guard nearBottom, model.hasMore, !model.isLoading, model.errorMessage == nil else { return }
         pageTask = Task { @MainActor in await model.loadMore() }
@@ -212,10 +239,6 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            if let savedPosts, !previewPosts.contains(where: { $0.id == post.id }) {
-                SavedPostControl(postId: post.id, post: post, model: savedPosts)
-                    .padding(DSSpacing.md)
-            }
         }
         .background(Color(white: 0.98))
         .clipShape(RoundedRectangle(cornerRadius: 18))
@@ -231,6 +254,7 @@ extension InfiniteDiscoveryFeed where Artwork == DemoOutfitPhoto {
         failSecondPage: Bool = false,
         section: Binding<Int> = .constant(0),
         showingCreate: Binding<Bool> = .constant(false),
+        isSearching: Binding<Bool> = .constant(false),
         savedPosts: SavedPostsViewModel? = nil
     ) -> Self {
         let fixtures = InfiniteFeedFixtures(failSecondPage: failSecondPage)
@@ -238,6 +262,7 @@ extension InfiniteDiscoveryFeed where Artwork == DemoOutfitPhoto {
             loadPage: fixtures.loadPage,
             section: section,
             showingCreate: showingCreate,
+            isSearching: isSearching,
             canSharePreview: true,
             commentService: DemoCommentService(),
             savedPosts: savedPosts
@@ -254,6 +279,7 @@ extension InfiniteDiscoveryFeed where Artwork == PostArtwork {
         service: any PostFunctions = DiscoveryPostSource.current,
         section: Binding<Int> = .constant(0),
         showingCreate: Binding<Bool> = .constant(false),
+        isSearching: Binding<Bool> = .constant(false),
         savedPosts: SavedPostsViewModel? = nil
     ) -> Self {
         Self(loadPage: { cursor in
@@ -265,7 +291,7 @@ extension InfiniteDiscoveryFeed where Artwork == PostArtwork {
                 nextCursor: nil,
                 removedPostIDs: []
             )
-        }, section: section, showingCreate: showingCreate, savedPosts: savedPosts) { post in
+        }, section: section, showingCreate: showingCreate, isSearching: isSearching, savedPosts: savedPosts) { post in
             PostArtwork(post: post)
         }
     }

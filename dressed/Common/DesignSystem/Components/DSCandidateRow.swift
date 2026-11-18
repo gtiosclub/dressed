@@ -5,6 +5,7 @@ import SwiftUI
 struct DSCandidateRow<Thumbnail: View>: View {
     let title: String
     let subtitle: String
+    var isSelected = false
     @ViewBuilder let thumbnail: () -> Thumbnail
 
     var body: some View {
@@ -29,14 +30,20 @@ struct DSCandidateRow<Thumbnail: View>: View {
         .frame(height: 92)
         .background(DSColor.background)
         .clipShape(RoundedRectangle(cornerRadius: DSRadius.md, style: .continuous))
-        .dsShadow(.card)
+        .overlay {
+            if isSelected {
+                RoundedRectangle(cornerRadius: DSRadius.md, style: .continuous)
+                    .stroke(DSColor.brandLight, lineWidth: 1)
+            }
+        }
+        .dsShadow(isSelected ? .selectedRow : .card)
     }
 }
 
 #Preview {
     VStack(spacing: DSSpacing.sm) {
         ForEach(["PreviewSweaterBrown", "PreviewTeeBrown", "PreviewSweatshirtBrown"], id: \.self) { name in
-            DSCandidateRow(title: "Lorem Ipsum", subtitle: "Sit amet") {
+            DSCandidateRow(title: "Lorem Ipsum", subtitle: "Sit amet", isSelected: name == "PreviewSweaterBrown") {
                 Image(name).resizable().scaledToFit()
             }
         }
