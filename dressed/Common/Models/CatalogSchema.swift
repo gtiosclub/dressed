@@ -16,6 +16,7 @@ struct CatalogProduct: Codable, Identifiable {
     let availability: String
     let status: String
     let lastCheckedAt: String
+    var retailProduct: RetailProduct? = nil
 }
 
 struct CatalogSearchResponse: Decodable {

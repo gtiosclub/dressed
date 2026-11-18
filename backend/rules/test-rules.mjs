@@ -42,6 +42,24 @@ const outfit = {
 const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
 
 try {
+  await test('catalog allows bounded signed-in reads but no client writes', async () => {
+    await env.clearFirestore();
+    const path = 'catalogProducts/catalog_test';
+    await env.withSecurityRulesDisabled(async context => {
+      await setDoc(doc(context.firestore(), path), { title: 'Test retailer product' });
+    });
+    await assertSucceeds(getDoc(doc(alice.firestore(), path)));
+    await assertSucceeds(getDocs(query(collection(alice.firestore(), 'catalogProducts'), limit(200))));
+    await assertFails(getDoc(doc(guest.firestore(), path)));
+    await assertFails(getDocs(query(collection(guest.firestore(), 'catalogProducts'), limit(200))));
+    await assertFails(getDocs(collection(alice.firestore(), 'catalogProducts')));
+    await assertFails(getDocs(query(collection(alice.firestore(), 'catalogProducts'), limit(201))));
+    await assertFails(setDoc(doc(alice.firestore(), 'catalogProducts/new'), { title: 'Fake' }));
+    await assertFails(updateDoc(doc(alice.firestore(), path), { title: 'Changed' }));
+    await assertFails(deleteDoc(doc(alice.firestore(), path)));
+    await assertFails(setDoc(doc(guest.firestore(), 'catalogProducts/new'), { title: 'Fake' }));
+  });
+
   await test('an owner can save, read, update, list, and delete a clothing item', async () => {
     await env.clearFirestore();
     const own = doc(alice.firestore(), itemPath);

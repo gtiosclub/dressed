@@ -623,3 +623,7 @@ This document explains the broader system, not the expected size of a student ta
 ## Approved first implementation path
 
 Photo-library selection and manual name/category entry come first. Views display supplied values and report interactions; view models hold screen state and call functions; Firebase functions perform individual reads/writes; Common/Models defines records. Leads connect these into the first closet flow. Later extraction can supply suggestions to that same form. See [the roadmap](delivery-plan.md).
+
+## Live retailer catalog
+
+`FirebaseCatalogService` reads at most 200 `catalogProducts` documents for authenticated Discovery browsing. `RetailCatalogRecord` maps the catalog envelope into `CatalogProduct` while preserving nested `RetailProduct` photos, descriptions, options and offers. The For You feed adds a retailer shelf and a searchable full catalog without changing outfit/Friends routing. Catalog records remain separate from owned clothing and wishlist confirmation. Client catalog writes are denied. See [retailer implementation](retailer-import-implementation.md).

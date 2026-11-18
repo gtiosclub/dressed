@@ -55,7 +55,7 @@ struct DiscoveryIdeasView: View {
         .background(DSColor.background)
         .overlay(alignment: .bottom) {
             if !isSearchFocused {
-                DSFloatingSearchButton(title: submittedQuery.isEmpty ? "Search Styles" : submittedQuery) {
+                DSFloatingSearchButton(title: submittedQuery.isEmpty ? "Search Products" : submittedQuery) {
                     isSearchFocused = true
                 }
                 .accessibilityIdentifier("discovery.searchButton")
@@ -106,7 +106,7 @@ struct DiscoveryIdeasView: View {
                 }
             }
 
-            if !selectedStyles.isEmpty {
+            if !selectedStyles.isEmpty || !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Button(action: submitSearch) {
                     Text("Show results").frame(maxWidth: .infinity)
                 }
@@ -257,6 +257,7 @@ private struct DiscoveryIdeasSearchField: View {
                 )
         }
         .onAppear { fieldFocused = isFocused }
+        .onAppear { fieldFocused = isFocused }
         .onChange(of: fieldFocused) { _, newValue in
             isFocused = newValue
         }
@@ -276,7 +277,8 @@ private struct DiscoveryIdeaTile: View {
     }
 }
 
-private struct DiscoveryIdeaDetailView: View {
+struct DiscoveryIdeaDetailView: View {
+    @Environment(\.openURL) private var openURL
     let product: CatalogProduct
 
     private var usableProductURL: URL? {
@@ -297,17 +299,41 @@ private struct DiscoveryIdeaDetailView: View {
                 Text(product.category.rawValue.capitalized)
                     .font(DSFont.body)
                     .foregroundStyle(DSColor.textMuted)
+                if let description = product.retailProduct?.description, !description.isEmpty {
+                    Text(description).font(DSFont.body)
+                }
+                if let photos = product.retailProduct?.photos, photos.count > 1 {
+                    ScrollView(.horizontal) {
+                        HStack(spacing: DSSpacing.sm) {
+                            ForEach(Array(photos.dropFirst().enumerated()), id: \.offset) { _, photo in
+                                AsyncImage(url: photo.url) { image in
+                                    image.resizable().scaledToFit()
+                                } placeholder: { ProgressView() }
+                                .frame(width: 160, height: 200)
+                                .clipShape(RoundedRectangle(cornerRadius: DSRadius.lg))
+                            }
+                        }
+                    }
+                    .accessibilityIdentifier("catalog.photoGallery")
+                }
+                if let options = product.retailProduct?.variantOptions {
+                    ForEach(options.keys.sorted(), id: \.self) { key in
+                        Text("\(key): \(options[key, default: []].joined(separator: ", "))")
+                            .font(DSFont.body)
+                    }
+                }
                 Text("Source: \(product.sourceName)")
                     .font(DSFont.body)
                 if let price = product.formattedPrice {
                     Text(price).font(DSFont.bodyEmphasis)
                 }
                 if let usableProductURL {
-                    Link(destination: usableProductURL) {
+                    Button { openURL(usableProductURL) } label: {
                         Label("View at \(product.sourceName)", tabler: "TablerExternalLink", size: 20)
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.ds(.primary))
+                    .accessibilityIdentifier("catalog.retailerLink")
                 } else {
                     Text("Product link unavailable")
                         .font(DSFont.body)
@@ -316,7 +342,7 @@ private struct DiscoveryIdeaDetailView: View {
             }
             .padding(DSSpacing.lg)
         }
-        .navigationTitle("Clothing idea")
+        .navigationTitle("Retail product")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
     }

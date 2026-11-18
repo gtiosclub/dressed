@@ -78,6 +78,13 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Public retailer metadata is curated by the backend, never by client writes.
+    match /catalogProducts/{productId} {
+      allow get: if request.auth != null;
+      allow list: if request.auth != null && request.query.limit != null && request.query.limit <= 200;
+      allow create, update, delete: if false;
+    }
+
     // Includes the existing uppercase legacy collections and unapproved models.
     match /{document=**} {
       allow read, write: if false;

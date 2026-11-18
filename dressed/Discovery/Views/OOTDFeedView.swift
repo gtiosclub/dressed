@@ -721,28 +721,37 @@ struct OOTDCreatePostView: View {
     }
 }
 
-/// Published media is not connected yet. Demo posts show garment artwork; live posts show a clear fallback.
+/// Uses bundled images only for explicitly identified sample posts; real posts load published media.
 struct PostArtwork: View {
     let post: Post
-    var cornerRadius: CGFloat = 12
+    var cornerRadius: CGFloat = DSRadius.lg
+    @StateObject private var model = PublishedPostImageModel()
 
     var body: some View {
-        ZStack {
-            Color(red: 0.85, green: 0.85, blue: 0.85)
-            if !post.id.hasPrefix("demo_post_") {
-                VStack(spacing: 8) {
-                    Image("TablerPhoto")
-                        .renderingMode(.template)
+        GeometryReader { geometry in
+            ZStack {
+                DSColor.tile
+                if let image = model.image {
+                    Image(uiImage: image)
                         .resizable()
-                        .frame(width: 32, height: 32)
-                    Text("Post image unavailable").font(.caption)
+                        .scaledToFill()
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipped()
+                } else if model.isLoading {
+                    ProgressView("Loading outfit…")
+                } else {
+                    VStack(spacing: DSSpacing.sm) {
+                        DSIcon("TablerPhoto", size: 24)
+                        Text("Post image unavailable").font(DSFont.search)
+                    }
+                    .foregroundStyle(DSColor.textMuted)
                 }
-                .foregroundStyle(.secondary)
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(post.id.hasPrefix("demo_post_") ? "Illustrated outfit" : "Post image unavailable")
+        .accessibilityLabel(model.image == nil ? "Post image unavailable" : "Outfit photo")
+        .task(id: post.id + "|" + post.mediaPath) { await model.load(post) }
     }
 }
 

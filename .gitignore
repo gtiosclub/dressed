@@ -77,3 +77,6 @@ ui-debug.log
 # Python catalog prototype
 __pycache__/
 *.py[cod]
+
+# Persistent local acquisition data (not source control)
+backend/catalog/local-data/

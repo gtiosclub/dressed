@@ -1,5 +1,13 @@
 # Retail catalog and clothing recognition — proposed spec
 
+**November 16 acquisition update:** The accepted hybrid direction combines shared
+links, on-demand shopping search, and approved persistent feeds. A standalone
+backend search/offer evaluation CLI and supplied-HTML metadata parser now support
+the first experiment. Live coverage, source approval and native integration remain
+unverified. See [implementation sequence](retailer-import-implementation.md). The
+deterministic connector and private-review boundaries below still apply; search
+candidates are not automatically promoted into catalog records.
+
 **Status:** Proposal for lead review, updated October 18, 2026. A fixture-backed local SQLite catalog importer and read-only localhost API exist. Discovery Search calls the API and handles loading, empty, failure, and retry. An offline adapter converts saved eBay Browse search responses into partial catalog feeds; it does not call eBay. Camera supports reviewed product links saved locally to Wishlist, plus on-device garment suggestions. The Debug simulator can use a local bridge for live Google Object Localization after a developer signs in and receives access to the separate billed recognition project. Google Product Search still parses fixtures only. The app's `out-fitted` Firebase project remains unbilled. No live Product Search match, retailer crawler/feed, hosted recognition endpoint, or cloud deployment is implemented.
 
 ## Outcome and boundaries
@@ -53,6 +61,17 @@ For the first source, ingest a bounded fixture and then an approved live source.
 
 ## B. Clothing recognition and catalog matching
 
+### Capture and review boundary
+
+Live Camera guidance stays on the phone: low-frequency body-pose checks give
+brief framing prompts and tentative top, bottom, and shoes areas. The captured
+photo then enters piece detection and review. Only after a piece is found may
+the user refine its crop with the lasso and request more detailed product
+suggestions for that reviewed piece. Image-based catalog results are labeled
+“similar”; an “exact product” label requires a verified identifier or source.
+Whether selected crops may be sent to a hosted provider is pending Neal's
+privacy decision. No live provider or product catalog is implied by this flow.
+
 ### Three separate tasks
 
 | Task | Input → output | First implementation |
@@ -68,6 +87,64 @@ The current Apple Vision path classifies the **whole image** and does not locate
 The [fixture adapter](../backend/recognition/README.md) now parses Object Localization responses and uses the existing intersection-over-union evaluator. Its synthetic two-detection example is a contract check only; it is not evidence that the provider recognizes real outfits.
 
 The [Product Search experiment](../backend/recognition/README.md) adds a second comparison path. It can return garment boxes and similar matches from a preloaded product set in one response, but those matches are limited to that set. The developer CLI displays Product Search and Object Localization candidate sets from one saved response. Its fixture test is not evidence of detection quality. The $5 monthly budget is an alert, not an enforceable cap. Billing and Vision are enabled on the separate recognition project for bounded Object Localization testing; Product Search has no live adapter or indexed product set.
+
+### Quality path for separate pieces and cutouts
+
+#### Messy-photo baseline (October 18, 2026)
+
+Three web photos were downloaded into `/private/tmp/dressed-messy-images/` for a
+historical local probe and left out of the repository. The current development
+photo set is the plain, front-facing generated outfit set in
+[`backend/recognition/fixtures/outfits`](../backend/recognition/fixtures/outfits); it has not been used to repeat the measurements below. Historical sources: [low-angle jeans against graffiti](https://commons.wikimedia.org/wiki/File:Urban_Street_Clothes_%28Unsplash%29.jpg),
+[tilted fashion pose](https://commons.wikimedia.org/wiki/File:Intentional_camera_tilt_or_Dutch_angle_-_example_in_fashion_photography_for_filling_the_frame_-_ModelTanja.jpg),
+and [night street scene with umbrella and bystanders](https://commons.wikimedia.org/wiki/File:Harajuku_Fashion_Street_Snap_%282018-01-08_20.47.08_by_Dick_Thomas_Johnson%29.jpg).
+These are exploratory examples, not a measured evaluation set or permission to
+upload user photos to a hosted service.
+
+A macOS Vision probe ran the same body-pose request and 0.35 joint threshold as
+the app's `OnDeviceGarmentRegions`. The low-angle and tilted photos failed the
+four shoulder/hip joint requirement, so that path could propose no garment
+regions for either. The night photo met the prerequisites for upper, lower, and
+shoe regions, but those are body-relative rectangles, not separated clothing.
+The whole-image classifier ranked jeans first for the low-angle photo but ranked
+umbrella first for the night scene. Apple foreground-instance masks returned one
+foreground instance for each image; visual inspection showed person-level
+silhouettes, including the bag in the low-angle shot and umbrella/shopping bag
+in the night shot. They did not isolate separate top, pants, outerwear, and
+footwear pieces. This probe ran Vision on macOS, not the complete iOS import UI,
+and no polygon ground truth exists yet, so it does not yield precision/recall or
+mask IoU scores.
+
+1. Build a consented evaluation set with product shots, full outfits, flat lays,
+   layered outerwear, paired shoes, accessories, occlusion, and varied lighting.
+   Draw a category and instance polygon for every visible piece. Split by
+   source/product/person so near-duplicate photos never cross into the holdout.
+2. Measure the current on-device path and a generic object detector as baselines.
+   Compare a clothing-specific instance-segmentation model and a promptable
+   concept segmenter such as [Meta SAM 3](https://github.com/facebookresearch/sam3)
+   on the same held-out photos. SAM 3 can return masks from text or visual prompts;
+   its availability does not establish that it handles this app's outfits well.
+   Keep model choice behind one backend adapter.
+3. Return separate top, bottom, outerwear, dress, footwear pair, and accessory
+   candidates with stable IDs, category, box, mask, raw label, model version,
+   and confidence. Suppress duplicate overlapping masks; handle a dress versus
+   top/bottom as alternatives rather than silently saving both. Low-confidence
+   cases abstain and open manual review.
+4. Use the candidate mask for the first cutout, retaining the original photo.
+   The lasso editor sends a box plus positive/negative taps to a promptable
+   mask refinement service; [SAM 2's image predictor](https://github.com/facebookresearch/sam2/blob/main/sam2/sam2/sam2_image_predictor.py)
+   is one reference for that interaction. Show the alpha preview at high zoom,
+   let the user erase/restore small areas, and never invent hidden garment pixels.
+   Keep Apple's foreground-instance mask as the offline fallback; it isolates
+   foreground subjects, which may be a whole person instead of one garment.
+5. Gate release on per-category detection recall/precision at a defined overlap,
+   category accuracy, mask overlap and boundary quality, false suggestions,
+   edit rate, p95 latency, failures, and cost. Inspect misses separately for
+   footwear, layers, and dark-on-dark edges. Set numeric thresholds from the
+   measured baseline and a user review study, then lock a held-out test set.
+
+Do not merge product matching into this detector. Retrieval only starts after a
+user selects a piece and a catalog with permitted reference images is indexed.
 
 ### Recognition contract and privacy
 

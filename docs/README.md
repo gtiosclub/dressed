@@ -44,3 +44,5 @@ Use the [template kit](../templates/README.md) for copyable schema, repository, 
 ## Student task size
 
 The student backlog has 40 published small tasks grouped by the agreed roadmap milestones, including 15 independent follow-on tickets added October 8, 2026 and four sprint follow-ups added October 10. Earlier phase-sized assignments have been replaced. The backlog also lists 15 separate data, viz, and social proposal tickets; the new viz and social proposals carry the `hard` difficulty label. Read [docs/officers](officers/README.md) for plain-language ticket writing, examples, ownership and decisions to discuss before assigning work. Production architecture and integration issues use the `lead` label and the [lead board](https://github.com/orgs/gtiosclub/projects/82).
+
+- [Retailer import and live Discovery](retailer-import-implementation.md): persisted acquisition, Firebase catalog seed, and signed-in product browsing.

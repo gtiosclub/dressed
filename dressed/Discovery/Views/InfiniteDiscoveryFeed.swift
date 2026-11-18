@@ -63,6 +63,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
             ScrollView {
                 LazyVStack(spacing: 20) {
                     if section == 0 {
+                        DiscoveryRetailShelf()
                         LazyVGrid(columns: columns, spacing: 12) {
                             ForEach(forYouPosts) { post in
                                 Button { selectedPost = post } label: {
