@@ -64,7 +64,7 @@ final class ShareImportUITests: XCTestCase {
         app.buttons["Friends"].tap()
         app.buttons["infinite.comments.infinite_0"].tap()
         XCTAssertTrue(app.staticTexts["Nice fit"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Demo comments · saved only for this preview"].exists)
+        XCTAssertFalse(app.staticTexts["Demo comments · saved only for this preview"].exists)
     }
 
     func testDiscoveryIdeasAndOOTDPostsAreSeparate() {

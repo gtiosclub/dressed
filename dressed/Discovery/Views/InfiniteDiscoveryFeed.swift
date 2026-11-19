@@ -11,6 +11,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     @State private var previewCommentsPost: Post?
     @State private var commentService: any CommentService
     @State private var likedIDs: Set<String> = []
+    @State private var commentCounts: [String: Int] = [:]
     @State private var previewPosts: [Post] = []
     @Binding private var showingCreate: Bool
     /// Set when the floating Search Styles button is tapped; the app shell presents the search sheet.
@@ -132,13 +133,13 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                 showingCreate = false
             }
         }
-        .sheet(item: $commentsPost) { post in
+        .sheet(item: $commentsPost, onDismiss: { refreshAllCounts() }) { post in
             PostCommentsSheet(postId: post.id, service: commentService)
         }
         .sheet(item: $selectedPost) { post in
             NavigationStack {
                 ScrollView { friendCard(post, inPreview: true).padding(20) }
-                    .sheet(item: $previewCommentsPost) { selected in
+                    .sheet(item: $previewCommentsPost, onDismiss: { refreshAllCounts() }) { selected in
                         PostCommentsSheet(postId: selected.id, service: commentService)
                     }
                     .navigationTitle("Outfit preview")
@@ -199,56 +200,40 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         return entries + products.map(GridEntry.product)
     }
 
+    private func refreshAllCounts() {
+        Task { for id in Array(commentCounts.keys) { await refreshCommentCount(id) } }
+    }
+
     private func loadNextPageIfNeeded() {
         guard nearBottom, model.hasMore, !model.isLoading, model.errorMessage == nil else { return }
         pageTask = Task { @MainActor in await model.loadMore() }
     }
 
     private func friendCard(_ post: Post, inPreview: Bool = false) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text("@\(post.authorId)").fontWeight(.semibold)
-                Text(post.createdAt, format: .dateTime.month(.twoDigits).day(.twoDigits).year(.twoDigits))
-                    .foregroundStyle(.secondary)
-            }
-            .font(.subheadline)
-            .padding(16)
-
+        DSPostCard(
+            handle: "@\(post.authorId)",
+            date: Self.dateLabel(post.createdAt),
+            caption: post.caption,
+            commentCount: commentCounts[post.id] ?? 0,
+            likeCount: likedIDs.contains(post.id) ? 1 : 0,
+            isLiked: likedIDs.contains(post.id),
+            onComment: { if inPreview { previewCommentsPost = post } else { commentsPost = post } },
+            onLike: { if !likedIDs.insert(post.id).inserted { likedIDs.remove(post.id) } }
+        ) {
             artwork(post)
-                .aspectRatio(0.82, contentMode: .fit)
-
-            HStack(alignment: .center, spacing: 12) {
-                Text(post.caption).font(.body.weight(.medium))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                Button {
-                    if inPreview { previewCommentsPost = post } else { commentsPost = post }
-                } label: {
-                    DSIcon("TablerMessageCircle", size: 20)
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Comments")
-                .accessibilityIdentifier("infinite.comments.\(post.id)")
-                Button {
-                    if !likedIDs.insert(post.id).inserted { likedIDs.remove(post.id) }
-                } label: {
-                    DSIcon(likedIDs.contains(post.id) ? "TablerHeartFilled" : "TablerHeart", size: 20)
-                        .font(.title3)
-                        .foregroundStyle(likedIDs.contains(post.id) ? accent : .black)
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(likedIDs.contains(post.id) ? "Unlike outfit" : "Like outfit")
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
         }
-        .background(Color(white: 0.98))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .overlay(RoundedRectangle(cornerRadius: 18).stroke(accent.opacity(0.22)))
-        .shadow(color: accent.opacity(0.12), radius: 8, y: 4)
+        .task(id: post.id) { await refreshCommentCount(post.id) }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("infinite.card.\(post.id)")
+    }
+
+    private static func dateLabel(_ date: Date) -> String {
+        let c = Calendar.current.dateComponents([.month, .day, .year], from: date)
+        return String(format: "%02d.%02d.%02d", c.month ?? 0, c.day ?? 0, (c.year ?? 0) % 100)
+    }
+
+    private func refreshCommentCount(_ postId: String) async {
+        if let fetched = try? await commentService.fetch(postId: postId) { commentCounts[postId] = fetched.count }
     }
 }
 

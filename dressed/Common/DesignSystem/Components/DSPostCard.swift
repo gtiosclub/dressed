@@ -35,7 +35,7 @@ struct DSPostCard<Photo: View>: View {
                     .padding(11)
                 }
 
-            HStack(spacing: DSSpacing.md) {
+            HStack(spacing: DSSpacing.lg) {
                 Text(caption)
                     .lineLimit(1)
                 Spacer(minLength: 0)
@@ -52,7 +52,7 @@ struct DSPostCard<Photo: View>: View {
             .buttonStyle(.plain)
             .font(DSFont.bodyEmphasis)
             .foregroundStyle(DSColor.textPrimary)
-            .padding(.horizontal, 19)
+            .padding(.horizontal, 18)
             .frame(height: 56)
         }
         .background {
@@ -69,8 +69,10 @@ struct DSPostCard<Photo: View>: View {
     private func count(icon: String, value: Int) -> some View {
         HStack(spacing: DSSpacing.xs) {
             Image(icon).resizable().frame(width: 22, height: 22)
-            Text("\(value)")
+            Text("\(value)").monospacedDigit()
         }
+        .frame(minHeight: 44)
+        .contentShape(Rectangle())
     }
 }
 
