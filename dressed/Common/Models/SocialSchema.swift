@@ -23,6 +23,9 @@ struct Post: Codable, Identifiable {
     var outfitSnapshot: PublishedOutfitSnapshot
     var mediaPath: String
     var createdAt: Date
+    /// Public aggregate maintained atomically with owner-private PostLike records.
+    /// Optional while older published posts are migrated; missing means zero.
+    var likeCount: Int? = nil
 }
 
 struct PublishedOutfitSnapshot: Codable {
@@ -40,6 +43,14 @@ struct PublishedClothingSnapshot: Codable {
 
 struct SavedPost: Codable, Identifiable {
     var id: String // Equal to postId within the owner's savedPosts collection.
+    var schemaVersion: Int
+    var ownerId: String
+    var postId: String
+    var createdAt: Date
+}
+
+struct PostLike: Codable, Identifiable {
+    var id: String // Equal to postId within the owner's postLikes collection.
     var schemaVersion: Int
     var ownerId: String
     var postId: String

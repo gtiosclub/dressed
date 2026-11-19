@@ -10,12 +10,14 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     @State private var commentsPost: Post?
     @State private var previewCommentsPost: Post?
     @State private var commentService: any CommentService
-    @State private var likedIDs: Set<String> = []
     @State private var previewPosts: [Post] = []
     @Binding private var showingCreate: Bool
     @State private var showingSaved = false
     private let savedPosts: SavedPostsViewModel?
+    @ObservedObject private var postLikes: PostLikesViewModel
     private let canSharePreview: Bool
+    private let authorId: String?
+    private let publisher: (any PostPublishing)?
     private let artwork: (Post) -> Artwork
     private let ranker: FeedRanker
     private let rankingContext: FeedRankingContext
@@ -30,7 +32,10 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         showingCreate: Binding<Bool> = .constant(false),
         canSharePreview: Bool = false,
         commentService: (any CommentService)? = nil,
+        authorId: String? = nil,
+        publisher: (any PostPublishing)? = nil,
         savedPosts: SavedPostsViewModel? = nil,
+        postLikes: PostLikesViewModel,
         @ViewBuilder artwork: @escaping (Post) -> Artwork
     ) {
         _model = StateObject(wrappedValue: ChronologicalFeedModel(loadPage: loadPage))
@@ -41,7 +46,10 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         _showingCreate = showingCreate
         self.canSharePreview = canSharePreview
         _commentService = State(initialValue: commentService ?? FirebaseCommentService())
+        self.authorId = authorId
+        self.publisher = publisher
         self.savedPosts = savedPosts
+        self.postLikes = postLikes
     }
 
     private var forYouPosts: [Post] {
@@ -115,13 +123,18 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         .onAppear { loadNextPageIfNeeded() }
         .onDisappear { pageTask?.cancel() }
         .navigationDestination(isPresented: $showingCreate) {
-            OOTDCreatePostView(canSharePreview: canSharePreview) { caption in
-                previewPosts.insert(Post(
-                    id: "demo_post_\(UUID().uuidString)", schemaVersion: 1,
-                    authorId: "you", caption: caption.isEmpty ? "caption (optional)" : caption,
-                    outfitSnapshot: PublishedOutfitSnapshot(name: nil, items: []),
-                    mediaPath: "", createdAt: .now
-                ), at: 0)
+            OOTDCreatePostView(canShare: canSharePreview || (publisher != nil && authorId != nil)) { caption in
+                if let publisher, let authorId {
+                    let post = try await publisher.publish(caption: caption, authorId: authorId)
+                    previewPosts.insert(post, at: 0)
+                } else {
+                    previewPosts.insert(Post(
+                        id: "demo_post_\(UUID().uuidString)", schemaVersion: 1,
+                        authorId: "you", caption: caption.isEmpty ? "caption (optional)" : caption,
+                        outfitSnapshot: PublishedOutfitSnapshot(name: nil, items: []),
+                        mediaPath: "", createdAt: .now
+                    ), at: 0)
+                }
                 section = 1
                 showingCreate = false
             }
@@ -175,7 +188,8 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     }
 
     private func friendCard(_ post: Post, inPreview: Bool = false) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
+        let like = postLikes.state(for: post)
+        return VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text("@\(post.authorId)").fontWeight(.semibold)
                 Text(post.createdAt, format: .dateTime.month(.twoDigits).day(.twoDigits).year(.twoDigits))
@@ -199,16 +213,20 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Comments")
                 .accessibilityIdentifier("infinite.comments.\(post.id)")
-                Button {
-                    if !likedIDs.insert(post.id).inserted { likedIDs.remove(post.id) }
-                } label: {
-                    DSIcon(likedIDs.contains(post.id) ? "TablerHeartFilled" : "TablerHeart", size: 20)
+                Button { postLikes.toggle(post: post) } label: {
+                    DSIcon(like.isLiked ? "TablerHeartFilled" : "TablerHeart", size: 20)
                         .font(.title3)
-                        .foregroundStyle(likedIDs.contains(post.id) ? accent : .black)
+                        .foregroundStyle(like.isLiked ? accent : .black)
                         .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(likedIDs.contains(post.id) ? "Unlike outfit" : "Like outfit")
+                .disabled(!like.isLoaded || like.isPending)
+                .accessibilityLabel(like.isLiked ? "Unlike outfit" : "Like outfit")
+                .accessibilityValue("\(like.likeCount) likes\(like.isPending ? ", updating" : "")")
+                .accessibilityIdentifier("ootd.like.\(post.id)")
+                Text("\(like.likeCount)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
@@ -223,6 +241,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         .shadow(color: accent.opacity(0.12), radius: 8, y: 4)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("infinite.card.\(post.id)")
+        .task { await postLikes.loadIfNeeded(post: post) }
     }
 }
 
@@ -231,7 +250,8 @@ extension InfiniteDiscoveryFeed where Artwork == DemoOutfitPhoto {
         failSecondPage: Bool = false,
         section: Binding<Int> = .constant(0),
         showingCreate: Binding<Bool> = .constant(false),
-        savedPosts: SavedPostsViewModel? = nil
+        savedPosts: SavedPostsViewModel? = nil,
+        postLikes: PostLikesViewModel
     ) -> Self {
         let fixtures = InfiniteFeedFixtures(failSecondPage: failSecondPage)
         return Self(
@@ -240,7 +260,8 @@ extension InfiniteDiscoveryFeed where Artwork == DemoOutfitPhoto {
             showingCreate: showingCreate,
             canSharePreview: true,
             commentService: DemoCommentService(),
-            savedPosts: savedPosts
+            savedPosts: savedPosts,
+            postLikes: postLikes
         ) { post in
             DemoOutfitPhoto(post: post)
         }
@@ -252,9 +273,12 @@ extension InfiniteDiscoveryFeed where Artwork == PostArtwork {
     /// It can adopt cursor-based paging here once PostFunctions exposes a cursor contract.
     static func live(
         service: any PostFunctions = DiscoveryPostSource.current,
+        publisher: any PostPublishing = FirebasePostPublisher(),
+        authorId: String,
         section: Binding<Int> = .constant(0),
         showingCreate: Binding<Bool> = .constant(false),
-        savedPosts: SavedPostsViewModel? = nil
+        savedPosts: SavedPostsViewModel? = nil,
+        postLikes: PostLikesViewModel
     ) -> Self {
         Self(loadPage: { cursor in
             guard cursor == nil else {
@@ -265,16 +289,27 @@ extension InfiniteDiscoveryFeed where Artwork == PostArtwork {
                 nextCursor: nil,
                 removedPostIDs: []
             )
-        }, section: section, showingCreate: showingCreate, savedPosts: savedPosts) { post in
+        }, section: section, showingCreate: showingCreate, authorId: authorId,
+           publisher: publisher, savedPosts: savedPosts,
+           postLikes: postLikes) { post in
             PostArtwork(post: post)
         }
     }
 }
 
 #Preview("Infinite scroll · For You & Friends") {
-    NavigationStack { InfiniteDiscoveryFeed.demo() }
+    NavigationStack {
+        InfiniteDiscoveryFeed.demo(
+            postLikes: PostLikesViewModel(ownerId: "preview", service: DemoPostLikeFunctions())
+        )
+    }
 }
 
 #Preview("Infinite scroll · Retry scenario") {
-    NavigationStack { InfiniteDiscoveryFeed.demo(failSecondPage: true) }
+    NavigationStack {
+        InfiniteDiscoveryFeed.demo(
+            failSecondPage: true,
+            postLikes: PostLikesViewModel(ownerId: "preview", service: DemoPostLikeFunctions())
+        )
+    }
 }

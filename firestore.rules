@@ -29,6 +29,58 @@ service cloud.firestore {
         && outfit.createdAt is timestamp && outfit.updatedAt is timestamp;
     }
 
+    function likeCount(data) {
+      return 'likeCount' in data ? data.likeCount : 0;
+    }
+
+    function validPostLike(uid, postId) {
+      let like = request.resource.data;
+      return like.keys().hasAll(['id', 'schemaVersion', 'ownerId', 'postId', 'createdAt'])
+        && like.keys().hasOnly(['id', 'schemaVersion', 'ownerId', 'postId', 'createdAt'])
+        && like.id == postId && like.postId == postId && like.ownerId == uid
+        && like.schemaVersion == 1 && like.createdAt is timestamp;
+    }
+
+    function validLikeCountTransition(postId) {
+      let uid = request.auth.uid;
+      let likePath = /databases/$(database)/documents/users/$(uid)/postLikes/$(postId);
+      let before = likeCount(resource.data);
+      let after = likeCount(request.resource.data);
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount'])
+        && after is int && after >= 0
+        && ((!exists(likePath) && existsAfter(likePath) && after == before + 1)
+          || (exists(likePath) && !existsAfter(likePath) && after == before - 1));
+    }
+
+    function validPostCreate(postId) {
+      let post = request.resource.data;
+      let outfit = post.outfitSnapshot;
+      return post.keys().hasAll([
+          'id', 'schemaVersion', 'authorId', 'caption', 'outfitSnapshot',
+          'mediaPath', 'createdAt', 'likeCount'
+        ])
+        && post.keys().hasOnly([
+          'id', 'schemaVersion', 'authorId', 'caption', 'outfitSnapshot',
+          'mediaPath', 'createdAt', 'likeCount'
+        ])
+        && post.id == postId && post.schemaVersion == 1
+        && post.authorId == request.auth.uid
+        && post.caption is string && post.caption.size() <= 500
+        && post.mediaPath == ''
+        && post.createdAt is timestamp && post.likeCount == 0
+        && outfit is map
+        && outfit.keys().hasAll(['items'])
+        && outfit.keys().hasOnly(['name', 'items'])
+        && (!('name' in outfit) || (outfit.name is string && outfit.name.size() <= 80))
+        && outfit.items is list && outfit.items.size() == 0;
+    }
+
+    function postCountChangesBy(postId, delta) {
+      let postPath = /databases/$(database)/documents/posts/$(postId);
+      return exists(postPath) && existsAfter(postPath)
+        && likeCount(getAfter(postPath).data) == likeCount(get(postPath).data) + delta;
+    }
+
     match /users/{uid}/items/{itemId} {
       allow get, list: if owns(uid);
       allow create: if owns(uid) && validItem(uid, itemId);
@@ -49,10 +101,23 @@ service cloud.firestore {
       allow delete: if owns(uid);
     }
 
-    // #59 must define and test safe publication before clients can write posts.
+    match /users/{uid}/postLikes/{postId} {
+      allow get, list: if owns(uid);
+      allow create: if owns(uid)
+        && exists(/databases/$(database)/documents/posts/$(postId))
+        && validPostLike(uid, postId)
+        && postCountChangesBy(postId, 1);
+      allow update: if false;
+      allow delete: if owns(uid) && postCountChangesBy(postId, -1);
+    }
+
+    // The first publication slice stores caption-only public snapshots. Media and closet-item
+    // publication remain closed until #59 defines their separate public storage contract.
     match /posts/{postId} {
       allow get, list: if request.auth != null;
-      allow create, update, delete: if false;
+      allow create: if request.auth != null && validPostCreate(postId);
+      allow update: if request.auth != null && validLikeCountTransition(postId);
+      allow delete: if false;
     }
 
     // Comments belong only to existing published posts. Reads are bounded;
