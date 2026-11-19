@@ -12,6 +12,8 @@ struct DSButtonStyle: ButtonStyle {
 
     var kind: Kind = .secondary
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(DSFont.button)
@@ -22,7 +24,9 @@ struct DSButtonStyle: ButtonStyle {
                 RoundedRectangle(cornerRadius: DSRadius.md, style: .continuous)
                     .fill(fill)
             )
-            .opacity(configuration.isPressed ? 0.7 : 1)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
+            .opacity(configuration.isPressed ? (reduceMotion ? 0.7 : 0.88) : 1)
+            .animation(.spring(response: 0.28, dampingFraction: 0.62), value: configuration.isPressed)
     }
 
     private var fill: Color {

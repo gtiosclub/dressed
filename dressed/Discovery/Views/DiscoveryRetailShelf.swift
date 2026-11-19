@@ -7,11 +7,12 @@ struct DiscoveryRetailPhotoTile: View {
 
     var body: some View {
         NavigationLink { DiscoveryIdeaDetailView(product: product) } label: {
-            CatalogProductImage(product: product)
+            Color.clear
                 .aspectRatio(1, contentMode: .fit)
+                .overlay { CatalogProductImage(product: product) }
                 .clipShape(RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.dsPress(0.98))
         .accessibilityLabel("\(product.title), \(product.sourceName)")
         .accessibilityIdentifier("catalog.product.\(product.id)")
     }

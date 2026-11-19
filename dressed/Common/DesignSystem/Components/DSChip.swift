@@ -28,7 +28,9 @@ struct DSChip: View {
             .frame(height: style == .flat ? 44 : 43)
             .background { background }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.dsPress)
+        .animation(.snappy(duration: 0.25), value: isSelected)
+        .sensoryFeedback(.selection, trigger: isSelected)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 

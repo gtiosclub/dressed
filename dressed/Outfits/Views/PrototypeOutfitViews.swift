@@ -26,6 +26,7 @@ struct PrototypeOutfitEditorView: View {
     @State private var placements: [OutfitPlacement] = []
     @State private var filter: ClothingCategory?
     @State private var saveError: String?
+    @State private var createdCount = 0
 
     private let columns = [GridItem(.flexible(), spacing: DSSpacing.md), GridItem(.flexible(), spacing: DSSpacing.md)]
 
@@ -47,8 +48,10 @@ struct PrototypeOutfitEditorView: View {
                 HStack(spacing: DSSpacing.xs) {
                     ForEach(selectedItems.prefix(3)) { item in
                         DSThumbnailSlot { pieceImage(item) }
+                            .transition(.scale(scale: 0.6).combined(with: .opacity))
                     }
                 }
+                .animation(.spring(response: 0.35, dampingFraction: 0.7), value: placements.count)
             }
             .padding(.horizontal, DSSpacing.lg)
             .padding(.top, DSSpacing.sm)
@@ -69,8 +72,8 @@ struct PrototypeOutfitEditorView: View {
             }
 
             if closet.items.isEmpty {
-                ContentUnavailableView("Add a piece to your closet first.", tabler: "TablerHanger2")
-                    .frame(maxHeight: .infinity)
+                DSEmptyState(icon: "TablerHanger2", title: "Add a piece first",
+                             message: "Outfits are made from pieces in your closet.")
             } else {
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: DSSpacing.md) {
@@ -79,7 +82,7 @@ struct PrototypeOutfitEditorView: View {
                             Button { toggle(item) } label: {
                                 DSTile(isChecked: isChecked) { pieceImage(item) }
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.dsPress(0.98))
                             .accessibilityLabel("\(item.name), \(isChecked ? "selected" : "not selected")")
                         }
                     }
@@ -95,11 +98,13 @@ struct PrototypeOutfitEditorView: View {
                 .buttonStyle(.ds(.primary))
                 .frame(maxWidth: .infinity)
                 .opacity(canCreate ? 1 : 0.4)
+                .animation(.easeOut(duration: 0.2), value: canCreate)
                 .disabled(!canCreate)
                 .padding(.horizontal, DSSpacing.lg)
                 .padding(.bottom, DSSpacing.sm)
         }
         .toolbar(.hidden, for: .navigationBar)
+        .sensoryFeedback(.success, trigger: createdCount)
         .alert("Could not create outfit", isPresented: Binding(
             get: { saveError != nil },
             set: { if !$0 { saveError = nil } }
@@ -142,6 +147,7 @@ struct PrototypeOutfitEditorView: View {
     private func save() {
         do {
             try outfits.save(name: name, placements: placements, availableItems: closet.items)
+            createdCount += 1
             dismiss()
         } catch {
             saveError = error.localizedDescription

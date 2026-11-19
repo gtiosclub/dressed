@@ -7,13 +7,14 @@ struct DSSegmentedControl<Option: Hashable>: View {
     let title: (Option) -> String
 
     @Namespace private var thumb
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack(spacing: 0) {
             ForEach(options, id: \.self) { option in
                 let isSelected = option == selection
                 Button {
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.55)) { selection = option }
+                    withAnimation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.5, dampingFraction: 0.55)) { selection = option }
                 } label: {
                     Text(title(option))
                         .font(DSFont.label)

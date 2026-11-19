@@ -12,10 +12,12 @@ struct DSSearchSheet: View {
     let onClose: () -> Void
 
     @FocusState private var focused: Bool
+    @State private var appeared = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            DSColor.scrim.ignoresSafeArea()
+            DSColor.scrim.ignoresSafeArea().opacity(appeared ? 1 : 0)
 
             Button(action: onClose) {
                 DSIcon("TablerX", size: 24)
@@ -23,7 +25,7 @@ struct DSSearchSheet: View {
                     .frame(width: 50, height: 50)
                     .background(RoundedRectangle(cornerRadius: DSRadius.md, style: .continuous).fill(DSColor.background))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.dsPress)
             .padding(.leading, 9)
             .padding(.top, DSSpacing.sm)
             .accessibilityLabel("Close search")
@@ -40,7 +42,7 @@ struct DSSearchSheet: View {
                                 }
                                 .foregroundStyle(DSColor.textPrimary)
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.dsPress(0.98))
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -58,9 +60,14 @@ struct DSSearchSheet: View {
                         .fill(DSColor.background)
                         .ignoresSafeArea(.container, edges: .bottom)
                 )
+                .offset(y: appeared || reduceMotion ? 0 : 48)
+                .opacity(appeared ? 1 : 0)
             }
         }
-        .onAppear { focused = true }
+        .onAppear {
+            focused = true
+            withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) { appeared = true }
+        }
     }
 
     private var field: some View {

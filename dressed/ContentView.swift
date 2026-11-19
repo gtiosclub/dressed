@@ -230,6 +230,9 @@ private struct AppTabs: View {
         }
         .animation(.easeOut(duration: 0.2), value: isSearchingDiscovery)
         .animation(.easeOut(duration: 0.2), value: isSearchingCloset)
+        #if DEBUG
+        .task { DemoClosetSeeder.seedIfNeeded(closet: closet, outfits: outfits) }
+        #endif
         .onChange(of: selectedTab) { old, new in
             if new == 2 && old != 2 { tabBeforeCamera = old }
         }

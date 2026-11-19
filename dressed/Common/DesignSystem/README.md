@@ -99,6 +99,10 @@ official SVG from the
 strip its header comment, replace `currentColor` with `#000000`, and copy an existing
 Tabler image set's `Contents.json`.
 
+## Demo closet
+
+Debug builds fill an empty closet with the cutouts below and two outfits (`DemoClosetSeeder`). Pass `-skipDemoCloset` to start empty; the UI tests do.
+
 ## Preview images
 
 `dressed/PreviewContent/PreviewAssets.xcassets` holds the product cutouts from the

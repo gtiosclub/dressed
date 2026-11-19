@@ -62,11 +62,14 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                                 switch entry {
                                 case .post(let post):
                                     Button { selectedPost = post } label: {
-                                        artwork(post)
+                                        // Fixed square first, photo filling it, so every tile is the same size
+                                        // whatever the photo's own proportions.
+                                        Color.clear
                                             .aspectRatio(1, contentMode: .fit)
+                                            .overlay { artwork(post) }
                                             .clipShape(RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous))
                                     }
-                                    .buttonStyle(.plain)
+                                    .buttonStyle(.dsPress(0.98))
                                     .accessibilityLabel("\(post.caption), by \(post.authorId)")
                                     .accessibilityIdentifier("infinite.post.\(post.id)")
                                 case .product(let product):

@@ -3,7 +3,7 @@ import XCTest
 final class NavigationUITests: XCTestCase {
     func testDesignSystemTabsClosetSectionsAndAvatarEntry() {
         let app = XCUIApplication()
-        app.launchArguments = ["-mockSignedIn"]
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset"]
         app.launch()
         if app.buttons["Later"].waitForExistence(timeout: 2) {
             app.buttons["Later"].tap()
@@ -49,7 +49,7 @@ final class NavigationUITests: XCTestCase {
 
     func testUploadOffersPhotosAndLinkAndPickerOpens() {
         let app = XCUIApplication()
-        app.launchArguments = ["-mockSignedIn", "-showCamera"]
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showCamera"]
         allowCameraAccess()
         app.launch()
 
@@ -67,7 +67,7 @@ final class NavigationUITests: XCTestCase {
 
     func testSelectingMultiplePhotosOpensCombinedReview() {
         let app = XCUIApplication()
-        app.launchArguments = ["-mockSignedIn", "-showCamera"]
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showCamera"]
         allowCameraAccess()
         app.launch()
 
@@ -84,7 +84,7 @@ final class NavigationUITests: XCTestCase {
 
     func testFullOutfitMultiPhotoReviewStartsUnselected() {
         let app = XCUIApplication()
-        app.launchArguments = ["-mockSignedIn", "-showCamera"]
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showCamera"]
         allowCameraAccess()
         app.launch()
 
@@ -140,7 +140,7 @@ final class NavigationUITests: XCTestCase {
 final class DiscoverySearchUITests: XCTestCase {
     func testSearchStylesOpensSuggestionSheetAndCloses() {
         let app = XCUIApplication()
-        app.launchArguments = ["-mockSignedIn", "-showDiscovery"]
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showDiscovery"]
         app.launch()
 
         let search = app.buttons["discovery.searchButton"]

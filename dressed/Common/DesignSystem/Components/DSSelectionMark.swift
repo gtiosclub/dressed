@@ -7,14 +7,19 @@ struct DSSelectionMark: View {
 
     var body: some View {
         ZStack {
-            if isChecked {
-                Circle().fill(DSColor.textPrimary)
-                DSIcon("TablerCheck", size: 17).foregroundStyle(.white)
-            } else {
-                Circle().stroke(DSColor.textPrimary, lineWidth: 2)
-            }
+            Circle().stroke(DSColor.textPrimary, lineWidth: 2)
+            Circle()
+                .fill(DSColor.textPrimary)
+                .scaleEffect(isChecked ? 1 : 0.4)
+                .opacity(isChecked ? 1 : 0)
+            DSIcon("TablerCheck", size: 17)
+                .foregroundStyle(.white)
+                .scaleEffect(isChecked ? 1 : 0.3)
+                .opacity(isChecked ? 1 : 0)
         }
         .frame(width: 24, height: 24)
+        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isChecked)
+        .sensoryFeedback(.selection, trigger: isChecked)
         .accessibilityHidden(true)
     }
 }

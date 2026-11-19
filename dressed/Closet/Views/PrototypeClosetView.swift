@@ -73,13 +73,18 @@ struct PrototypeClosetView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            chipRow
-            switch filter {
-            case .outfits: outfitsContent
-            case .wishlist: wishlistContent
-            default: piecesContent
+            chipRow.zIndex(1)
+            Group {
+                switch filter {
+                case .outfits: outfitsContent
+                case .wishlist: wishlistContent
+                default: piecesContent
+                }
             }
+            .id(filter)
+            .transition(.opacity)
         }
+        .animation(.easeOut(duration: 0.2), value: filter)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(DSColor.background)
         .overlay(alignment: .bottom) {
@@ -105,7 +110,8 @@ struct PrototypeClosetView: View {
                 }
             }
             .padding(.horizontal, DSSpacing.lg)
-            .padding(.vertical, DSSpacing.md)
+            .padding(.top, DSSpacing.md)
+            .padding(.bottom, DSSpacing.md + DSSpacing.sm)
         }
     }
 
@@ -131,11 +137,10 @@ struct PrototypeClosetView: View {
     @ViewBuilder
     private var wishlistContent: some View {
         if let error = productLinks.error {
-            ContentUnavailableView("Could not load Wishlist", tabler: "TablerAlertTriangle",
-                                   description: Text(error))
+            DSEmptyState(icon: "TablerAlertTriangle", title: "Could not load Wishlist", message: error)
         } else if productLinks.links.isEmpty {
-            ContentUnavailableView("No saved links", tabler: "TablerHeart",
-                                   description: Text("Paste a product link in Camera or share one to Dressed."))
+            DSEmptyState(icon: "TablerHeart", title: "No saved links",
+                         message: "Paste a product link in Camera or share one to Dressed.")
         } else {
             List {
                 ForEach(productLinks.links) { item in
@@ -164,22 +169,16 @@ struct PrototypeClosetView: View {
     private var piecesContent: some View {
         Group {
             if let error = closet.error {
-                ContentUnavailableView {
-                    Label("Could not load closet", tabler: "TablerAlertTriangle", size: 48)
-                } description: {
-                    Text(error)
-                } actions: {
-                    Button("Try Again") { closet.reload() }
-                }
+                DSEmptyState(icon: "TablerAlertTriangle", title: "Could not load closet", message: error,
+                             actionTitle: "Try Again") { closet.reload() }
             } else if closet.items.isEmpty {
-                ContentUnavailableView(
-                    "Your closet is empty",
-                    tabler: "TablerHanger2",
-                    description: Text("Add a piece from Camera or share an image to Dressed.")
-                )
+                DSEmptyState(icon: "TablerHanger2", title: "Your closet is empty",
+                             message: "Add a piece from Camera or share an image to Dressed.")
             } else if visibleItems.isEmpty {
-                ContentUnavailableView("No matching pieces", tabler: "TablerSearch",
-                                       description: Text("Try another name or category."))
+                DSEmptyState(icon: "TablerSearch", title: "No matching pieces",
+                             message: "Try another name or category.",
+                             actionTitle: trimmedSearch.isEmpty ? nil : "Clear Search",
+                             action: trimmedSearch.isEmpty ? nil : { searchText = "" })
             } else {
                 let newest = closet.items.map(\.createdAt).max()
                 ScrollView {
@@ -192,7 +191,7 @@ struct PrototypeClosetView: View {
                                         if highlighted { DSBadge(text: "New").padding(14) }
                                     }
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.dsPress(0.98))
                             .accessibilityLabel(item.name)
                             .accessibilityIdentifier("closet.piece.\(item.id)")
                         }
@@ -200,6 +199,7 @@ struct PrototypeClosetView: View {
                     .padding(.horizontal, DSSpacing.lg)
                     .padding(.bottom, bottomInset)
                 }
+                .scrollClipDisabled()
             }
         }
         .navigationDestination(for: String.self) { id in
@@ -210,25 +210,18 @@ struct PrototypeClosetView: View {
     @ViewBuilder
     private var outfitsContent: some View {
         if let error = outfits.error {
-            ContentUnavailableView {
-                Label("Could not load outfits", tabler: "TablerAlertTriangle", size: 48)
-            } description: {
-                Text(error)
-            } actions: {
-                Button("Try Again") { outfits.reload() }
-            }
+            DSEmptyState(icon: "TablerAlertTriangle", title: "Could not load outfits", message: error,
+                         actionTitle: "Try Again") { outfits.reload() }
         } else if outfits.outfits.isEmpty {
-            ContentUnavailableView {
-                Label("No outfits yet", tabler: "TablerCopy", size: 48)
-            } description: {
-                Text("Choose pieces from your closet to make an outfit.")
-            } actions: {
-                Button("New Outfit") { showingOutfitEditor = true }
-                    .disabled(closet.items.isEmpty)
-            }
+            DSEmptyState(icon: "TablerCopy", title: "No outfits yet",
+                         message: "Choose pieces from your closet to make an outfit.",
+                         actionTitle: closet.items.isEmpty ? nil : "New Outfit",
+                         action: closet.items.isEmpty ? nil : { showingOutfitEditor = true })
         } else if visibleOutfits.isEmpty {
-            ContentUnavailableView("No matching outfits", tabler: "TablerSearch",
-                                   description: Text("Try another name."))
+            DSEmptyState(icon: "TablerSearch", title: "No matching outfits",
+                         message: "Try another name.",
+                         actionTitle: trimmedSearch.isEmpty ? nil : "Clear Search",
+                         action: trimmedSearch.isEmpty ? nil : { searchText = "" })
         } else {
             let newest = outfits.outfits.map(\.createdAt).max()
             ScrollView {
@@ -247,7 +240,7 @@ struct PrototypeClosetView: View {
                                 if isNew(outfit.createdAt, newest: newest) { DSBadge(text: "New").padding(14) }
                             }
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.dsPress(0.98))
                         .accessibilityLabel(outfit.name ?? "Outfit")
                         .accessibilityIdentifier("closet.outfit.\(outfit.id)")
                     }
@@ -255,6 +248,7 @@ struct PrototypeClosetView: View {
                 .padding(.horizontal, DSSpacing.lg)
                 .padding(.bottom, bottomInset)
             }
+            .scrollClipDisabled()
         }
     }
 

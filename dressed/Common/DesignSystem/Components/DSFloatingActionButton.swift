@@ -16,7 +16,7 @@ struct DSFloatingActionButton: View {
                 .background(Circle().fill(DSColor.brand))
                 .dsShadow(.floating)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.dsPress)
         .accessibilityLabel(accessibilityLabel)
     }
 }

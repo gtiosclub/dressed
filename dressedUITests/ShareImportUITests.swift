@@ -10,7 +10,7 @@ private func openCloset(in app: XCUIApplication) {
 final class ShareImportUITests: XCTestCase {
     func testSingleDiscoveryHeaderSwitchesFeedLayouts() {
         let app = XCUIApplication()
-        app.launchArguments = ["-mockSignedIn", "-showDiscovery"]
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showDiscovery"]
         app.launch()
 
         let forYou = app.buttons["For You"]
@@ -41,7 +41,7 @@ final class ShareImportUITests: XCTestCase {
 
     func testCommentsSubmitAndReopenFromBothFeedLayouts() {
         let app = XCUIApplication()
-        app.launchArguments = ["-mockSignedIn", "-showDiscovery"]
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showDiscovery"]
         app.launch()
         XCTAssertTrue(app.buttons["infinite.post.infinite_0"].waitForExistence(timeout: 10))
         app.buttons["infinite.post.infinite_0"].tap()
@@ -69,7 +69,7 @@ final class ShareImportUITests: XCTestCase {
 
     func testDiscoveryIdeasAndOOTDPostsAreSeparate() {
         let app = XCUIApplication()
-        app.launchArguments = ["-mockSignedIn", "-showDiscovery"]
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showDiscovery"]
         app.launch()
 
         XCTAssertTrue(app.buttons["discovery.idea.idea_top_1"].waitForExistence(timeout: 10))
@@ -111,7 +111,7 @@ final class ShareImportUITests: XCTestCase {
 
     func testOOTDItemsSheetMatchesPrototype() {
         let app = XCUIApplication()
-        app.launchArguments = ["-mockSignedIn", "-showDiscovery", "-showOOTD"]
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showDiscovery", "-showOOTD"]
         app.launch()
 
         let findItems = app.buttons["ootd.findItems.demo_post_1"]
@@ -146,7 +146,7 @@ final class ShareImportUITests: XCTestCase {
 
     func testOOTDCreatePostPreviewStaysInFeed() {
         let app = XCUIApplication()
-        app.launchArguments = ["-mockSignedIn", "-showDiscovery", "-showOOTD"]
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showDiscovery", "-showOOTD"]
         app.launch()
 
         XCTAssertTrue(app.buttons["ootd.createPost"].waitForExistence(timeout: 10))
@@ -176,7 +176,7 @@ final class ShareImportUITests: XCTestCase {
     func testInterruptedSharedDraftRestartsAndKeepsManualSelectionAfterRelaunch() {
         let app = XCUIApplication()
         let suffix = String(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(12))
-        app.launchArguments = ["-mockSignedIn", "-showCamera", "-seedShareFixture",
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showCamera", "-seedShareFixture",
                                "00000000-0000-4000-8000-\(suffix)",
                                "-seedInterruptedManual", "-delaySharedRecognition"]
         app.launch()
@@ -186,7 +186,7 @@ final class ShareImportUITests: XCTestCase {
 
         // Do not reseed or delay on return. The app must load the persisted
         // processing draft and run its real on-device recognition service.
-        app.launchArguments = ["-mockSignedIn", "-showCamera"]
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showCamera"]
         app.launch()
         XCTAssertTrue(app.navigationBars["Review Shared Image"].waitForExistence(timeout: 10))
         let completed = XCTNSPredicateExpectation(
@@ -255,7 +255,7 @@ final class ShareImportUITests: XCTestCase {
         let app = XCUIApplication()
         let suffix = String(UUID().uuidString.prefix(8))
         let title = "Blue merino sweater \(suffix)"
-        app.launchArguments = ["-mockSignedIn", "-showCamera"]
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showCamera"]
         app.launch()
 
         // A prior interrupted shared-image check can leave a queued draft.
@@ -299,7 +299,7 @@ final class ShareImportUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts[title].waitForExistence(timeout: 5))
 
         app.terminate()
-        app.launchArguments = ["-mockSignedIn"]
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset"]
         app.launch()
         if app.navigationBars["Review Shared Image"].waitForExistence(timeout: 2) {
             app.buttons["Later"].tap()
@@ -400,7 +400,7 @@ final class ShareImportUITests: XCTestCase {
         app.buttons["closet.filter.Outfits"].tap()
         XCTAssertTrue(app.buttons[outfitName].waitForExistence(timeout: 5))
         app.terminate()
-        app.launchArguments = ["-mockSignedIn"]
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset"]
         app.launch()
         app.buttons["closet.filter.Outfits"].tap()
         XCTAssertTrue(app.buttons[outfitName].waitForExistence(timeout: 5))
@@ -419,7 +419,7 @@ final class ShareImportUITests: XCTestCase {
         openCloset(in: app)
         XCTAssertFalse(app.staticTexts[uniqueName].exists)
         app.terminate()
-        app.launchArguments = ["-mockSignedIn", "-showCamera"]
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showCamera"]
         app.launch()
         XCTAssertTrue(app.navigationBars["Review Shared Image"].waitForExistence(timeout: 10))
         XCTAssertEqual(app.textFields["Piece name"].firstMatch.value as? String, "Pants")
@@ -446,7 +446,7 @@ final class ShareImportUITests: XCTestCase {
         app.buttons["closet.filter.Outfits"].tap()
         XCTAssertFalse(app.staticTexts[uniqueName].exists)
         app.terminate()
-        app.launchArguments = ["-mockSignedIn"]
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset"]
         app.launch()
         XCTAssertTrue(app.staticTexts[uniqueName].waitForExistence(timeout: 5))
         XCTAssertEqual(app.staticTexts.matching(identifier: uniqueName).count, 1)
@@ -455,7 +455,7 @@ final class ShareImportUITests: XCTestCase {
     private func launchSharedFixture(withCandidates: Bool = true) -> XCUIApplication {
         let app = XCUIApplication()
         let suffix = String(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(12))
-        app.launchArguments = ["-mockSignedIn", "-showCamera", "-seedShareFixture",
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showCamera", "-seedShareFixture",
                                "00000000-0000-4000-8000-\(suffix)"]
         if withCandidates { app.launchArguments.append("-seedTwoCandidates") }
         app.launch()
@@ -488,7 +488,7 @@ final class ShareImportUITests: XCTestCase {
 final class InfiniteFeedUITests: XCTestCase {
     func testAutomaticPagingPausesOnFailureAndRetries() {
         let app = XCUIApplication()
-        app.launchArguments = ["-mockSignedIn", "-showDiscovery", "-failDiscoveryPage"]
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showDiscovery", "-failDiscoveryPage"]
         app.launch()
         XCTAssertTrue(app.buttons["infinite.post.infinite_0"].waitForExistence(timeout: 5))
         let retry = app.buttons["infinite.retry"]

@@ -8,22 +8,31 @@ struct DSCameraControls: View {
     let onCapture: () -> Void
     let onFlip: () -> Void
 
+    @State private var captures = 0
+    @State private var flips = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         HStack {
             sideButton("TablerUpload", fill: DSColor.glass, label: "Upload", action: onUpload)
             Spacer()
-            Button(action: onCapture) {
+            Button {
+                captures += 1
+                onCapture()
+            } label: {
                 Circle()
-                    .fill(Color.white)
-                    .frame(width: 76, height: 76)
-                    .padding(5)
-                    .overlay(Circle().stroke(Color.white, lineWidth: 3))
+                    .stroke(Color.white, lineWidth: 3)
                     .frame(width: 90, height: 90)
+                    .overlay { Circle().fill(Color.white).frame(width: 76, height: 76) }
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ShutterStyle())
+            .sensoryFeedback(.impact(weight: .medium), trigger: captures)
             .accessibilityLabel("Take photo")
             Spacer()
-            sideButton("TablerRefresh", fill: DSColor.tile, label: "Flip camera", action: onFlip)
+            sideButton("TablerRefresh", fill: DSColor.tile, label: "Flip camera") {
+                flips += 1
+                onFlip()
+            }
         }
         .padding(.horizontal, 27)
         .frame(height: 115)
@@ -38,11 +47,26 @@ struct DSCameraControls: View {
         Button(action: action) {
             DSIcon(icon, size: 24)
                 .foregroundStyle(icon == "TablerRefresh" ? DSColor.textMuted : DSColor.textPrimary)
+                .rotationEffect(.degrees(icon == "TablerRefresh" && !reduceMotion ? Double(flips) * 180 : 0))
+                .animation(.spring(response: 0.45, dampingFraction: 0.7), value: flips)
                 .frame(width: 50, height: 50)
                 .background(Circle().fill(fill))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.dsPress)
+        .sensoryFeedback(.selection, trigger: flips)
         .accessibilityLabel(label)
+    }
+}
+
+// The inner disc dips on touch, like the system camera's shutter.
+private struct ShutterStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.92 : 1)
+            .opacity(configuration.isPressed && reduceMotion ? 0.7 : 1)
+            .animation(.spring(response: 0.22, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
 
