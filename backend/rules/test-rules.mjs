@@ -11,10 +11,10 @@ import {
   limit,
   orderBy,
   query,
+  runTransaction,
   setDoc,
   updateDoc,
   serverTimestamp,
-  runTransaction,
 } from 'firebase/firestore';
 import { deleteObject, getMetadata, ref, uploadBytes } from 'firebase/storage';
 
@@ -38,6 +38,10 @@ const item = {
 const outfit = {
   id: 'outfit_001', schemaVersion: 1, ownerId: 'alice', name: 'Monday',
   placementSchemaVersion: 1, placements: [], createdAt, updatedAt: createdAt,
+};
+const publicPost = {
+  id: 'post_002', schemaVersion: 1, authorId: 'alice', caption: 'Soft layers',
+  outfitSnapshot: { items: [] }, mediaPath: '', createdAt, likeCount: 0,
 };
 const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
 
@@ -132,7 +136,7 @@ try {
     assert.equal((await getDoc(doc(alice.firestore(), itemPath))).exists(), true);
   });
 
-  await test('only signed-in users read posts; publication and legacy paths stay closed', async () => {
+  await test('an authenticated author can publish and signed-in users can read the post', async () => {
     await env.clearFirestore();
     await env.withSecurityRulesDisabled(async (admin) => {
       await setDoc(doc(admin.firestore(), 'posts/post_001'), { authorId: 'alice' });
@@ -140,8 +144,24 @@ try {
     });
     await assertSucceeds(getDoc(doc(bob.firestore(), 'posts/post_001')));
     await assertFails(getDoc(doc(guest.firestore(), 'posts/post_001')));
-    await assertFails(setDoc(doc(alice.firestore(), 'posts/post_002'), { authorId: 'alice' }));
+    await assertSucceeds(setDoc(doc(alice.firestore(), 'posts/post_002'), publicPost));
+    assert.equal((await assertSucceeds(getDoc(doc(bob.firestore(), 'posts/post_002')))).data().caption, 'Soft layers');
+    await assertFails(setDoc(doc(guest.firestore(), 'posts/post_003'), {
+      ...publicPost, id: 'post_003', authorId: 'guest',
+    }));
     await assertFails(getDoc(doc(alice.firestore(), 'CLOTHING/legacy_001')));
+  });
+
+  await test('post publication rejects impersonation, private media, unsafe fields, and initial likes', async () => {
+    await env.clearFirestore();
+    const target = doc(alice.firestore(), 'posts/post_002');
+    await assertFails(setDoc(target, { ...publicPost, authorId: 'bob' }));
+    await assertFails(setDoc(target, { ...publicPost, id: 'different' }));
+    await assertFails(setDoc(target, { ...publicPost, mediaPath: 'users/alice/items/item_001/original.jpg' }));
+    await assertFails(setDoc(target, { ...publicPost, outfitSnapshot: { items: [{ sourceItemId: 'private' }] } }));
+    await assertFails(setDoc(target, { ...publicPost, likeCount: 1 }));
+    await assertFails(setDoc(target, { ...publicPost, unexpected: true }));
+    await assertFails(setDoc(target, { ...publicPost, caption: 'x'.repeat(501) }));
   });
 
   await test('saved-post writes stay closed until owner rules are reviewed', async () => {
@@ -210,6 +230,56 @@ try {
     await assertSucceeds(setDoc(target, { ...record, text: 'a'.repeat(1000) }));
     await assertFails(setDoc(target, { ...record, text: 'Replacement' }));
     await assertFails(getDoc(doc(alice.firestore(), 'COMMENTS/legacy')));
+  });
+
+  await test('a like transaction updates the private relationship and public count exactly once', async () => {
+    await env.clearFirestore();
+    await env.withSecurityRulesDisabled(async (admin) => {
+      await setDoc(doc(admin.firestore(), 'posts/post_001'), { authorId: 'alice', likeCount: 0 });
+    });
+    const post = doc(alice.firestore(), 'posts/post_001');
+    const like = doc(alice.firestore(), 'users/alice/postLikes/post_001');
+    const setLike = async (desired) => runTransaction(alice.firestore(), async (transaction) => {
+      const [postSnapshot, likeSnapshot] = await Promise.all([
+        transaction.get(post), transaction.get(like),
+      ]);
+      if (likeSnapshot.exists() === desired) return;
+      if (desired) {
+        transaction.set(like, {
+          id: 'post_001', schemaVersion: 1, ownerId: 'alice', postId: 'post_001', createdAt,
+        });
+      } else {
+        transaction.delete(like);
+      }
+      transaction.update(post, { likeCount: postSnapshot.data().likeCount + (desired ? 1 : -1) });
+    });
+
+    await assertSucceeds(setLike(true));
+    assert.equal((await getDoc(post)).data().likeCount, 1);
+    assert.equal((await getDoc(like)).data().ownerId, 'alice');
+    await assertSucceeds(setLike(true));
+    assert.equal((await getDoc(post)).data().likeCount, 1);
+    await assertSucceeds(setLike(false));
+    assert.equal((await getDoc(post)).data().likeCount, 0);
+    assert.equal((await getDoc(like)).exists(), false);
+  });
+
+  await test('like identity is owner-only and clients cannot change a count by itself', async () => {
+    await env.clearFirestore();
+    await env.withSecurityRulesDisabled(async (admin) => {
+      await setDoc(doc(admin.firestore(), 'posts/post_001'), { authorId: 'alice', likeCount: 0 });
+    });
+    const aliceLike = doc(alice.firestore(), 'users/alice/postLikes/post_001');
+    const record = {
+      id: 'post_001', schemaVersion: 1, ownerId: 'alice', postId: 'post_001', createdAt,
+    };
+    await assertFails(setDoc(aliceLike, record));
+    await assertFails(setDoc(doc(bob.firestore(), 'users/alice/postLikes/post_001'), record));
+    await assertFails(getDoc(doc(bob.firestore(), 'users/alice/postLikes/post_001')));
+    await assertFails(getDoc(doc(guest.firestore(), 'users/alice/postLikes/post_001')));
+    await assertFails(setDoc(doc(alice.firestore(), 'posts/post_001'), {
+      authorId: 'alice', likeCount: 1,
+    }));
   });
 
   await test('private JPEG media is owner-only and size/type-limited', async () => {

@@ -51,7 +51,15 @@
       ]
     },
     "mediaPath": "posts/user_a/post_001/composite.jpg",
+    "likeCount": 1,
     "createdAt": "2026-09-28T19:00:00Z"
+  },
+  "PostLike": {
+    "id": "post_001",
+    "schemaVersion": 1,
+    "ownerId": "user_b",
+    "postId": "post_001",
+    "createdAt": "2026-09-28T20:00:00Z"
   },
   "SavedPost": {
     "id": "post_001",

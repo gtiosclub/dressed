@@ -68,7 +68,7 @@ struct OOTDFeedView: View {
                 .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: $showingCreate) {
-            OOTDCreatePostView(canSharePreview: demo) { caption in
+            OOTDCreatePostView(canShare: demo) { caption in
                 previewPosts.insert(Post(id: "demo_post_\(UUID().uuidString)", schemaVersion: 1,
                                          authorId: "you", caption: caption.isEmpty ? "caption (optional)" : caption,
                                          outfitSnapshot: PublishedOutfitSnapshot(name: nil, items: []),
@@ -620,12 +620,14 @@ private struct OOTDShopItem: Identifiable {
 }
 
 struct OOTDCreatePostView: View {
-    let canSharePreview: Bool
-    let onShare: (String) -> Void
+    let canShare: Bool
+    let onShare: (String) async throws -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var caption = ""
     @State private var songIndex = 0
     @State private var detailsOpen = false
+    @State private var isSharing = false
+    @State private var shareError: String?
     private let songs = ["song here", "autumn breeze", "midnight walk", "street symphony"]
 
     var body: some View {
@@ -677,13 +679,33 @@ struct OOTDCreatePostView: View {
             }
             .padding(.top, 8)
             Spacer()
-            Button("Share") { onShare(caption.trimmingCharacters(in: .whitespacesAndNewlines)) }
+            if let shareError {
+                Text(shareError)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+                    .accessibilityIdentifier("ootd.shareError")
+            }
+            Button {
+                Task { @MainActor in
+                    isSharing = true
+                    shareError = nil
+                    do {
+                        try await onShare(caption.trimmingCharacters(in: .whitespacesAndNewlines))
+                    } catch {
+                        shareError = error.localizedDescription
+                    }
+                    isSharing = false
+                }
+            } label: {
+                if isSharing { ProgressView().tint(.white) } else { Text("Share") }
+            }
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)
                 .background(.black, in: RoundedRectangle(cornerRadius: 12))
-                .disabled(!canSharePreview)
+                .disabled(!canShare || isSharing)
                 .accessibilityIdentifier("ootd.sharePreview")
         }
         .padding(.horizontal, 20)
@@ -766,5 +788,5 @@ struct PostArtwork: View {
 }
 
 #Preview("New post") {
-    NavigationStack { OOTDCreatePostView(canSharePreview: true) { _ in } }
+    NavigationStack { OOTDCreatePostView(canShare: true) { _ in } }
 }
