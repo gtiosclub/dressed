@@ -31,7 +31,7 @@ struct DSOutfitCollage<Cell: View>: View {
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .overlay {
             if isHighlighted {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous).stroke(DSColor.brand, lineWidth: 2)
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous).stroke(DSColor.brand, lineWidth: 1)
             }
         }
         .dsShadow(isHighlighted ? .selectedGlow : .none)
