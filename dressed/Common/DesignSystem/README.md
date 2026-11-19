@@ -57,7 +57,7 @@ shows every component on one screen: preview it, or launch a Debug build with
 | `DSSearchSheet` | Search mode: dimming scrim, white close button, suggestion sheet, pill field. Discovery presents it over the whole screen (`DiscoverySearchOverlay`) |
 | `DSCameraControls` | Upload, shutter and flip inside the translucent capture bar |
 | `DSFloatingSearchButton` | "Search Your Closet" / "Search Styles" pinned above the tab bar; opens search mode. Pad scroll content by `DSFloatingSearchButton.height` |
-| `DSButtonStyle` (`.ds(.primary/.secondary/.glass/.text)`) | Search, Back, Skip, Next, shop, close, full-width Import / Create Outfit (add `.frame(maxWidth: .infinity)`), Find More (`.text`) |
+| `DSButtonStyle` (`.ds(.primary/.secondary/.glass/.text)`) | Search, Back, Skip, Next, shop, close, full-width Import / Create Outfit (put `.frame(maxWidth: .infinity)` on the label, inside the `Button`, not on the button), Find More (`.text`) |
 | `DSPostCard` | Friends feed card |
 | `DSPageIndicator` | Friends carousel dots |
 | `DSCandidateRow` | Share-to-Dressed product rows; `isSelected` adds the purple outline |

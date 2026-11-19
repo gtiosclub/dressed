@@ -84,9 +84,9 @@ struct DesignSystemGallery: View {
                         DSThumbnailSlot { Image("PreviewTeeNavy").resizable().scaledToFit() }
                     }
                     DSLabeledField(label: "Outfit Name", prompt: "Name your outfit", text: $outfitName)
-                    Button("Create Outfit") {}.buttonStyle(.ds(.primary)).frame(maxWidth: .infinity)
-                    Button("Import as Individual Pieces") {}.buttonStyle(.ds(.secondary)).frame(maxWidth: .infinity)
-                    Button("Find More") {}.buttonStyle(.ds(.text)).frame(maxWidth: .infinity)
+                    Button {} label: { Text("Create Outfit").frame(maxWidth: .infinity) }.buttonStyle(.ds(.primary))
+                    Button {} label: { Text("Import as Individual Pieces").frame(maxWidth: .infinity) }.buttonStyle(.ds(.secondary))
+                    Button {} label: { Text("Find More").frame(maxWidth: .infinity) }.buttonStyle(.ds(.text))
                 }
 
                 section("Floating search + new outfit") {

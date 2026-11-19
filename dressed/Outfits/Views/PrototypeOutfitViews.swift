@@ -94,12 +94,16 @@ struct PrototypeOutfitEditorView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(DSColor.background)
         .overlay(alignment: .bottom) {
-            Button("Create Outfit") { save() }
+            Button { save() } label: {
+                Text("Create Outfit").frame(maxWidth: .infinity)
+            }
                 .buttonStyle(.ds(.primary))
-                .frame(maxWidth: .infinity)
                 .opacity(canCreate ? 1 : 0.4)
                 .animation(.easeOut(duration: 0.2), value: canCreate)
                 .disabled(!canCreate)
+                // Opaque backing so pieces don't show through the dimmed disabled button.
+                .background(RoundedRectangle(cornerRadius: DSRadius.md, style: .continuous).fill(DSColor.background))
+                .dsShadow(.floating)
                 .padding(.horizontal, DSSpacing.lg)
                 .padding(.bottom, DSSpacing.sm)
         }

@@ -1,7 +1,7 @@
 import SwiftUI
 
 // 50 pt rounded-square buttons from the share-to-Dressed, import and create-outfit mockups.
-// Add `.frame(maxWidth: .infinity)` for the full-width Import / Create Outfit buttons.
+// Put `.frame(maxWidth: .infinity)` on the label (inside the Button) for the full-width Import / Create Outfit buttons.
 struct DSButtonStyle: ButtonStyle {
     enum Kind {
         case primary    // purple, white icon (search)
