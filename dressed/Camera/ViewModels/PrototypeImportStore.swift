@@ -332,5 +332,57 @@ enum SharedImageInbox {
             try SharedImportDraftStore.save(draft)
         }
     }
+
+    /// `-importDemo`: queues a generated flat-lay photo (sweater, necklace, jeans cutouts from
+    /// `PreviewAssets`) with three detected pieces, so the share review can be walked through
+    /// without the Share Extension or on-device recognition. Reseeded on every launch.
+    static func seedDemoPhoto(ownerId: String) throws {
+        let id = "00000000-0000-4000-8000-00000000DE70"
+        remove(id: id)
+        guard let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId) else {
+            throw SharedImportDraftError.unavailable
+        }
+        let inbox = root.appendingPathComponent("Inbox", isDirectory: true)
+        try FileManager.default.createDirectory(at: inbox, withIntermediateDirectories: true)
+
+        let size = CGSize(width: 900, height: 1200)
+        let pieces: [(asset: String, name: String, category: ClothingCategory, rect: CGRect)] = [
+            ("PreviewSweaterBrown", "Brown Wool Sweater", .tops, CGRect(x: 90, y: 90, width: 470, height: 440)),
+            ("PreviewNecklace", "Silver Pendant Necklace", .accessories, CGRect(x: 610, y: 110, width: 200, height: 400)),
+            ("PreviewJeans", "Wide-Leg Jeans", .pants, CGRect(x: 190, y: 620, width: 520, height: 500)),
+        ]
+        let photo = UIGraphicsImageRenderer(size: size).image { context in
+            let colors = [UIColor(white: 0.93, alpha: 1).cgColor, UIColor(white: 0.82, alpha: 1).cgColor]
+            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors as CFArray, locations: [0, 1]) {
+                context.cgContext.drawLinearGradient(gradient, start: .zero, end: CGPoint(x: 0, y: size.height), options: [])
+            }
+            for piece in pieces {
+                guard let asset = UIImage(named: piece.asset) else { continue }
+                let scale = min(piece.rect.width / asset.size.width, piece.rect.height / asset.size.height)
+                let drawn = CGSize(width: asset.size.width * scale, height: asset.size.height * scale)
+                asset.draw(in: CGRect(x: piece.rect.midX - drawn.width / 2, y: piece.rect.midY - drawn.height / 2,
+                                      width: drawn.width, height: drawn.height))
+            }
+        }
+        guard let data = photo.jpegData(compressionQuality: 0.9) else { throw SharedImportDraftError.unavailable }
+        try data.write(to: inbox.appendingPathComponent("\(id).jpg"), options: .atomic)
+        try JSONEncoder().encode(SharedImageEnvelope(id: id, ownerId: ownerId, createdAt: Date()))
+            .write(to: inbox.appendingPathComponent("\(id).json"), options: .atomic)
+
+        var draft = try SharedImportDraftStore.loadOrCreate(
+            image: ReviewImage(id: id, data: data, source: "Shared image", isShared: true), ownerId: ownerId)
+        draft.status = .review
+        draft.candidates = pieces.enumerated().map { index, piece in
+            // Regions hug each cutout with a little padding, in the photo's normalized coordinates.
+            let box = piece.rect.insetBy(dx: -10, dy: -10)
+            return ImportCandidate(
+                id: SharedImportDraftStore.stableID(importID: id, part: "demo-\(index)"),
+                name: piece.name, category: piece.category, destination: .closet, temporaryCutoutPath: nil,
+                region: NormalizedImageRegion(x: box.minX / size.width, y: box.minY / size.height,
+                                              width: box.width / size.width, height: box.height / size.height),
+                suggestionSource: "Demo photo", selected: false, tags: [], suggestedTags: [])
+        }
+        try SharedImportDraftStore.save(draft)
+    }
     #endif
 }

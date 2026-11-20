@@ -11,6 +11,16 @@ enum SharedImportReviewState {
         draft.hasFinishedPieceReview = draft.candidates.allSatisfy { reviewed.contains($0.id) }
     }
 
+    /// Steps back to the most recently reviewed piece so it can be decided again.
+    static func undoLast(in draft: inout ImportDraft) {
+        guard var reviewed = draft.reviewedCandidateIDs, let last = reviewed.popLast() else { return }
+        draft.reviewedCandidateIDs = reviewed
+        draft.hasFinishedPieceReview = false
+        if let index = draft.candidates.firstIndex(where: { $0.id == last }) {
+            draft.candidates[index].selected = false
+        }
+    }
+
     static func remove(_ id: String, from draft: inout ImportDraft) {
         draft.candidates.removeAll { $0.id == id }
         draft.removedCandidateIDs = Array(Set((draft.removedCandidateIDs ?? []) + [id]))

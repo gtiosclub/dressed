@@ -173,6 +173,52 @@ final class ShareImportUITests: XCTestCase {
         XCTAssertFalse(app.navigationBars["Post"].exists)
     }
 
+    /// `-importDemo` queues a generated flat-lay photo with three detected pieces.
+    func testImportDemoFlowAcceptsTwoPiecesAndImportsAsOutfit() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showCamera", "-importDemo"]
+        app.launch()
+        let option = app.buttons["sharedImport.option"]
+        XCTAssertTrue(option.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["1 of 3"].exists)
+        XCTAssertTrue(app.buttons["sharedImport.skip"].exists)
+        XCTAssertFalse(app.buttons["sharedImport.approve"].exists)
+        let first = XCTAttachment(screenshot: app.screenshot())
+        first.name = "Demo piece 1 browsing"; first.lifetime = .keepAlways; add(first)
+
+        option.tap()
+        let next = app.buttons["sharedImport.approve"]
+        XCTAssertTrue(next.waitForExistence(timeout: 3))
+        let chosen = XCTAttachment(screenshot: app.screenshot())
+        chosen.name = "Demo piece 1 selected"; chosen.lifetime = .keepAlways; add(chosen)
+        next.tap()
+
+        XCTAssertTrue(app.staticTexts["2 of 3"].waitForExistence(timeout: 3))
+        app.buttons["sharedImport.back"].tap()
+        XCTAssertTrue(app.staticTexts["1 of 3"].waitForExistence(timeout: 3))
+        option.tap()
+        app.buttons["sharedImport.approve"].tap()
+        XCTAssertTrue(app.staticTexts["2 of 3"].waitForExistence(timeout: 3))
+        option.tap()
+        app.buttons["sharedImport.approve"].tap()
+        XCTAssertTrue(app.staticTexts["3 of 3"].waitForExistence(timeout: 3))
+        app.buttons["sharedImport.skip"].tap()
+
+        let confirm = app.buttons["sharedImport.confirm"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 3))
+        XCTAssertTrue(confirm.isEnabled)
+        XCTAssertTrue(app.buttons["sharedImport.confirmIndividual"].exists)
+        XCTAssertTrue(app.buttons["sharedImport.findMore"].exists)
+        XCTAssertTrue(app.staticTexts["Brown Wool Sweater"].exists)
+        XCTAssertTrue(app.staticTexts["Silver Pendant Necklace"].exists)
+        XCTAssertFalse(app.staticTexts["Wide-Leg Jeans"].exists)
+        let summary = XCTAttachment(screenshot: app.screenshot())
+        summary.name = "Demo import summary"; summary.lifetime = .keepAlways; add(summary)
+        confirm.tap()
+        let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: confirm)
+        XCTAssertEqual(XCTWaiter.wait(for: [dismissed], timeout: 10), .completed)
+    }
+
     func testInterruptedSharedDraftRestartsAndKeepsManualSelectionAfterRelaunch() {
         let app = XCUIApplication()
         let suffix = String(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(12))
@@ -180,7 +226,7 @@ final class ShareImportUITests: XCTestCase {
                                "00000000-0000-4000-8000-\(suffix)",
                                "-seedInterruptedManual", "-delaySharedRecognition"]
         app.launch()
-        XCTAssertTrue(app.navigationBars["Review Shared Image"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["sharedImport.close"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Finding possible pieces…"].waitForExistence(timeout: 5))
         app.terminate()
 
@@ -188,30 +234,21 @@ final class ShareImportUITests: XCTestCase {
         // processing draft and run its real on-device recognition service.
         app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showCamera"]
         app.launch()
-        XCTAssertTrue(app.navigationBars["Review Shared Image"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["sharedImport.close"].waitForExistence(timeout: 10))
         let completed = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "exists == false"),
             object: app.staticTexts["Finding possible pieces…"])
         XCTAssertEqual(XCTWaiter.wait(for: [completed], timeout: 30), .completed)
-        let manual = app.buttons["Manual scarf"]
-        for _ in 0..<6 where !manual.isHittable { app.collectionViews.firstMatch.swipeUp() }
-        XCTAssertTrue(manual.exists)
-        XCTAssertEqual(manual.value as? String, "Selected")
-        let count = app.staticTexts["1 of 1 pieces selected"]
-        for _ in 0..<4 where !count.isHittable { app.collectionViews.firstMatch.swipeUp() }
-        XCTAssertTrue(count.exists, "Recognition must merge without losing or duplicating the manual piece")
-        let save = app.buttons["sharedImport.confirm"]
-        for _ in 0..<3 where !save.isHittable { app.collectionViews.firstMatch.swipeUp() }
-        XCTAssertTrue(save.isEnabled)
+        XCTAssertTrue(app.staticTexts["Manual scarf"].exists,
+                      "Recognition must merge without losing the manual piece")
+        XCTAssertEqual(app.staticTexts.matching(identifier: "Manual scarf").count, 1)
+        XCTAssertTrue(app.buttons["sharedImport.confirm"].isEnabled)
 
         app.terminate()
         app.launch()
-        XCTAssertTrue(app.navigationBars["Review Shared Image"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["sharedImport.findMore"].waitForExistence(timeout: 10))
-        for _ in 0..<6 where !manual.isHittable { app.collectionViews.firstMatch.swipeUp() }
-        XCTAssertEqual(manual.value as? String, "Selected")
-        for _ in 0..<4 where !count.isHittable { app.collectionViews.firstMatch.swipeUp() }
-        XCTAssertTrue(count.exists)
+        XCTAssertTrue(app.staticTexts["Manual scarf"].exists)
+        app.buttons["sharedImport.close"].tap()
         app.buttons["Discard"].tap()
         app.buttons["Discard Image"].tap()
     }
@@ -315,16 +352,9 @@ final class ShareImportUITests: XCTestCase {
 
     func testManualPieceWhenNoSuggestions() {
         let app = launchSharedFixture(withCandidates: false)
-        XCTAssertTrue(app.staticTexts["No pieces found. Use Find more to add one with lasso, or try recognition again."].exists)
-        app.buttons["sharedImport.findMore"].tap()
-        XCTAssertTrue(app.navigationBars["Adjust Image Region"].waitForExistence(timeout: 5))
-        app.buttons["Use Region"].tap()
-        let name = app.textFields["Piece name"].firstMatch
-        reveal(name, in: app)
-        name.tap()
-        name.typeText("Blue sweater")
-        app.keyboards.buttons["return"].tap()
-        reviewNextPiece(in: app, approve: true)
+        XCTAssertTrue(app.staticTexts["No pieces found. Use Find More to add one yourself, or try recognition again."]
+            .waitForExistence(timeout: 30))
+        addManualPiece(named: "Blue sweater", in: app)
         let confirm = app.buttons["sharedImport.confirm"]
         reveal(confirm, in: app)
         confirm.tap()
@@ -337,21 +367,9 @@ final class ShareImportUITests: XCTestCase {
         reviewNextPiece(in: app, approve: true)
         reviewNextPiece(in: app, approve: false)
         reviewNextPiece(in: app, approve: false)
-        let more = app.buttons["sharedImport.findMore"]
-        reveal(more, in: app)
-        more.tap()
-        app.buttons["Use Region"].tap()
-        let name = app.textFields.matching(identifier: "Piece name").matching(
-            NSPredicate(format: "value == nil OR value == '' OR value == 'Piece name'")).firstMatch
-        reveal(name, in: app)
-        name.tap()
-        name.typeText("Manual sweater")
-        app.keyboards.buttons["return"].tap()
-        let manual = app.buttons["Manual sweater"]
-        reveal(manual, in: app)
-        XCTAssertEqual(manual.value as? String, "Not selected")
-        manual.tap()
-        XCTAssertEqual(manual.value as? String, "Selected")
+        addManualPiece(named: "Manual sweater", in: app)
+        XCTAssertTrue(app.staticTexts["Top"].exists)
+        XCTAssertTrue(app.staticTexts["Manual sweater"].exists)
         let confirm = app.buttons["sharedImport.confirm"]
         reveal(confirm, in: app)
         confirm.tap()
@@ -363,20 +381,18 @@ final class ShareImportUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Manual sweater"].waitForExistence(timeout: 5))
     }
 
-    func testApproveSkipThenChangeSelection() {
+    func testApproveSkipShowsOnlyApprovedPiecesAndBackRevisits() {
         let app = launchSharedFixture()
         reviewNextPiece(in: app, approve: true)
         reviewNextPiece(in: app, approve: false)
+        app.buttons["sharedImport.back"].tap()
+        XCTAssertTrue(app.staticTexts["2 of 3"].waitForExistence(timeout: 3))
         reviewNextPiece(in: app, approve: false)
-        let top = app.buttons["Top"]
-        reveal(top, in: app)
-        XCTAssertEqual(top.value as? String, "Selected")
-        top.tap()
-        XCTAssertEqual(top.value as? String, "Not selected")
-        let pants = app.buttons["Pants"]
-        reveal(pants, in: app)
-        pants.tap()
-        XCTAssertEqual(pants.value as? String, "Selected")
+        reviewNextPiece(in: app, approve: false)
+        XCTAssertTrue(app.buttons["sharedImport.confirm"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Top"].exists)
+        XCTAssertFalse(app.staticTexts["Pants"].exists)
+        XCTAssertFalse(app.staticTexts["Hat"].exists)
     }
 
     func testReviewSelectTwoSkipOneSaveOutfitAndReopen() {
@@ -385,7 +401,7 @@ final class ShareImportUITests: XCTestCase {
         reviewNextPiece(in: app, approve: true)
         reviewNextPiece(in: app, approve: false)
         let outfitName = "Shared fixture \(UUID().uuidString.prefix(8))"
-        let name = app.textFields["Outfit name"]
+        let name = app.textFields["Shared outfit"]
         reveal(name, in: app)
         replace(name, with: outfitName)
         app.keyboards.buttons["return"].tap()
@@ -410,37 +426,33 @@ final class ShareImportUITests: XCTestCase {
     func testLaterRestoresProgressAndIndividualImport() {
         let app = launchSharedFixture()
         let uniqueName = "Reviewed shirt \(UUID().uuidString.prefix(8))"
+        app.buttons["sharedImport.option"].tap()
+        app.buttons["sharedImport.editDetails"].tap()
         let name = app.textFields["Piece name"].firstMatch
-        reveal(name, in: app)
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
         replace(name, with: uniqueName)
         app.keyboards.buttons["return"].tap()
-        reviewNextPiece(in: app, approve: true)
+        app.buttons["Done"].tap()
+        app.buttons["sharedImport.approve"].tap()
+        app.buttons["sharedImport.close"].tap()
         app.buttons["Later"].tap()
         openCloset(in: app)
         XCTAssertFalse(app.staticTexts[uniqueName].exists)
         app.terminate()
         app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showCamera"]
         app.launch()
-        XCTAssertTrue(app.navigationBars["Review Shared Image"].waitForExistence(timeout: 10))
-        XCTAssertEqual(app.textFields["Piece name"].firstMatch.value as? String, "Pants")
+        XCTAssertTrue(app.buttons["sharedImport.option"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Pants"].exists, "Review resumes at the second piece")
         reviewNextPiece(in: app, approve: false)
         reviewNextPiece(in: app, approve: false)
-        let outfitName = app.textFields["Outfit name"]
-        reveal(outfitName, in: app)
-        replace(outfitName, with: uniqueName)
-        app.keyboards.buttons["return"].tap()
-        let mode = app.buttons["sharedImport.saveMode"]
-        reveal(mode, in: app)
-        mode.tap()
-        app.buttons["As individual pieces"].tap()
-        XCTAssertFalse(app.textFields["Outfit name"].exists)
+        XCTAssertTrue(app.staticTexts[uniqueName].waitForExistence(timeout: 3))
+        app.buttons["sharedImport.close"].tap()
+        XCTAssertTrue(app.buttons["Later"].waitForExistence(timeout: 5))
         app.buttons["Later"].tap()
         app.buttons["Review Share"].tap()
-        XCTAssertTrue(app.navigationBars["Review Shared Image"].waitForExistence(timeout: 5))
-        let confirm = app.buttons["sharedImport.confirm"]
-        reveal(confirm, in: app)
-        XCTAssertEqual(confirm.label, "Import as individual pieces")
-        confirm.tap()
+        let individual = app.buttons["sharedImport.confirmIndividual"]
+        reveal(individual, in: app)
+        individual.tap()
         openCloset(in: app)
         XCTAssertTrue(app.staticTexts[uniqueName].waitForExistence(timeout: 5))
         app.buttons["closet.filter.Outfits"].tap()
@@ -459,15 +471,39 @@ final class ShareImportUITests: XCTestCase {
                                "00000000-0000-4000-8000-\(suffix)"]
         if withCandidates { app.launchArguments.append("-seedTwoCandidates") }
         app.launch()
-        XCTAssertTrue(app.navigationBars["Review Shared Image"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["sharedImport.close"].waitForExistence(timeout: 10))
         return app
     }
 
     private func reviewNextPiece(in app: XCUIApplication, approve: Bool) {
+        if approve {
+            let option = app.buttons["sharedImport.option"]
+            XCTAssertTrue(option.waitForExistence(timeout: 5))
+            option.tap()
+        }
         let button = app.buttons[approve ? "sharedImport.approve" : "sharedImport.skip"]
-        reveal(button, in: app)
+        XCTAssertTrue(button.waitForExistence(timeout: 5))
         XCTAssertTrue(button.isEnabled)
         button.tap()
+    }
+
+    /// Find More on the summary: add a region, then name the new piece from its row menu.
+    private func addManualPiece(named name: String, in app: XCUIApplication) {
+        let more = app.buttons["sharedImport.findMore"]
+        reveal(more, in: app)
+        more.tap()
+        XCTAssertTrue(app.navigationBars["Adjust Image Region"].waitForExistence(timeout: 5))
+        app.buttons["Use Region"].tap()
+        let menus = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'More options'"))
+        XCTAssertTrue(menus.firstMatch.waitForExistence(timeout: 5))
+        menus.element(boundBy: menus.count - 1).tap() // the new piece is the last row
+        app.buttons["Edit name and category"].tap()
+        let field = app.textFields["Piece name"].firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        field.typeText(name)
+        app.keyboards.buttons["return"].tap()
+        app.buttons["Done"].tap()
     }
 
     private func reveal(_ element: XCUIElement, in app: XCUIApplication) {

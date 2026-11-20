@@ -358,6 +358,11 @@ private struct AppTabs: View {
             #if DEBUG
             let arguments = ProcessInfo.processInfo.arguments
 
+            if arguments.contains("-importDemo") {
+                do { try SharedImageInbox.seedDemoPhoto(ownerId: userId) }
+                catch { sharedImageError = error.localizedDescription }
+            }
+
             if let marker = arguments.firstIndex(
                 of: "-seedShareFixture"
             ),
