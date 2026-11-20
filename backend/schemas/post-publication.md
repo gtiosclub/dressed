@@ -94,3 +94,12 @@ is session restoration, not a fresh sign-in test. Focused lint passes for the ne
 publication/composer/media code. Full-app build lint still reports pre-existing
 violations, including a force cast in CameraCaptureView. No InjectionNext success
 is claimed: the change adds files and protocols and was fully rebuilt.
+
+Merge verification: integrated `origin/main` at `77b72e6`, preserving its own-profile
+screen and removal of the feed Save control. The merged signed build and all 15
+focused unit tests (publication/composer/profile identity) passed. The merged UI
+rerun created the demo post but later taps did not reliably open details/composer;
+tests now wait for stable hittable frames. The subsequent iOS 26 runner stalled,
+and an iOS 27.2 retry was stopped during first-boot migration. Therefore the merged
+UI rerun is inconclusive; the two passing UI results above refer to the pre-merge
+branch. No Firebase deployment was performed.
