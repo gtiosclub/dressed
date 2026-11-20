@@ -224,27 +224,21 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
 
     private func friendCard(_ post: Post, inPreview: Bool = false) -> some View {
         let like = postLikes.state(for: post)
-        return VStack(alignment: .leading, spacing: DSSpacing.sm) {
-            DSPostCard(
-                handle: "@\(post.authorId)",
-                date: Self.dateLabel(post.createdAt),
-                caption: post.caption,
-                commentCount: commentCounts[post.id] ?? 0,
-                likeCount: like.likeCount,
-                isLiked: like.isLiked,
-                isLikeEnabled: like.isLoaded && !like.isPending,
-                likeLabel: like.isLiked ? "Unlike outfit" : "Like outfit",
-                commentID: "infinite.comments.\(post.id)",
-                likeID: "ootd.like.\(post.id)",
-                onComment: { if inPreview { previewCommentsPost = post } else { commentsPost = post } },
-                onLike: { postLikes.toggle(post: post) }
-            ) {
-                artwork(post)
-            }
-            if let savedPosts, !previewPosts.contains(where: { $0.id == post.id }) {
-                SavedPostControl(postId: post.id, post: post, model: savedPosts)
-                    .padding(.horizontal, DSSpacing.md)
-            }
+        return DSPostCard(
+            handle: "@\(post.authorId)",
+            date: Self.dateLabel(post.createdAt),
+            caption: post.caption,
+            commentCount: commentCounts[post.id] ?? 0,
+            likeCount: like.likeCount,
+            isLiked: like.isLiked,
+            isLikeEnabled: like.isLoaded && !like.isPending,
+            likeLabel: like.isLiked ? "Unlike outfit" : "Like outfit",
+            commentID: "infinite.comments.\(post.id)",
+            likeID: "ootd.like.\(post.id)",
+            onComment: { if inPreview { previewCommentsPost = post } else { commentsPost = post } },
+            onLike: { postLikes.toggle(post: post) }
+        ) {
+            artwork(post)
         }
         .task(id: post.id) { await refreshCommentCount(post.id) }
         .accessibilityElement(children: .contain)
