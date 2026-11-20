@@ -9,6 +9,11 @@ struct DSPostCard<Photo: View>: View {
     let commentCount: Int
     let likeCount: Int
     var isLiked = false
+    var isLikeEnabled = true
+    /// Overrides the default "N likes" label, e.g. "Like outfit" / "Unlike outfit".
+    var likeLabel: String?
+    var commentID: String?
+    var likeID: String?
     var onShop: () -> Void = {}
     var onComment: () -> Void = {}
     var onLike: () -> Void = {}
@@ -35,7 +40,7 @@ struct DSPostCard<Photo: View>: View {
                     .padding(11)
                 }
 
-            HStack(spacing: DSSpacing.md) {
+            HStack(spacing: DSSpacing.lg) {
                 Text(caption)
                     .lineLimit(1)
                 Spacer(minLength: 0)
@@ -43,16 +48,20 @@ struct DSPostCard<Photo: View>: View {
                     count(icon: "TablerMessageCircle", value: commentCount)
                 }
                 .accessibilityLabel("\(commentCount) comments")
+                .accessibilityIdentifier(commentID ?? "")
                 Button(action: onLike) {
                     count(icon: isLiked ? "TablerHeartFilled" : "TablerHeart", value: likeCount)
                 }
-                .accessibilityLabel("\(likeCount) likes")
+                .disabled(!isLikeEnabled)
+                .accessibilityLabel(likeLabel ?? "\(likeCount) likes")
+                .accessibilityValue(likeLabel == nil ? "" : "\(likeCount) likes")
                 .accessibilityAddTraits(isLiked ? .isSelected : [])
+                .accessibilityIdentifier(likeID ?? "")
             }
             .buttonStyle(.plain)
             .font(DSFont.bodyEmphasis)
             .foregroundStyle(DSColor.textPrimary)
-            .padding(.horizontal, 19)
+            .padding(.horizontal, 18)
             .frame(height: 56)
         }
         .background {
@@ -69,8 +78,10 @@ struct DSPostCard<Photo: View>: View {
     private func count(icon: String, value: Int) -> some View {
         HStack(spacing: DSSpacing.xs) {
             Image(icon).resizable().frame(width: 22, height: 22)
-            Text("\(value)")
+            Text("\(value)").monospacedDigit()
         }
+        .frame(minHeight: 44)
+        .contentShape(Rectangle())
     }
 }
 

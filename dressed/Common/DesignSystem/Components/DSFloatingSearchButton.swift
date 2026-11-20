@@ -33,7 +33,7 @@ struct DSFloatingSearchButton: View {
                     .dsShadow(.floating)
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.dsPress)
     }
 }
 

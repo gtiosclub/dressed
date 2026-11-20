@@ -1,6 +1,8 @@
 import SwiftUI
 
 // Square grid tile. `.item` insets a cutout on grey (closet); `.photo` fills edge to edge (For You).
+// `isHighlighted` is the purple outline and glow on the newest closet piece (915:526).
+// `isChecked` (non-nil) adds the select circle from Create Outfit (1273:173); nil hides it.
 struct DSTile<Content: View>: View {
     enum Style {
         case item
@@ -8,6 +10,8 @@ struct DSTile<Content: View>: View {
     }
 
     var style: Style = .item
+    var isHighlighted = false
+    var isChecked: Bool?
     @ViewBuilder let content: () -> Content
 
     var body: some View {
@@ -23,6 +27,19 @@ struct DSTile<Content: View>: View {
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous))
+            .overlay {
+                if isHighlighted {
+                    RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous)
+                        .stroke(DSColor.brand, lineWidth: 1)
+                }
+            }
+            .overlay(alignment: .topLeading) {
+                if let isChecked {
+                    DSSelectionMark(isChecked: isChecked)
+                        .padding(14)
+                }
+            }
+            .dsShadow(isHighlighted ? .selectedGlow : .none)
     }
 }
 
@@ -32,7 +49,7 @@ struct DSTile<Content: View>: View {
         LazyVGrid(columns: columns, spacing: DSSpacing.md) {
             ForEach(["PreviewShirtGingham", "PreviewTeeBlueGraphic", "PreviewTeeNavy",
                      "PreviewTeeBlack", "PreviewTeeGrey", "PreviewTeeWhite"], id: \.self) { name in
-                DSTile {
+                DSTile(isHighlighted: name == "PreviewShirtGingham") {
                     Image(name).resizable().scaledToFit()
                 }
             }
@@ -47,4 +64,12 @@ struct DSTile<Content: View>: View {
         .padding(DSSpacing.lg)
     }
     .background(DSColor.background)
+}
+
+#Preview("Selectable") {
+    HStack(spacing: DSSpacing.md) {
+        DSTile(isChecked: true) { Image("PreviewTeeNavy").resizable().scaledToFit() }
+        DSTile(isChecked: false) { Image("PreviewTeeBlack").resizable().scaledToFit() }
+    }
+    .padding(DSSpacing.lg)
 }

@@ -13,8 +13,10 @@ struct DiscoveryIdeasView: View {
     private let columns = [GridItem(.flexible(), spacing: DSSpacing.md), GridItem(.flexible(), spacing: DSSpacing.md)]
     private let styles = ["Y2K", "Colorful", "Trendy", "Comfortable", "Monotone", "Vintage", "Minimal", "Streetwear"]
 
-    init(service: any CatalogSearching = DiscoveryCatalogSource.current) {
+    init(service: any CatalogSearching = DiscoveryCatalogSource.current, initialQuery: String = "") {
         _model = StateObject(wrappedValue: CatalogViewModel(service: service))
+        _query = State(initialValue: initialQuery)
+        _submittedQuery = State(initialValue: initialQuery)
         usesDemoStyles = service is DemoCatalogService
     }
 

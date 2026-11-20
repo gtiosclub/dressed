@@ -1,19 +1,20 @@
 import SwiftUI
 
-// "For You / Friends" switch from the Discovery mockups.
+// "For You / Friends" switch from the Discovery mockups. The thumb springs with a little overshoot.
 struct DSSegmentedControl<Option: Hashable>: View {
     let options: [Option]
     @Binding var selection: Option
     let title: (Option) -> String
 
     @Namespace private var thumb
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack(spacing: 0) {
             ForEach(options, id: \.self) { option in
                 let isSelected = option == selection
                 Button {
-                    withAnimation(.snappy) { selection = option }
+                    withAnimation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.5, dampingFraction: 0.55)) { selection = option }
                 } label: {
                     Text(title(option))
                         .font(DSFont.label)
@@ -29,6 +30,7 @@ struct DSSegmentedControl<Option: Hashable>: View {
                         }
                 }
                 .buttonStyle(.plain)
+                .sensoryFeedback(.selection, trigger: selection)
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
             }
         }

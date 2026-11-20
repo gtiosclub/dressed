@@ -27,7 +27,7 @@ struct DSCircleButton: View {
             .frame(width: 43, height: 43)
             .background(Circle().fill(DSColor.tile))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.dsPress)
         .accessibilityLabel(accessibilityLabel)
     }
 }

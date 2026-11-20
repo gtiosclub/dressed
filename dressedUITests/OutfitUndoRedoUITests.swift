@@ -8,7 +8,7 @@ final class OutfitUndoRedoUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-mockSignedIn", "-seedClosetFixture"]
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-seedClosetFixture"]
         app.launch()
         if app.buttons["Later"].waitForExistence(timeout: 2) {
             app.buttons["Later"].tap()

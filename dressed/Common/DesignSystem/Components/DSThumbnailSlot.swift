@@ -12,11 +12,14 @@ struct DSThumbnailSlot<Content: View>: View {
     }
 }
 
-// White-bordered frame that marks the detected piece on the source photo.
+// Frame that marks the detected piece on the source photo: white while browsing,
+// brand purple once a candidate is selected (777:6352 vs 1012:282).
 struct DSCropFrame: View {
+    var color: Color = .white
+
     var body: some View {
         RoundedRectangle(cornerRadius: DSRadius.xl, style: .continuous)
-            .strokeBorder(Color.white, lineWidth: 5)
+            .strokeBorder(color, lineWidth: 5)
     }
 }
 
@@ -37,7 +40,10 @@ struct DSCropFrame: View {
 #Preview("Crop frame") {
     ZStack {
         DSColor.textMuted
-        DSCropFrame().frame(width: 210, height: 206)
+        HStack {
+            DSCropFrame().frame(width: 150, height: 146)
+            DSCropFrame(color: DSColor.brand).frame(width: 150, height: 146)
+        }
     }
     .frame(height: 385)
     .clipShape(RoundedRectangle(cornerRadius: DSRadius.md))

@@ -1,14 +1,18 @@
 import SwiftUI
 
-// 50 pt rounded-square buttons from the share-to-Dressed mockup.
+// 50 pt rounded-square buttons from the share-to-Dressed, import and create-outfit mockups.
+// Put `.frame(maxWidth: .infinity)` on the label (inside the Button) for the full-width Import / Create Outfit buttons.
 struct DSButtonStyle: ButtonStyle {
     enum Kind {
         case primary    // purple, white icon (search)
         case secondary  // warm grey (Back)
-        case glass      // translucent white over photos (Skip, shop)
+        case glass      // translucent white over photos (Skip, shop, close)
+        case text       // no fill (Find More)
     }
 
     var kind: Kind = .secondary
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -20,7 +24,9 @@ struct DSButtonStyle: ButtonStyle {
                 RoundedRectangle(cornerRadius: DSRadius.md, style: .continuous)
                     .fill(fill)
             )
-            .opacity(configuration.isPressed ? 0.7 : 1)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
+            .opacity(configuration.isPressed ? (reduceMotion ? 0.7 : 0.88) : 1)
+            .animation(.spring(response: 0.28, dampingFraction: 0.62), value: configuration.isPressed)
     }
 
     private var fill: Color {
@@ -28,6 +34,7 @@ struct DSButtonStyle: ButtonStyle {
         case .primary: DSColor.brand
         case .secondary: DSColor.secondaryFill
         case .glass: DSColor.glass
+        case .text: .clear
         }
     }
 }

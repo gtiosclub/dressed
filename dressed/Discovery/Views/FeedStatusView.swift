@@ -29,22 +29,14 @@ struct FeedStatusView: View {
                     .accessibilityIdentifier("feedStatus.loading")
 
             case .empty:
-                Text("No posts yet")
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
+                DSEmptyState(icon: "TablerPhoto", title: "No posts yet",
+                             message: "Outfit photos from people you follow will show up here.")
                     .accessibilityIdentifier("feedStatus.empty")
 
             case .error(let message):
-                Text(message)
-                    .font(.body)
-                    .multilineTextAlignment(.center)
+                DSEmptyState(icon: "TablerAlertTriangle", title: "Couldn’t load posts", message: message,
+                             actionTitle: "Retry", action: onRetry)
                     .accessibilityIdentifier("feedStatus.errorMessage")
-
-                Button("Retry") {
-                    onRetry()
-                }
-                .buttonStyle(.borderedProminent)
-                .accessibilityIdentifier("feedStatus.retry")
             }
         }
         .padding()
