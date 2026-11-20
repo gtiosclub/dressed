@@ -26,7 +26,22 @@ final class NavigationUITests: XCTestCase {
 
         app.buttons["tab.discovery"].tap()
         XCTAssertTrue(app.buttons["infinite.post.infinite_0"].waitForExistence(timeout: 10))
-        app.buttons["app.profileButton"].tap()
+        // The header circle shows the account initial and opens the user's own profile.
+        let profileButton = app.buttons["app.profileButton"]
+        XCTAssertEqual(profileButton.label, "Profile")
+        profileButton.tap()
+        XCTAssertTrue(app.otherElements["profile.header"].waitForExistence(timeout: 5)
+            || app.staticTexts["Preview"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["profile.signOut"].exists)
+        let profileShot = XCTAttachment(screenshot: app.screenshot())
+        profileShot.name = "Profile screen"
+        profileShot.lifetime = .keepAlways
+        add(profileShot)
+        XCTAssertTrue(app.buttons["tab.discovery"].isSelected)
+        app.buttons["Back, Profile"].tap()
+        XCTAssertTrue(profileButton.waitForExistence(timeout: 5))
+
+        app.buttons["tab.avatar"].tap()
         XCTAssertTrue(app.buttons["tab.avatar"].isSelected)
         XCTAssertTrue(app.navigationBars["Avatar Studio"].waitForExistence(timeout: 10))
         allowCameraAccess()
