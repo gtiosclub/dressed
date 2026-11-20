@@ -168,6 +168,8 @@ enum TryOnFit {
         switch template.split {
         case .single:
             return ([whole(image, order: 30)], false)
+        case .top:
+            return (splitTop(image, anchors: anchors, canvas: canvas), false)
         case .hoodie:
             return splitHoodie(image, anchors: anchors, canvas: canvas)
         case .openJacket:
@@ -186,6 +188,51 @@ enum TryOnFit {
             image: image,
             bounds: normalizedBounds(of: image) ?? TryOnRect(x: 0, y: 0, width: 1, height: 1)
         )
+    }
+
+    private static func splitTop(
+        _ image: CGImage,
+        anchors: [String: TryOnPoint],
+        canvas: TryOnCanvas
+    ) -> [TryOnComponentImage] {
+        guard let neck = anchors["necklineCenter"],
+              let left = anchors["leftShoulderSeam"],
+              let right = anchors["rightShoulderSeam"],
+              let bytes = TryOnBitmap.rgba(from: image) else {
+            return [whole(image, order: 30)]
+        }
+        var torso = [UInt8](repeating: 0, count: bytes.bytes.count)
+        var leftSleeve = [UInt8](repeating: 0, count: bytes.bytes.count)
+        var rightSleeve = [UInt8](repeating: 0, count: bytes.bytes.count)
+        let innerPad = abs(right.x - left.x) * 0.08
+        for y in 0..<bytes.height {
+            for x in 0..<bytes.width {
+                let index = (y * bytes.width + x) * 4
+                guard bytes.bytes[index + 3] > 16 else { continue }
+                let point = TryOnPoint(x: Double(x) / Double(canvas.width), y: Double(y) / Double(canvas.height))
+                if point.x < left.x - innerPad {
+                    copy(bytes.bytes, index, into: &leftSleeve)
+                } else if point.x > right.x + innerPad {
+                    copy(bytes.bytes, index, into: &rightSleeve)
+                } else {
+                    copy(bytes.bytes, index, into: &torso)
+                }
+            }
+        }
+        guard let torsoImage = TryOnBitmap.cgImage(width: bytes.width, height: bytes.height, bytes: torso),
+              (TryOnBitmap.stats(of: torsoImage)?.opaqueCount ?? 0) > 64 else {
+            return [whole(image, order: 30)]
+        }
+        var components = [component("torso", .mainBody, .clothing, 30, torsoImage)]
+        if let sleeve = TryOnBitmap.cgImage(width: bytes.width, height: bytes.height, bytes: leftSleeve),
+           (TryOnBitmap.stats(of: sleeve)?.opaqueCount ?? 0) > 80 {
+            components.append(component("left-sleeve", .leftSleeve, .clothing, 40, sleeve))
+        }
+        if let sleeve = TryOnBitmap.cgImage(width: bytes.width, height: bytes.height, bytes: rightSleeve),
+           (TryOnBitmap.stats(of: sleeve)?.opaqueCount ?? 0) > 80 {
+            components.append(component("right-sleeve", .rightSleeve, .clothing, 41, sleeve))
+        }
+        return components
     }
 
     private static func splitHoodie(

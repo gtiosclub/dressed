@@ -79,23 +79,57 @@ actor TryOnPipeline {
                     ?? "This piece has no shoulder, waist, hip, knee, or foot coordinates. Add the photo of the person wearing it again."
             )
         }
-        progress("Placing \(sourceFit.gridColumns)×\(sourceFit.gridRows) squares, hem at the \(sourceFit.hemDescription)")
-        guard let placed = TryOnSourceFit.place(
-            cutout: photo,
-            fit: sourceFit,
-            avatar: avatar.fittingMap.landmarks,
-            canvas: .canonical
-        ) else {
-            throw TryOnImageError.provider(
-                TryOnSourceFit.placementFailure(fit: sourceFit, avatar: avatar.fittingMap.landmarks)
+        let hemText = TryOnSourceFitStore.upright(photo).map {
+            TryOnSourceFit.placementHemDescription(fit: sourceFit, category: item.category, photo: $0)
+        } ?? sourceFit.hemDescription
+        let landmarks = avatar.fittingMap.landmarks
+        var keyed: CGImage
+        var alignmentNote: String?
+        let apiReady = TryOnAPIKey.isConfigured && !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        var aiFitted = false
+        if apiReady {
+            progress("Fitting the garment to your avatar")
+            do {
+                keyed = try await aiFittedGarment(
+                    item: item,
+                    template: template,
+                    source: source,
+                    avatar: avatar,
+                    sourceFit: sourceFit,
+                    hemText: hemText,
+                    key: key
+                )
+                guard TryOnBitmap.stats(of: keyed)?.opaqueCount ?? 0 > 64 else {
+                    throw TryOnImageError.provider("The avatar-conditioned fit came back empty.")
+                }
+                aiFitted = true
+                alignmentNote = "Avatar-conditioned AI fit for overlay compositing."
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                progress("AI fit unavailable, placing on landmarks (hem at the \(hemText))")
+                keyed = try localFittedGarment(
+                    cutout: photo,
+                    sourceFit: sourceFit,
+                    avatar: landmarks,
+                    category: item.category
+                )
+                alignmentNote = nil
+            }
+        } else {
+            progress("Placing on landmarks, hem at the \(hemText)")
+            keyed = try localFittedGarment(
+                cutout: photo,
+                sourceFit: sourceFit,
+                avatar: landmarks,
+                category: item.category
             )
         }
-        _ = try await library.saveAttempt(placed.image, garmentID: item.id, attempt: (existing?.attemptCount ?? 0) + 1)
+        _ = try await library.saveAttempt(keyed, garmentID: item.id, attempt: (existing?.attemptCount ?? 0) + 1)
         progress("Segmenting and validating")
-        let keyed = placed.image
         guard let stats = TryOnBitmap.stats(of: keyed) else { throw TryOnImageError.emptyImage }
         let initialAnchors = TryOnFit.anchors(for: template, stats: stats, canvas: .canonical)
-        let alignment: (shift: TryOnPoint, note: String?) = (.zero, nil)
+        let alignment: (shift: TryOnPoint, note: String?) = (.zero, alignmentNote)
         let shift = TryOnFit.clamp(alignment.shift, stats: stats, canvas: .canonical)
         let fitted: CGImage
         if abs(shift.x) > 0.01 || abs(shift.y) > 0.01 {
@@ -108,7 +142,20 @@ actor TryOnPipeline {
         } else {
             fitted = keyed
         }
-        guard let fittedStats = TryOnBitmap.stats(of: fitted) else { throw TryOnImageError.emptyImage }
+        let silhouette: CGImage?
+        if let silhouettePath = avatar.fittingMap.masks.silhouettePath {
+            silhouette = await image(at: silhouettePath)
+        } else {
+            silhouette = nil
+        }
+        let wornImage = TryOnBitmap.applyWearHoles(
+            fitted,
+            landmarks: landmarks,
+            template: template,
+            canvas: .canonical,
+            silhouette: silhouette
+        ) ?? fitted
+        guard let fittedStats = TryOnBitmap.stats(of: wornImage) else { throw TryOnImageError.emptyImage }
         let anchors = TryOnFit.anchors(for: template, stats: fittedStats, canvas: .canonical)
         let bounds = normalized(fittedStats.bounds, canvas: .canonical)
         let mesh = TryOnFit.mesh(
@@ -118,9 +165,9 @@ actor TryOnPipeline {
             landmarks: avatar.fittingMap.landmarks,
             appliedShift: shift
         )
-        let split = TryOnFit.split(template: template, image: fitted, anchors: anchors, canvas: .canonical)
+        let split = TryOnFit.split(template: template, image: wornImage, anchors: anchors, canvas: .canonical)
         var report = TryOnValidator.garment(
-            image: fitted,
+            image: wornImage,
             canvas: .canonical,
             template: template,
             anchors: anchors,
@@ -133,7 +180,9 @@ actor TryOnPipeline {
             id: "source-hem",
             level: .review,
             passed: true,
-            message: "Hem placed at the \(sourceFit.hemDescription) from the worn photo."
+            message: aiFitted
+                ? "AI fit targeted hem at the \(hemText) from the worn photo."
+                : "Hem placed at the \(hemText) from the worn photo."
         ))
         // Placed fabric still gets worn when a review check or the mesh limit fails.
         // The failed checks stay on the asset and are shown after this step.
@@ -184,11 +233,112 @@ actor TryOnPipeline {
         )
         let stored = try await library.saveGarment(
             asset,
-            fitted: fitted,
-            mask: TryOnBitmap.mask(from: fitted),
+            fitted: wornImage,
+            mask: TryOnBitmap.mask(from: wornImage),
             components: split.components
         )
         return TryOnPreparedGarment(asset: stored, keptPreviousReadyFit: false)
+    }
+
+    /// OpenAI edit: avatar wearing `item` like the source photo, keeping other worn body slots.
+    func composeWornLook(
+        item: ClothingItem,
+        template: TryOnTemplateID,
+        sourcePhoto: CGImage,
+        garmentCutout: CGImage?,
+        avatar: TryOnAvatar,
+        outfit: TryOnOutfit,
+        garments: [TryOnGarmentAsset],
+        key: String,
+        progress: @escaping (String) -> Void
+    ) async throws -> CGImage {
+        try await wearGarmentOnAvatarComposite(
+            item: item,
+            template: template,
+            sourcePhoto: sourcePhoto,
+            garmentCutout: garmentCutout,
+            avatar: avatar,
+            outfit: outfit,
+            garments: garments,
+            key: key,
+            progress: progress
+        )
+    }
+
+    /// Generates a full-body avatar image wearing `item`, preserving other worn slots on the current composite or avatar.
+    func wearGarmentOnAvatarComposite(
+        item: ClothingItem,
+        template: TryOnTemplateID,
+        sourcePhoto: CGImage,
+        garmentCutout: CGImage?,
+        avatar: TryOnAvatar,
+        outfit: TryOnOutfit,
+        garments: [TryOnGarmentAsset],
+        key: String,
+        progress: @escaping (String) -> Void
+    ) async throws -> CGImage {
+        guard let slot = TryOnBodySlot.slot(for: item.category) else {
+            throw TryOnImageError.provider("This category does not map to a try-on body slot.")
+        }
+        guard let sourceFit = TryOnSourceFitStore.load(ownerId: ownerId, itemID: item.id) else {
+            throw TryOnImageError.provider(
+                TryOnSourceFitStore.failureReason(ownerId: ownerId, itemID: item.id)
+                    ?? "This piece has no worn-photo fit metadata."
+            )
+        }
+        let hemText = TryOnSourceFitStore.upright(UIImage(cgImage: sourcePhoto)).map {
+            TryOnSourceFit.placementHemDescription(fit: sourceFit, category: item.category, photo: $0)
+        } ?? sourceFit.hemDescription
+        progress("Dressing avatar in \(item.name)")
+        let base: CGImage
+        if let compositePath = outfit.compositeImagePath, outfit.compositeDisplayActive,
+           let composite = await image(at: compositePath) {
+            base = composite
+        } else if let canonical = await image(at: avatar.canonicalImagePath) {
+            base = canonical
+        } else {
+            throw TryOnImageError.emptyImage
+        }
+        var preserveCategories: [ClothingCategory] = []
+        var preserveNames: [String] = []
+        var referencePayloads: [Data] = []
+        for id in outfit.selectedGarmentIDs where id != item.id {
+            guard let garment = garments.first(where: { $0.id == id }),
+                  outfit.placement(for: id).visible,
+                  garment.status == .ready || garment.status == .needsReview,
+                  let category = ClothingCategory(rawValue: garment.sourceCategory),
+                  let otherSlot = TryOnBodySlot.slot(for: category),
+                  otherSlot != slot else { continue }
+            if !preserveCategories.contains(category) { preserveCategories.append(category) }
+            preserveNames.append(category.rawValue.capitalized)
+            if referencePayloads.count < 2,
+               let path = garment.fittedReferencePath,
+               let refImage = await image(at: path) {
+                referencePayloads.append(try png(refImage))
+            }
+        }
+        var payloads = [try png(base), try png(sourcePhoto)]
+        if let garmentCutout, payloads.count < 4 {
+            payloads.append(try png(garmentCutout))
+        }
+        for ref in referencePayloads where payloads.count < 4 {
+            payloads.append(ref)
+        }
+        let prompt = TryOnPrompts.wearSlot(
+            slot: slot,
+            category: item.category,
+            preserveCategories: preserveCategories,
+            preserveGarmentNames: preserveNames,
+            hemDescription: hemText,
+            template: template,
+            sourceFit: sourceFit
+        )
+        let generated = try await generatedImage(key: key, prompt: prompt, images: payloads, quality: "high")
+        let keyed = TryOnBitmap.keyedIfNeeded(generated).image
+        guard TryOnBitmap.stats(of: keyed)?.opaqueFraction ?? 0 > 0.04 else {
+            throw TryOnImageError.provider("The worn-avatar image came back nearly empty.")
+        }
+        return keyed
     }
 
     func exportPoses(
@@ -236,6 +386,54 @@ actor TryOnPipeline {
             saved[pose] = try await library.saveExport(generated, hash: hash, pose: pose)
         }
         return saved
+    }
+
+    private func aiFittedGarment(
+        item: ClothingItem,
+        template: TryOnTemplateID,
+        source: CGImage,
+        avatar: TryOnAvatar,
+        sourceFit: TryOnSourceFit,
+        hemText: String,
+        key: String
+    ) async throws -> CGImage {
+        var payloads = [try png(source)]
+        guard let avatarImage = await image(at: avatar.canonicalImagePath) else {
+            throw TryOnImageError.emptyImage
+        }
+        payloads.append(try png(avatarImage))
+        if let silhouettePath = avatar.fittingMap.masks.silhouettePath,
+           let silhouette = await image(at: silhouettePath) {
+            payloads.append(try png(silhouette))
+        }
+        let prompt = TryOnPrompts.garment(
+            template: template,
+            landmarks: avatar.fittingMap.landmarks,
+            category: item.category.rawValue,
+            sourceFit: sourceFit,
+            hemDescription: hemText,
+            retryNotes: []
+        )
+        let generated = try await generatedImage(key: key, prompt: prompt, images: payloads, quality: "high")
+        return TryOnBitmap.keyedIfNeeded(generated).image
+    }
+
+    private func localFittedGarment(
+        cutout: UIImage,
+        sourceFit: TryOnSourceFit,
+        avatar: TryOnLandmarks,
+        category: ClothingCategory
+    ) throws -> CGImage {
+        guard let placed = TryOnSourceFit.place(
+            cutout: cutout,
+            fit: sourceFit,
+            avatar: avatar,
+            canvas: .canonical,
+            category: category
+        ) else {
+            throw TryOnImageError.provider(TryOnSourceFit.placementFailure(fit: sourceFit, avatar: avatar))
+        }
+        return TryOnSourceFit.widenToShoulderSpan(image: placed.image, avatar: avatar)
     }
 
     private func generatedImage(key: String, prompt: String, images: [Data], quality: String) async throws -> CGImage {

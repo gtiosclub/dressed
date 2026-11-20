@@ -266,6 +266,7 @@ struct FullScreenTryOnView: View {
             clear(zone)
             return
         }
+        // Clear only this body zone in the studio model; other slots (pants, shoes, etc.) stay worn.
         clear(zone)
         var placed = item
         placed.category = category

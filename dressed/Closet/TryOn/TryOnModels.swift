@@ -60,11 +60,38 @@ enum TryOnJobStatus: String, Codable, Equatable {
 
 enum TryOnVersions {
     static let style = "closet-tryon-1"
-    static let prompt = "prompt-v1"
+    static let prompt = "prompt-v4"
     static let poseSet = "poses-v1"
     static let provider = "gpt-image-2.5-sunburst"
-    static let processing = 2
+    static let processing = 8
     static let maxLocalDisplacement = 0.02
+}
+
+/// Non-overlapping body regions for layered avatar try-on. Changing one slot must preserve the others.
+enum TryOnBodySlot: String, Codable, CaseIterable {
+    case top
+    case bottom
+    case shoes
+    case headwear
+
+    static func slot(for category: ClothingCategory) -> TryOnBodySlot? {
+        switch category {
+        case .tops, .outerwear: return .top
+        case .pants, .skirts, .dresses: return .bottom
+        case .shoes: return .shoes
+        case .accessories: return .headwear
+        case .other: return nil
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .top: return "top"
+        case .bottom: return "bottom"
+        case .shoes: return "shoes"
+        case .headwear: return "headwear"
+        }
+    }
 }
 
 struct TryOnLandmarks: Codable, Equatable {
@@ -335,12 +362,25 @@ struct TryOnOutfit: Codable, Equatable, Identifiable {
     var selectedGarmentIDs: [String]
     var placements: [TryOnGarmentPlacement]
     var componentOverrides: [TryOnComponentOverride]
+    /// Full-body front composite with garments baked in (per-outfit display layer).
+    var compositeImagePath: String?
+    /// Garment IDs whose clothing is painted into `compositeImagePath`.
+    var compositeBakedGarmentIDs: [String]?
+    var compositeProcessingVersion: Int?
     var revision: Int
     var createdAt: Date
     var updatedAt: Date
 
     func placement(for garmentID: String) -> TryOnGarmentPlacement {
         placements.first { $0.garmentID == garmentID } ?? .identity(garmentID: garmentID)
+    }
+
+    var compositeDisplayActive: Bool {
+        guard compositeImagePath != nil,
+              compositeProcessingVersion == TryOnVersions.processing else { return false }
+        let baked = Set(compositeBakedGarmentIDs ?? [])
+        let worn = Set(selectedGarmentIDs)
+        return !baked.isEmpty && baked.isSubset(of: worn)
     }
 }
 

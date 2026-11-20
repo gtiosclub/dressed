@@ -39,14 +39,22 @@ enum TryOnRenderGraph {
         }
         addLayer("back-hair", avatar.layers.backHairPath)
         let worn = outfit.selectedGarmentIDs.compactMap { ready[$0] }.filter { outfit.placement(for: $0.id).visible }
-        items.append(contentsOf: components(worn, outfit: outfit, meshes: meshes, root: root, depth: .behindAvatar))
+        let baked = Set(outfit.compositeBakedGarmentIDs ?? [])
+        let overlayGarments = outfit.compositeDisplayActive ? worn.filter { !baked.contains($0.id) } : worn
+        items.append(contentsOf: components(overlayGarments, outfit: outfit, meshes: meshes, root: root, depth: .behindAvatar))
         addLayer("back-arms", avatar.layers.backArmsPath)
-        addLayer("body", avatar.layers.bodyBasePath ?? avatar.canonicalImagePath)
-        items.append(contentsOf: components(worn, outfit: outfit, meshes: meshes, root: root, depth: .clothing))
+        let bodyPath: String?
+        if outfit.compositeDisplayActive, let composite = outfit.compositeImagePath {
+            bodyPath = composite
+        } else {
+            bodyPath = avatar.layers.bodyBasePath ?? avatar.canonicalImagePath
+        }
+        addLayer("body", bodyPath)
+        items.append(contentsOf: components(overlayGarments, outfit: outfit, meshes: meshes, root: root, depth: .clothing))
         addLayer("front-arms", avatar.layers.frontArmsPath)
         addLayer("front-hair", avatar.layers.frontHairPath)
         addLayer("face", avatar.layers.faceForegroundPath)
-        items.append(contentsOf: components(worn, outfit: outfit, meshes: meshes, root: root, depth: .inFrontOfAvatar))
+        items.append(contentsOf: components(overlayGarments, outfit: outfit, meshes: meshes, root: root, depth: .inFrontOfAvatar))
         return TryOnScene(textureEpoch: textureEpoch, items: items)
     }
 

@@ -177,7 +177,7 @@ struct AvatarStudioView: View {
         for item in model.worn.values {
             guard let template = TryOnTemplateID.suggested(for: item.category),
                   let photo = uiImage?(item) else { continue }
-            if let asset = tryOn.asset(for: item.id), tryOn.matchesAvatar(asset) {
+            if let asset = tryOn.asset(for: item.id), tryOn.garmentFitIsCurrent(asset) {
                 if !tryOn.isWorn(asset.id) {
                     tryOn.setWorn(asset, category: item.category, on: true)
                 }

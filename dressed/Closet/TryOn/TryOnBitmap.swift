@@ -63,6 +63,29 @@ enum TryOnBitmap {
         return aspectFit(UIImage(cgImage: image), canvas: canvas)
     }
 
+    /// Uniform horizontal scale about a canvas pixel anchor, canvas size unchanged.
+    static func scaledX(
+        _ image: CGImage,
+        scale: CGFloat,
+        anchorX: CGFloat,
+        canvas: TryOnCanvas
+    ) -> CGImage? {
+        guard scale > 0.001, abs(scale - 1) > 0.001 else { return image }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = false
+        let size = CGSize(width: canvas.width, height: canvas.height)
+        return UIGraphicsImageRenderer(size: size, format: format).image { context in
+            let cg = context.cgContext
+            cg.translateBy(x: anchorX, y: 0)
+            cg.scaleBy(x: scale, y: 1)
+            cg.translateBy(x: -anchorX, y: 0)
+            UIImage(cgImage: image).draw(
+                in: CGRect(x: 0, y: 0, width: CGFloat(image.width), height: CGFloat(image.height))
+            )
+        }.cgImage
+    }
+
     static func translated(_ image: CGImage, dx: CGFloat, dy: CGFloat, canvas: TryOnCanvas) -> CGImage? {
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
@@ -267,6 +290,149 @@ enum TryOnBitmap {
             bytes[index + 3] = 255
         }
         return cgImage(width: source.width, height: source.height, bytes: bytes)
+    }
+
+    /// Punches neck, cuff, head, and hand openings so the avatar shows through as worn clothing, not a flat poster.
+    static func applyWearHoles(
+        _ image: CGImage,
+        landmarks: TryOnLandmarks,
+        template: TryOnTemplateID,
+        canvas: TryOnCanvas = .canonical,
+        silhouette: CGImage? = nil
+    ) -> CGImage? {
+        guard var source = rgba(from: image) else { return image }
+        let width = source.width
+        let height = source.height
+        func px(_ nx: Double) -> Int { min(max(Int((nx * Double(width - 1)).rounded()), 0), width - 1) }
+        func py(_ ny: Double) -> Int { min(max(Int((ny * Double(height - 1)).rounded()), 0), height - 1) }
+        func clear(_ x: Int, _ y: Int) {
+            guard x >= 0, y >= 0, x < width, y < height else { return }
+            let index = (y * width + x) * 4
+            source.bytes[index] = 0
+            source.bytes[index + 1] = 0
+            source.bytes[index + 2] = 0
+            source.bytes[index + 3] = 0
+        }
+        func clearEllipse(cx: Double, cy: Double, rx: Double, ry: Double) {
+            let x0 = px(cx - rx)
+            let x1 = px(cx + rx)
+            let y0 = py(cy - ry)
+            let y1 = py(cy + ry)
+            let centerX = px(cx)
+            let centerY = py(cy)
+            let radiusX = max(px(cx + rx) - centerX, 1)
+            let radiusY = max(py(cy + ry) - centerY, 1)
+            for y in y0...y1 {
+                for x in x0...x1 {
+                    let dx = Double(x - centerX) / Double(radiusX)
+                    let dy = Double(y - centerY) / Double(radiusY)
+                    if dx * dx + dy * dy <= 1.02 { clear(x, y) }
+                }
+            }
+        }
+        func clearAbove(_ yCut: Double) {
+            let limit = py(yCut)
+            for y in 0...limit {
+                for x in 0..<width {
+                    let index = (y * width + x) * 4
+                    guard source.bytes[index + 3] > 16 else { continue }
+                    clear(x, y)
+                }
+            }
+        }
+        let leftShoulder = landmarks.leftShoulderJoint ?? landmarks.leftShoulderEdge
+        let rightShoulder = landmarks.rightShoulderJoint ?? landmarks.rightShoulderEdge
+        let shoulderY: Double = {
+            let ys = [leftShoulder?.y, rightShoulder?.y, landmarks.neckCenter?.y].compactMap { $0 }
+            guard let minY = ys.min() else { return 0.22 }
+            return minY
+        }()
+        let shoulderSpan = abs((rightShoulder?.x ?? 0.62) - (leftShoulder?.x ?? 0.38))
+        let torsoLeft = (leftShoulder?.x ?? 0.38) - shoulderSpan * 0.06
+        let torsoRight = (rightShoulder?.x ?? 0.62) + shoulderSpan * 0.06
+
+        clearAbove(shoulderY - 0.012)
+
+        if let neck = landmarks.neckCenter {
+            let rx = max(shoulderSpan * 0.14, 0.035)
+            let ry = max(shoulderSpan * 0.22, 0.045)
+            clearEllipse(cx: neck.x, cy: neck.y + ry * 0.15, rx: rx, ry: ry)
+            let headTop = max(0.04, neck.y - 0.14)
+            clearEllipse(cx: neck.x, cy: (headTop + neck.y) / 2, rx: rx * 1.35, ry: (neck.y - headTop) * 0.55 + 0.02)
+        }
+
+        func punchCuff(wrist: TryOnPoint?, elbow: TryOnPoint?, side: Double) {
+            guard let wrist else { return }
+            let cuffY = min(wrist.y + 0.02, 0.98)
+            let rx = max(shoulderSpan * 0.12, 0.03)
+            let ry = max(shoulderSpan * 0.08, 0.025)
+            clearEllipse(cx: wrist.x, cy: cuffY, rx: rx, ry: ry)
+            if let elbow {
+                let steps = 6
+                for step in 1...steps {
+                    let t = Double(step) / Double(steps)
+                    let y = lerp(elbow.y, cuffY + ry, t)
+                    let x = lerp(elbow.x, wrist.x, t)
+                    if x < torsoLeft || x > torsoRight { clearEllipse(cx: x, cy: y, rx: rx * 0.55, ry: ry * 0.45) }
+                }
+            }
+            let handY = min(wrist.y + 0.035, 0.99)
+            clearEllipse(cx: wrist.x + side * 0.01, cy: handY, rx: rx * 1.1, ry: ry * 1.25)
+        }
+        punchCuff(wrist: landmarks.leftWrist, elbow: landmarks.leftElbow, side: -1)
+        punchCuff(wrist: landmarks.rightWrist, elbow: landmarks.rightElbow, side: 1)
+
+        if template == .tShirt || template == .openJacket {
+            let stats = stats(of: image)
+            let openCenter = (stats?.centerBandAlpha ?? 1) < 0.32 || template == .openJacket
+            if openCenter, let neck = landmarks.neckCenter, let waist = landmarks.waistCenter ?? landmarks.chestCenter {
+                let bandHalf = max(shoulderSpan * 0.06, 0.018)
+                let y0 = py(neck.y + 0.04)
+                let y1 = py(min(waist.y, neck.y + 0.38))
+                let x0 = px(neck.x - bandHalf)
+                let x1 = px(neck.x + bandHalf)
+                for y in y0...y1 {
+                    for x in x0...x1 { clear(x, y) }
+                }
+            }
+        }
+
+        if let silhouette, let mask = rgba(from: silhouette),
+           mask.width == width, mask.height == height {
+            for y in 0..<height {
+                for x in 0..<width {
+                    let ny = Double(y) / Double(max(height - 1, 1))
+                    let index = (y * width + x) * 4
+                    guard source.bytes[index + 3] > 16 else { continue }
+                    if mask.bytes[index + 3] < 64, ny < shoulderY + 0.015 {
+                        clear(x, y)
+                    }
+                }
+            }
+            for wrist in [landmarks.leftWrist, landmarks.rightWrist].compactMap({ $0 }) {
+                let rx = max(Int((shoulderSpan * 0.16 * Double(width)).rounded()), 10)
+                let wx = px(wrist.x)
+                let wy0 = py(wrist.y - 0.01)
+                let wy1 = py(min(wrist.y + 0.06, 0.99))
+                let x0 = max(0, wx - rx)
+                let x1 = min(width - 1, wx + rx)
+                for y in wy0...wy1 {
+                    for x in x0...x1 {
+                        let nx = Double(x) / Double(max(width - 1, 1))
+                        if nx >= torsoLeft && nx <= torsoRight,
+                           mask.bytes[(y * width + x) * 4 + 3] > 128 {
+                            clear(x, y)
+                        }
+                    }
+                }
+            }
+        }
+
+        return cgImage(width: width, height: height, bytes: source.bytes) ?? image
+    }
+
+    private static func lerp(_ a: Double, _ b: Double, _ t: Double) -> Double {
+        a + (b - a) * t
     }
 
     private static func average(_ values: [Double]) -> Double {

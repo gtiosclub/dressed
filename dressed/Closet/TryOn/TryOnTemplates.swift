@@ -31,7 +31,7 @@ enum TryOnTemplateID: String, Codable, CaseIterable, Identifiable {
 
     var split: TryOnSplitStyle {
         switch self {
-        case .tShirt: return .single
+        case .tShirt: return .top
         case .oversizedHoodie: return .hoodie
         case .openJacket: return .openJacket
         case .trousers: return .trousers
@@ -82,9 +82,11 @@ enum TryOnTemplateID: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .tShirt:
             return """
-            Align the neckline with the avatar neck without covering the neck unnaturally. \
-            Align shoulder seams to the shoulder region. Fit sleeves toward the upper arms. \
-            Keep the source shirt's torso width and hem length. Protect chest graphics and lettering from distortion.
+            Align the neckline with the avatar neck. Leave a transparent elliptical neck opening — do not paint \
+            skin or collar filling the hole. Sleeves are fabric tubes only; keep each cuff opening transparent \
+            so hands and wrists are NOT part of the garment PNG. Do not extend opaque fabric above the shoulder \
+            line or over the face. Align shoulder seams to the shoulder region. Keep the source torso width and \
+            hem length (kurta, shirt, or tee). Protect chest graphics and lettering from distortion.
             """
         case .oversizedHoodie:
             return """
@@ -109,6 +111,7 @@ enum TryOnTemplateID: String, Codable, CaseIterable, Identifiable {
 
 enum TryOnSplitStyle: String, Codable {
     case single
+    case top
     case hoodie
     case openJacket
     case trousers

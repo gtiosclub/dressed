@@ -110,6 +110,12 @@ actor TryOnLibrary {
         try writeJSON(outfit, "outfits/\(outfit.id).json")
     }
 
+    func saveOutfitComposite(_ image: CGImage, outfitID: String) throws -> String {
+        let relative = "outfits/\(outfitID)/composite.png"
+        _ = try write(image, relative)
+        return relative
+    }
+
     func deleteOutfit(id: String) throws {
         try FileManager.default.removeItem(at: url("outfits/\(id).json"))
     }
