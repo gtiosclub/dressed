@@ -25,6 +25,9 @@ final class TryOnEditorModel {
     private var jobs: [(String, (TryOnEditorModel) async throws -> Void)] = []
     private var draining = false
     private var pendingFits: Set<String> = []
+    /// Bumped when a fit starts and again when it finishes. A progress update from
+    /// "Segmenting and validating" that lands after the job ends is ignored.
+    private var activityGeneration = 0
 
     init(ownerId: String) {
         let library = TryOnLibrary(ownerId: ownerId)
@@ -79,8 +82,9 @@ final class TryOnEditorModel {
             defer { model.pendingFits.remove(item.id) }
             if model.avatar == nil {
                 let key = try model.key()
+                let generation = model.activityGeneration
                 let created = try await model.pipeline.prepareAvatar(from: avatarSource, key: key) { text in
-                    Task { @MainActor in model.activity = text }
+                    model.showActivity(text, generation: generation)
                 }
                 model.avatar = created
                 model.draft = nil
@@ -95,6 +99,7 @@ final class TryOnEditorModel {
             }
             guard let avatar = model.avatar else { return }
             let key = try model.key()
+            let generation = model.activityGeneration
             let prepared = try await model.pipeline.prepareGarment(
                 item: item,
                 template: template,
@@ -102,7 +107,7 @@ final class TryOnEditorModel {
                 avatar: avatar,
                 key: key
             ) { text in
-                Task { @MainActor in model.activity = text }
+                model.showActivity(text, generation: generation)
             }
             model.replace(prepared.asset)
             if prepared.asset.status != .failed {
@@ -125,8 +130,9 @@ final class TryOnEditorModel {
     func createAvatar(from image: UIImage) {
         run("Generating the stylized avatar") { model in
             let key = try model.key()
+            let generation = model.activityGeneration
             let avatar = try await model.pipeline.prepareAvatar(from: image, key: key) { text in
-                Task { @MainActor in model.activity = text }
+                model.showActivity(text, generation: generation)
             }
             model.avatar = avatar
             model.draft = nil
@@ -145,6 +151,7 @@ final class TryOnEditorModel {
         }
         run("Fitting \(item.name)") { model in
             let key = try model.key()
+            let generation = model.activityGeneration
             let prepared = try await model.pipeline.prepareGarment(
                 item: item,
                 template: template,
@@ -152,14 +159,15 @@ final class TryOnEditorModel {
                 avatar: avatar,
                 key: key
             ) { text in
-                Task { @MainActor in model.activity = text }
+                model.showActivity(text, generation: generation)
             }
             model.replace(prepared.asset)
-            if prepared.asset.status == .ready {
-                model.toggleWorn(prepared.asset, category: item.category)
-                model.message = nil
+            let notes = prepared.asset.validation.checks.filter { !$0.passed }.map(\.message)
+            if prepared.asset.status != .failed {
+                model.setWorn(prepared.asset, category: item.category, on: true)
+                model.message = notes.isEmpty ? nil : notes.joined(separator: " ")
             } else {
-                model.message = prepared.asset.validation.checks.filter { !$0.passed }.map(\.message).joined(separator: " ")
+                model.message = notes.joined(separator: " ")
             }
             model.textureEpoch += 1
         }
@@ -169,6 +177,7 @@ final class TryOnEditorModel {
         guard let avatar, let draft else { return }
         run("Exporting poses") { model in
             let key = try model.key()
+            let generation = model.activityGeneration
             let urls = try await model.pipeline.exportPoses(
                 avatar: avatar,
                 garments: model.garments,
@@ -176,7 +185,7 @@ final class TryOnEditorModel {
                 meshes: model.meshes,
                 key: key
             ) { text in
-                Task { @MainActor in model.activity = text }
+                model.showActivity(text, generation: generation)
             }
             var images: [TryOnPose: UIImage] = [:]
             for (pose, url) in urls {
@@ -298,7 +307,16 @@ final class TryOnEditorModel {
     }
 
     func matchesAvatar(_ asset: TryOnGarmentAsset) -> Bool {
-        asset.status == .ready && asset.avatarID == avatar?.id && asset.avatarVersion == avatar?.version
+        (asset.status == .ready || asset.status == .needsReview)
+            && asset.avatarID == avatar?.id
+            && asset.avatarVersion == avatar?.version
+    }
+
+    nonisolated fileprivate func showActivity(_ text: String, generation: Int) {
+        Task { @MainActor in
+            guard activityGeneration == generation else { return }
+            activity = text
+        }
     }
 
     private func toggleWorn(_ asset: TryOnGarmentAsset, category: ClothingCategory) {
@@ -385,6 +403,8 @@ final class TryOnEditorModel {
         guard !draining else { return }
         draining = true
         Task { @MainActor in
+            activityGeneration += 1
+            let generation = activityGeneration
             while !jobs.isEmpty {
                 let (label, work) = jobs.removeFirst()
                 activity = label
@@ -398,7 +418,10 @@ final class TryOnEditorModel {
                     message = error.localizedDescription
                 }
             }
-            activity = nil
+            if activityGeneration == generation {
+                activity = nil
+                activityGeneration += 1
+            }
             draining = false
         }
     }

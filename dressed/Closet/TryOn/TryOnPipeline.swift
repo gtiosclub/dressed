@@ -135,7 +135,13 @@ actor TryOnPipeline {
             passed: true,
             message: "Hem placed at the \(sourceFit.hemDescription) from the worn photo."
         ))
-        if report.status != "passed", existing?.status == .ready, existing?.processingVersion ?? 0 >= TryOnVersions.processing {
+        // Placed fabric still gets worn when a review check or the mesh limit fails.
+        // The failed checks stay on the asset and are shown after this step.
+        let containsFabric = fittedStats.opaqueCount > 64
+        if !containsFabric,
+           report.status != "passed",
+           existing?.status == .ready,
+           existing?.processingVersion ?? 0 >= TryOnVersions.processing {
             throw TryOnImageError.provider(
                 "The previous ready fit was kept. " + notes(from: report).joined(separator: " ")
             )
@@ -171,7 +177,7 @@ actor TryOnPipeline {
             promptVersion: TryOnVersions.prompt,
             providerVersion: TryOnVersions.provider,
             attemptCount: (existing?.attemptCount ?? 0) + 1,
-            status: status(for: report),
+            status: containsFabric ? .ready : status(for: report),
             validation: report,
             createdAt: existing?.createdAt ?? now,
             updatedAt: now

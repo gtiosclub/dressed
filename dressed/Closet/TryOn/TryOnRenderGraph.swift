@@ -28,7 +28,9 @@ enum TryOnRenderGraph {
     ) -> TryOnScene {
         guard let avatar, let outfit else { return TryOnScene(textureEpoch: textureEpoch, items: []) }
         let ready = Dictionary(uniqueKeysWithValues: garments.filter {
-            $0.status == .ready && $0.avatarID == avatar.id && $0.avatarVersion == avatar.version
+            ($0.status == .ready || $0.status == .needsReview)
+                && $0.avatarID == avatar.id
+                && $0.avatarVersion == avatar.version
         }.map { ($0.id, $0) })
         var items: [TryOnDrawItem] = []
         func addLayer(_ id: String, _ path: String?) {

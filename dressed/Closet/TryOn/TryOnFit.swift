@@ -384,8 +384,12 @@ enum TryOnFit {
         }
         guard found else { return (point, false) }
         let limit = TryOnVersions.maxLocalDisplacement
-        pull.x = min(max(pull.x, -limit), limit)
-        pull.y = min(max(pull.y, -limit), limit)
+        let length = hypot(pull.x, pull.y)
+        if length > limit {
+            let scale = limit / length
+            pull.x *= scale
+            pull.y *= scale
+        }
         return (TryOnPoint(x: point.x + pull.x, y: point.y + pull.y), true)
     }
 
