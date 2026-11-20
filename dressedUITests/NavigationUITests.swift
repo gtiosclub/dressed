@@ -3,6 +3,7 @@ import XCTest
 final class NavigationUITests: XCTestCase {
     /// Fixture-backed publishing checks UI wiring only; Firebase is covered by emulator tests.
     func testPostComposerSelectsPhotoAndSavedOutfitThenShowsSnapshotInFeed() {
+        continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-mockSignedIn", "-showDiscovery"]
         app.launch()
@@ -10,7 +11,7 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(app.buttons["infinite.post.infinite_0"].waitForExistence(timeout: 15))
         let create = app.buttons["ootd.createPost"]
         XCTAssertTrue(create.waitForExistence(timeout: 5))
-        create.tap()
+        create.tapWhenStable()
         let share = app.buttons["ootd.sharePreview"]
         XCTAssertTrue(share.waitForExistence(timeout: 5))
         XCTAssertFalse(share.isEnabled)
@@ -37,7 +38,7 @@ final class NavigationUITests: XCTestCase {
         let details = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "infinite.items.")).firstMatch
         XCTAssertTrue(details.waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Publication UI fixture"].exists)
-        details.tap()
+        details.tapWhenStable()
         XCTAssertTrue(app.staticTexts["Cozy Weekend"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Brown Wool Sweater"].exists)
         XCTAssertTrue(app.staticTexts["Wide-Leg Jeans"].exists)
@@ -221,5 +222,24 @@ final class DiscoverySearchUITests: XCTestCase {
 
         app.buttons["Close search"].tap()
         XCTAssertTrue(search.waitForExistence(timeout: 5))
+    }
+}
+
+// Wait for a hittable element to keep the same frame across consecutive samples.
+// Keyboard/tab-bar and navigation transitions can otherwise move it after event resolution.
+extension XCUIElement {
+    func tapWhenStable(timeout: TimeInterval = 15) {
+        var lastFrame: CGRect?
+        let stable = NSPredicate { _, _ in
+            guard self.exists, self.isHittable else { lastFrame = nil; return false }
+            let current = self.frame
+            defer { lastFrame = current }
+            return !current.isEmpty && lastFrame == current
+        }
+        let ready = XCTNSPredicateExpectation(predicate: stable, object: self)
+        let result = XCTWaiter.wait(for: [ready], timeout: timeout)
+        XCTAssertEqual(result, .completed, "Control did not become stable: \(identifier)")
+        guard result == .completed else { return }
+        tap()
     }
 }

@@ -145,11 +145,12 @@ final class ShareImportUITests: XCTestCase {
     }
 
     func testNewPostRequiresPhotoAndItemsAndCanCancel() {
+        continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showDiscovery", "-showOOTD"]
         app.launch()
         XCTAssertTrue(app.buttons["infinite.items.infinite_0"].waitForExistence(timeout: 15))
-        app.buttons["ootd.createPost"].tap()
+        app.buttons["ootd.createPost"].tapWhenStable()
         XCTAssertTrue(app.buttons["ootd.choosePhoto"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["ootd.sharePreview"].isEnabled)
         XCTAssertFalse(app.buttons["ootd.newPost.Audio"].exists)
