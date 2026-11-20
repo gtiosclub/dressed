@@ -76,6 +76,8 @@ Components are presentational: callers own state, data and actions.
 | Camera (`CameraCaptureView`, `PrototypeImportView`) | `1012:388` | Full-screen live camera with `DSCameraControls`. Close returns to the previous tab; Upload offers photos (one item or full outfit) or a product link, and goes straight to the existing review sheets. Flip switches front and back cameras. |
 | Discovery (`DiscoveryHeader`, `DiscoveryIdeasView`) | `915:933` | For You / Friends header, photo tiles, floating "Search Styles". The one top switch controls `InfiniteDiscoveryFeed`: ranked outfit grid / chronological outfit cards. Its body is not fully migrated yet. |
 
+| My profile (`MyProfileView`) | none yet | Opened from the Discovery header's initial circle (`DSCircleButton(.initial)`, first letter of the account name). `DSBackHeader`, `ProfileHeader` with an initial avatar and closet summary, Posts / Followers / Following row, a 3-column grid of the user's posts, and Sign Out (`.ds(.secondary)` with a confirmation). No Figma frame exists; the name comes from the Firebase account (display name, else the email before "@") until a UserProfile service exists. Followers and Following show "–" placeholders, and posts are filtered from the 20 most recent until `PostFunctions` has an author query. |
+
 Other feature views still use their own styling.
 
 ## Navigation

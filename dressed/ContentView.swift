@@ -31,6 +31,7 @@ private struct AppTabs: View {
     @StateObject private var closet: PrototypeClosetStore
     @StateObject private var savedPosts: SavedPostsViewModel
     @StateObject private var postLikes: PostLikesViewModel
+    @StateObject private var profile: MyProfileModel
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -40,6 +41,7 @@ private struct AppTabs: View {
     @State private var isCreatingPost = false
     @State private var discoverySection = 0
     @State private var isSearchingDiscovery = false
+    @State private var isShowingProfile = false
     @State private var isSearchingCloset = false
     @State private var closetSearchText = ""
     @State private var discoverySearchQuery: String?
@@ -74,6 +76,7 @@ private struct AppTabs: View {
             ownerId: userId,
             service: DiscoveryPostSource.currentPostLikes
         ))
+        _profile = StateObject(wrappedValue: MyProfileModel(ownerId: userId, service: DiscoveryPostSource.current))
 
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
@@ -146,7 +149,8 @@ private struct AppTabs: View {
                     VStack(spacing: 0) {
                         DiscoveryHeader(
                             section: $discoverySection,
-                            onProfile: { selectedTab = 3 },
+                            profileInitial: profileInitial(session.accountName),
+                            onProfile: { isShowingProfile = true },
                             onCreatePost: {
                                 discoverySection = 1
                                 isCreatingPost = true
@@ -160,6 +164,15 @@ private struct AppTabs: View {
                     .toolbar(.hidden, for: .tabBar)
                     .navigationDestination(item: $discoverySearchQuery) { query in
                         DiscoveryIdeasView(initialQuery: query)
+                    }
+                    .navigationDestination(isPresented: $isShowingProfile) {
+                        MyProfileView(
+                            name: session.accountName,
+                            pieceCount: closet.items.count,
+                            outfitCount: outfits.outfits.count,
+                            model: profile,
+                            onSignOut: signOut
+                        )
                     }
                 }
                 .toolbar(.hidden, for: .tabBar)
@@ -369,6 +382,11 @@ private struct AppTabs: View {
 
             #if DEBUG
             let arguments = ProcessInfo.processInfo.arguments
+
+            if arguments.contains("-importDemo") {
+                do { try SharedImageInbox.seedDemoPhoto(ownerId: userId) }
+                catch { sharedImageError = error.localizedDescription }
+            }
 
             if let marker = arguments.firstIndex(
                 of: "-seedShareFixture"

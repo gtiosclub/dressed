@@ -254,10 +254,6 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
             Button("Outfit details") { itemsPost = post }
                 .buttonStyle(.ds(.text))
                 .accessibilityIdentifier("infinite.items.\(post.id)")
-            if let savedPosts, !(canSharePreview && previewPosts.contains(where: { $0.id == post.id })) {
-                SavedPostControl(postId: post.id, post: post, model: savedPosts)
-                    .padding(.horizontal, DSSpacing.md)
-            }
         }
         .task(id: post.id) { await refreshCommentCount(post.id) }
         .accessibilityElement(children: .contain)

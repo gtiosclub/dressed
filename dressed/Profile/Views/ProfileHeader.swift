@@ -4,7 +4,9 @@ import SwiftUI
 struct ProfileHeader: View {
     var avatar: Image? = nil
     let name: String
-    let username: String
+    var username: String? = nil
+    /// A muted line under the name, such as the owner's closet summary.
+    var detail: String? = nil
 
     @ScaledMetric(relativeTo: .title) private var avatarSize = 80.0
 
@@ -24,8 +26,10 @@ struct ProfileHeader: View {
                 if let avatar {
                     avatar.resizable().scaledToFill()
                 } else {
-                    DSIcon("TablerUserCircle", size: avatarSize)
-                        .foregroundStyle(DSColor.iconMuted)
+                    // Same treatment as the header's DSCircleButton initial, scaled to the avatar.
+                    Text(profileInitial(name))
+                        .font(.system(size: avatarSize * 0.4, weight: .medium))
+                        .foregroundStyle(DSColor.textMuted)
                 }
             }
             .clipShape(Circle())
@@ -39,9 +43,16 @@ struct ProfileHeader: View {
             Text(name)
                 .font(DSFont.bodyEmphasis)
                 .foregroundStyle(DSColor.textPrimary)
-            Text(username.hasPrefix("@") ? username : "@\(username)")
-                .font(DSFont.body)
-                .foregroundStyle(DSColor.textMuted)
+            if let username {
+                Text(username.hasPrefix("@") ? username : "@\(username)")
+                    .font(DSFont.body)
+                    .foregroundStyle(DSColor.textMuted)
+            }
+            if let detail {
+                Text(detail)
+                    .font(DSFont.search)
+                    .foregroundStyle(DSColor.textMuted)
+            }
         }
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, alignment: .leading)
