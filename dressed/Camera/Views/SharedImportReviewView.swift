@@ -371,7 +371,10 @@ struct SharedImageRegionEditor: View {
                                     if isDrawingOutline {
                                         appendOutlinePoint(value.location, origin: origin, display: display)
                                     } else {
-                                        dragOffset = value.translation
+                                        dragOffset = CGPoint(
+                                            x: value.translation.width,
+                                            y: value.translation.height
+                                        )
                                     }
                                 }
                                 .onEnded { value in

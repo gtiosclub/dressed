@@ -121,6 +121,27 @@ final class PrototypeClosetStore: ObservableObject {
         }
     }
 
+    /// Records where this piece sat on the person in the original photo.
+    @discardableResult
+    func saveWornCoordinates(
+        itemID: String,
+        photo: Data,
+        region: NormalizedImageRegion?,
+        outline: [NormalizedImagePoint]?,
+        category: ClothingCategory,
+        cutoutFillsBounds: Bool
+    ) -> String? {
+        TryOnSourceFitStore.capture(
+            ownerId: ownerId,
+            itemID: itemID,
+            photo: photo,
+            region: region,
+            outline: outline,
+            category: category,
+            cutoutFillsBounds: cutoutFillsBounds
+        )
+    }
+
     func updateDetails(id: String, name: String, category: ClothingCategory) throws {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else { throw PrototypeImportError.emptyName }

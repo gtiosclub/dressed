@@ -15,10 +15,11 @@ import SwiftUI
 ///   (shirt -> bottom, pants and shoes -> top), so it never covers what you are editing.
 struct FullScreenTryOnView: View {
     @Bindable var model: OutfitStudioModel
+    @Bindable var tryOn: TryOnEditorModel
     let items: [ClothingItem]
     let image: (ClothingItem) -> Image
     var uiImage: ((ClothingItem) -> UIImage?)?
-    /// Pass false to use the flat 2D avatar once that path is the default.
+    /// Kept so existing call sites can still request the flat figure. This screen draws the fitted avatar.
     var use3D: Bool = true
 
     @Environment(\.dismiss) private var dismiss
@@ -36,48 +37,52 @@ struct FullScreenTryOnView: View {
 
         var id: Self { self }
 
-        var category: ClothingCategory {
+        /// Closet categories this part of the body can wear.
+        var categories: [ClothingCategory] {
             switch self {
-            case .shirt: return .tops
-            case .pants: return .pants
-            case .shoes: return .shoes
+            case .shirt: return [.tops, .outerwear]
+            case .pants: return [.pants, .skirts, .dresses]
+            case .shoes: return [.shoes]
             }
+        }
+
+        var category: ClothingCategory { categories[0] }
+
+        func accepts(_ item: ClothingItem) -> Bool {
+            categories.contains(item.category) || item.category == .other
         }
 
         var singular: String {
             switch self {
-            case .shirt: return " "
-            case .pants: return " "
-            case .shoes: return " "
+            case .shirt: return "Top"
+            case .pants: return "Bottom"
+            case .shoes: return "Shoes"
             }
         }
 
         var plural: String {
             switch self {
-            case .shirt: return " "
-            case .pants: return " "
-            case .shoes: return " "
+            case .shirt: return "Tops"
+            case .pants: return "Bottoms"
+            case .shoes: return "Shoes"
             }
         }
 
-        /// Vertical extent as fractions of the avatar view's height, measured from the top.
-        /// These follow AvatarScene's framing (figure 1 unit tall, view 1/0.95 units tall, feet near
-        /// 0.975): shoulders at ~0.20, hem of a tee at ~0.48, ankles at ~0.88, floor at ~0.975.
-        /// Tune these three ranges if the zones feel off.
+        /// Vertical extent of the generated figure, as a fraction of the canvas height from the top.
         var span: ClosedRange<CGFloat> {
             switch self {
-            case .shirt: return 0.18...0.47
-            case .pants: return 0.47...0.91
-            case .shoes: return 0.91...1
+            case .shirt: return 0.14...0.52
+            case .pants: return 0.48...0.90
+            case .shoes: return 0.86...1
             }
         }
 
-        /// Full width of the tap area, in model units (the figure is 1 unit tall).
+        /// Width of the tap area as a fraction of the view width.
         var width: CGFloat {
             switch self {
-            case .shirt: return 0.30   // includes the sleeves
-            case .pants: return 0.24
-            case .shoes: return 0.15
+            case .shirt: return 0.78
+            case .pants: return 0.62
+            case .shoes: return 0.46
             }
         }
 
@@ -130,20 +135,8 @@ struct FullScreenTryOnView: View {
             let size = CGSize(width: geo.size.width, height: height)
 
             ZStack {
-                AvatarView(
-                    look: model.look,
-                    worn: model.worn,
-                    image: image,
-                    uiImage: uiImage,
-                    zoom: 1,
-                    use3D: use3D,
-                    allowsInteraction: false
-                )
-
-                // Tapping empty space closes the picker.
-                Color.clear
-                    .contentShape(Rectangle())
-                    .onTapGesture { selectedZone = nil }
+                TryOnFittedFigure(model: tryOn)
+                    .allowsHitTesting(false)
 
                 ForEach(Zone.allCases) { zone in
                     zoneButton(zone, in: size)
@@ -161,7 +154,6 @@ struct FullScreenTryOnView: View {
 
     /// The invisible tap area over one part of the body. It lights up while its picker is open.
     private func zoneButton(_ zone: Zone, in size: CGSize) -> some View {
-        let unit = size.height * 0.95   // points per model unit at zoom 1
         let top = zone.span.lowerBound * size.height
         let bottom = zone.span.upperBound * size.height
         let isSelected = selectedZone == zone
@@ -181,9 +173,9 @@ struct FullScreenTryOnView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .frame(width: zone.width * unit, height: bottom - top)
+        .frame(width: zone.width * size.width, height: max(bottom - top, 44))
         .position(x: size.width / 2, y: (top + bottom) / 2)
-        .accessibilityLabel("Change \(zone.singular.lowercased())")
+        .accessibilityLabel("Change \(zone.singular)")
     }
 
     /// A small label at the right edge, level with its zone, so people can see the zones exist.
@@ -210,8 +202,8 @@ struct FullScreenTryOnView: View {
     // MARK: - Picker
 
     private func panel(for zone: Zone) -> some View {
-        let options = items.filter { $0.category == zone.category }
-        let wornItem = model.worn[zone.category]
+        let options = items.filter { zone.accepts($0) }
+        let wornItem = wornItem(in: zone)
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -219,7 +211,7 @@ struct FullScreenTryOnView: View {
                     .font(.headline)
                 Spacer()
                 if wornItem != nil {
-                    Button("Take off") { model.worn[zone.category] = nil }
+                    Button("Take off") { clear(zone) }
                         .font(.subheadline)
                 }
                 Button("Done") { selectedZone = nil }
@@ -249,11 +241,57 @@ struct FullScreenTryOnView: View {
         .padding(.horizontal, 12)
     }
 
+    private func wornItem(in zone: Zone) -> ClothingItem? {
+        zone.categories.compactMap { model.worn[$0] }.first
+    }
+
+    private func photo(for item: ClothingItem) -> UIImage? {
+        if let image = uiImage?(item) { return image }
+        if item.imagePath.hasPrefix("/") { return UIImage(contentsOfFile: item.imagePath) }
+        return nil
+    }
+
+    private func clear(_ zone: Zone) {
+        for category in zone.categories {
+            if let worn = model.worn[category] {
+                tryOn.takeOff(itemID: worn.id, category: category)
+            }
+            model.worn[category] = nil
+        }
+    }
+
+    private func wear(_ item: ClothingItem, in zone: Zone) {
+        let category = zone.categories.contains(item.category) ? item.category : zone.category
+        if model.worn[category]?.id == item.id {
+            clear(zone)
+            return
+        }
+        clear(zone)
+        var placed = item
+        placed.category = category
+        model.worn[category] = placed
+        guard let template = TryOnTemplateID.suggested(for: category) else {
+            tryOn.message = "\(zone.singular) does not have a fitting template yet."
+            return
+        }
+        guard let photo = photo(for: item) else {
+            tryOn.message = "This piece has no photo to fit."
+            return
+        }
+        tryOn.wearFromCloset(
+            item: placed,
+            template: template,
+            image: photo,
+            avatarSource: TryOnBitmap.neutralFigure()
+        )
+    }
+
     private func optionButton(_ item: ClothingItem) -> some View {
-        let isWorn = model.worn[item.category]?.id == item.id
+        let isWorn = Zone.allCases.contains { wornItem(in: $0)?.id == item.id }
 
         return Button {
-            model.toggle(item)   // tapping the worn item takes it off; another item replaces it
+            guard let zone = selectedZone else { return }
+            wear(item, in: zone)
         } label: {
             VStack(spacing: 4) {
                 image(item)
@@ -282,6 +320,7 @@ struct FullScreenTryOnView: View {
 #Preview {
     FullScreenTryOnView(
         model: OutfitStudioModel(),
+        tryOn: TryOnEditorModel(ownerId: "preview"),
         items: ClothingItem.previewSamples,
         image: { _ in Image(systemName: "photo") }
     )

@@ -34,6 +34,14 @@ struct SharedImportSaveCoordinator {
             for (candidate, crop) in zip(selected, images) {
                 try closet.save(imageData: crop, draftId: candidate.id,
                                 name: candidate.name, category: candidate.category)
+                _ = closet.saveWornCoordinates(
+                    itemID: candidate.id,
+                    photo: imageData,
+                    region: candidate.region,
+                    outline: candidate.outline,
+                    category: candidate.category,
+                    cutoutFillsBounds: false
+                )
             }
             let placements = selected.enumerated().map { index, candidate in
                 OutfitPlacement(

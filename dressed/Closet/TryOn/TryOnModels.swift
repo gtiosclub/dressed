@@ -63,7 +63,7 @@ enum TryOnVersions {
     static let prompt = "prompt-v1"
     static let poseSet = "poses-v1"
     static let provider = "gpt-image-2.5-sunburst"
-    static let processing = 1
+    static let processing = 2
     static let maxLocalDisplacement = 0.02
 }
 

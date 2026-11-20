@@ -9,7 +9,27 @@ struct AvatarStudioView: View {
     @ObservedObject var outfits: PrototypeOutfitStore
     let image: (ClothingItem) -> Image
     var uiImage: ((ClothingItem) -> UIImage?)?
+    let ownerId: String
+    @State private var tryOn: TryOnEditorModel
 
+    init(
+        model: OutfitStudioModel,
+        closet: PrototypeClosetStore?,
+        items: [ClothingItem],
+        outfits: PrototypeOutfitStore,
+        image: @escaping (ClothingItem) -> Image,
+        uiImage: ((ClothingItem) -> UIImage?)?,
+        ownerId: String
+    ) {
+        self.model = model
+        self.closet = closet
+        self.items = items
+        _outfits = ObservedObject(wrappedValue: outfits)
+        self.image = image
+        self.uiImage = uiImage
+        self.ownerId = ownerId
+        _tryOn = State(initialValue: TryOnEditorModel(ownerId: ownerId))
+    }
 
     enum StudioTab: String, CaseIterable, Identifiable {
         case tryOn = "Try On"
@@ -25,8 +45,10 @@ struct AvatarStudioView: View {
 
     @State private var draftOutfitName = ""
     @State private var activeTab: StudioTab = .tryOn
+    @State private var showingTakePic = false
     @State private var itemDetailSheet: ItemDetailSheet?
     @State private var outfitSavedAlert = false
+    @State private var saveError: String?
     @State private var showingFullScreen = false
     
     var body: some View {
@@ -90,9 +112,22 @@ struct AvatarStudioView: View {
             NavigationStack {
                 StudioTakePicView(model: model, image: image, uiImage: uiImage)
             }
+        }
         .fullScreenCover(isPresented: $showingFullScreen) {
-                FullScreenTryOnView(model: model, items: items, image: image, uiImage: uiImage)
-            }
+            FullScreenTryOnView(
+                model: model,
+                tryOn: tryOn,
+                items: items,
+                image: image,
+                uiImage: uiImage
+            )
+        }
+        .task {
+            await tryOn.begin(from: TryOnBitmap.neutralFigure())
+            syncFits()
+        }
+        .onChange(of: wornSignature) { _, _ in
+            syncFits()
         }
         
         .sheet(item: $itemDetailSheet) { sheet in
@@ -124,18 +159,42 @@ struct AvatarStudioView: View {
         return items.filter { $0.category == trayCategory }
     }
 
+    private var wornSignature: String {
+        model.worn
+            .map { "\($0.key.rawValue):\($0.value.id)" }
+            .sorted()
+            .joined(separator: "|")
+    }
+
+    /// Keeps the generated outfit matched to the pieces selected in the studio.
+    private func syncFits() {
+        let wornIDs = Set(model.worn.values.map(\.id))
+        for garment in tryOn.garments where tryOn.isWorn(garment.id) && !wornIDs.contains(garment.id) {
+            if let category = ClothingCategory(rawValue: garment.sourceCategory) {
+                tryOn.takeOff(itemID: garment.id, category: category)
+            }
+        }
+        for item in model.worn.values {
+            guard let template = TryOnTemplateID.suggested(for: item.category),
+                  let photo = uiImage?(item) else { continue }
+            if let asset = tryOn.asset(for: item.id), tryOn.matchesAvatar(asset) {
+                if !tryOn.isWorn(asset.id) {
+                    tryOn.setWorn(asset, category: item.category, on: true)
+                }
+                continue
+            }
+            tryOn.wearFromCloset(
+                item: item,
+                template: template,
+                image: photo,
+                avatarSource: TryOnBitmap.neutralFigure()
+            )
+        }
+    }
+
     private var studioTryOnContent: some View {
         VStack(spacing: 6) {
-            ZStack(alignment: .trailing) {
-                AvatarView(
-                    look: model.look,
-                    worn: model.worn,
-                    image: image,
-                    uiImage: uiImage,
-                    zoom: model.zoom
-                )
-                StudioZoomSlider(zoom: $model.zoom).padding(.trailing, 8)
-            }
+            TryOnFittedFigure(model: tryOn, allowsPlacementGestures: true)
             .overlay(alignment: .bottomLeading) {
                 StudioUndoRedoButtons(
                     canUndo: model.canUndo,

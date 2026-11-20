@@ -157,6 +157,7 @@ struct ProfileView: View {
                 outfits: outfits,
                 image: image,
                 uiImage: uiImage,
+                ownerId: username
             )
         }
         .alert(

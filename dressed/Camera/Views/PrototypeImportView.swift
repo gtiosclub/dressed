@@ -649,6 +649,18 @@ struct ImportReviewView: View {
                 let existed = closet.item(id: candidate.id) != nil
                 try closet.save(imageData: crop, draftId: candidate.id,
                                 name: candidate.name, category: candidate.category)
+                if let reason = closet.saveWornCoordinates(
+                    itemID: candidate.id,
+                    photo: image.data,
+                    region: candidate.region,
+                    outline: candidate.outline,
+                    category: candidate.category,
+                    cutoutFillsBounds: false
+                ) {
+                    saveError = reason
+                    isSaving = false
+                    return
+                }
                 if !existed { newlySaved.append(candidate.id) }
             }
             onSaved()
@@ -665,6 +677,18 @@ struct ImportReviewView: View {
         do {
             try closet.save(imageData: image.data, draftId: image.id, name: name, category: category)
             GarmentPresetStore.set(selectedPreset, for: image.id)
+            if let reason = closet.saveWornCoordinates(
+                itemID: image.id,
+                photo: image.data,
+                region: nil,
+                outline: nil,
+                category: category,
+                cutoutFillsBounds: false
+            ) {
+                saveError = reason
+                isSaving = false
+                return
+            }
             onSaved()
         } catch {
             saveError = error.localizedDescription

@@ -69,38 +69,33 @@ actor TryOnPipeline {
         }
         let original = try await library.saveOriginalIfNeeded(garmentID: item.id, image: source)
         let existing = await library.snapshot().garments.first { $0.id == item.id }
-        guard let avatarImage = await image(at: avatar.canonicalImagePath) else {
+        guard await image(at: avatar.canonicalImagePath) != nil else {
             throw TryOnImageError.emptyImage
         }
-        var inputs = [try png(source), try png(avatarImage)]
-        if let silhouettePath = avatar.fittingMap.masks.silhouettePath,
-           let silhouette = await image(at: silhouettePath) {
-            inputs.append(try png(silhouette))
-        }
-        let previousNotes = existing?.validation.checks.filter { !$0.passed }.map(\.message) ?? []
         try Task.checkCancellation()
-        progress("Fitting the garment")
-        let generated = try await generatedImage(
-            key: key,
-            prompt: TryOnPrompts.garment(
-                template: template,
-                landmarks: avatar.fittingMap.landmarks,
-                category: item.category.rawValue,
-                retryNotes: previousNotes
-            ),
-            images: inputs,
-            quality: "high"
-        )
-        _ = try await library.saveAttempt(generated, garmentID: item.id, attempt: (existing?.attemptCount ?? 0) + 1)
+        guard let sourceFit = TryOnSourceFitStore.load(ownerId: ownerId, itemID: item.id) else {
+            throw TryOnImageError.provider(
+                TryOnSourceFitStore.failureReason(ownerId: ownerId, itemID: item.id)
+                    ?? "This piece has no shoulder, waist, hip, knee, or foot coordinates. Add the photo of the person wearing it again."
+            )
+        }
+        progress("Placing \(sourceFit.gridColumns)×\(sourceFit.gridRows) squares, hem at the \(sourceFit.hemDescription)")
+        guard let placed = TryOnSourceFit.place(
+            cutout: photo,
+            fit: sourceFit,
+            avatar: avatar.fittingMap.landmarks,
+            canvas: .canonical
+        ) else {
+            throw TryOnImageError.provider(
+                TryOnSourceFit.placementFailure(fit: sourceFit, avatar: avatar.fittingMap.landmarks)
+            )
+        }
+        _ = try await library.saveAttempt(placed.image, garmentID: item.id, attempt: (existing?.attemptCount ?? 0) + 1)
         progress("Segmenting and validating")
-        let keyed = TryOnBitmap.keyedIfNeeded(generated).image
+        let keyed = placed.image
         guard let stats = TryOnBitmap.stats(of: keyed) else { throw TryOnImageError.emptyImage }
         let initialAnchors = TryOnFit.anchors(for: template, stats: stats, canvas: .canonical)
-        let alignment = TryOnFit.alignmentShift(
-            template: template,
-            garmentAnchors: initialAnchors,
-            landmarks: avatar.fittingMap.landmarks
-        )
+        let alignment: (shift: TryOnPoint, note: String?) = (.zero, nil)
         let shift = TryOnFit.clamp(alignment.shift, stats: stats, canvas: .canonical)
         let fitted: CGImage
         if abs(shift.x) > 0.01 || abs(shift.y) > 0.01 {
@@ -124,7 +119,7 @@ actor TryOnPipeline {
             appliedShift: shift
         )
         let split = TryOnFit.split(template: template, image: fitted, anchors: anchors, canvas: .canonical)
-        let report = TryOnValidator.garment(
+        var report = TryOnValidator.garment(
             image: fitted,
             canvas: .canonical,
             template: template,
@@ -134,7 +129,13 @@ actor TryOnPipeline {
             landmarks: avatar.fittingMap.landmarks,
             alignmentNote: alignment.note
         )
-        if report.status != "passed", existing?.status == .ready {
+        report.checks.append(TryOnCheck(
+            id: "source-hem",
+            level: .review,
+            passed: true,
+            message: "Hem placed at the \(sourceFit.hemDescription) from the worn photo."
+        ))
+        if report.status != "passed", existing?.status == .ready, existing?.processingVersion ?? 0 >= TryOnVersions.processing {
             throw TryOnImageError.provider(
                 "The previous ready fit was kept. " + notes(from: report).joined(separator: " ")
             )

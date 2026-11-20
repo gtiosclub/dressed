@@ -62,10 +62,10 @@ private struct AppTabs: View {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         _selectedTab = State(initialValue: arguments.contains("-showCamera") ? 2 :
-            (arguments.contains("-showCatalog") || arguments.contains("-showDiscovery") ? 1 : 0))
+            (arguments.contains("-showCatalog") || arguments.contains("-showDiscovery") ? 1 : 3))
         _discoverySection = State(initialValue: arguments.contains("-showOOTD") ? 1 : 0)
         #else
-        _selectedTab = State(initialValue: 0)
+        _selectedTab = State(initialValue: 3)
         #endif
     }
 

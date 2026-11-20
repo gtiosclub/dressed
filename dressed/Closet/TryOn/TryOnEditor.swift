@@ -22,7 +22,9 @@ final class TryOnEditorModel {
     var exportedImages: [TryOnPose: UIImage] = [:]
     private var dragOrigin: TryOnPoint?
     private var pinchBase: Double?
-    private var running: Task<Void, Never>?
+    private var jobs: [(String, (TryOnEditorModel) async throws -> Void)] = []
+    private var draining = false
+    private var pendingFits: Set<String> = []
 
     init(ownerId: String) {
         let library = TryOnLibrary(ownerId: ownerId)
@@ -63,9 +65,18 @@ final class TryOnEditorModel {
         textureEpoch += 1
     }
 
+    /// Loads any saved avatar, then generates the canonical one when this closet has none yet.
+    func begin(from avatarSource: UIImage) async {
+        await reload()
+        guard avatar == nil else { return }
+        createAvatar(from: avatarSource)
+    }
+
     /// Fits a closet piece onto the canonical avatar and wears it. Creates the avatar first if needed.
     func wearFromCloset(item: ClothingItem, template: TryOnTemplateID, image: UIImage, avatarSource: UIImage) {
+        guard pendingFits.insert(item.id).inserted else { return }
         run("Fitting \(item.name)") { model in
+            defer { model.pendingFits.remove(item.id) }
             if model.avatar == nil {
                 let key = try model.key()
                 let created = try await model.pipeline.prepareAvatar(from: avatarSource, key: key) { text in
@@ -76,7 +87,9 @@ final class TryOnEditorModel {
                 model.ensureDraft()
                 model.textureEpoch += 1
             }
-            if let existing = model.asset(for: item.id), model.matchesAvatar(existing) {
+            if let existing = model.asset(for: item.id),
+               model.matchesAvatar(existing),
+               existing.processingVersion >= TryOnVersions.processing {
                 model.setWorn(existing, category: item.category, on: true)
                 return
             }
@@ -92,9 +105,11 @@ final class TryOnEditorModel {
                 Task { @MainActor in model.activity = text }
             }
             model.replace(prepared.asset)
-            if prepared.asset.status == .ready {
+            if prepared.asset.status != .failed {
                 model.setWorn(prepared.asset, category: item.category, on: true)
-                model.message = nil
+                let review = prepared.asset.validation.checks.filter { !$0.passed }.map(\.message)
+                let hem = prepared.asset.validation.checks.first { $0.id == "source-hem" }?.message
+                model.message = review.isEmpty ? hem : review.joined(separator: " ")
             } else {
                 model.message = prepared.asset.validation.checks.filter { !$0.passed }.map(\.message).joined(separator: " ")
             }
@@ -366,20 +381,111 @@ final class TryOnEditorModel {
     }
 
     private func run(_ label: String, _ work: @escaping (TryOnEditorModel) async throws -> Void) {
-        running?.cancel()
-        activity = label
-        message = nil
-        running = Task {
-            do {
-                try await work(self)
-                if !Task.isCancelled { activity = nil }
-            } catch is CancellationError {
-                activity = nil
-            } catch {
-                activity = nil
-                message = error.localizedDescription
+        jobs.append((label, work))
+        guard !draining else { return }
+        draining = true
+        Task { @MainActor in
+            while !jobs.isEmpty {
+                let (label, work) = jobs.removeFirst()
+                activity = label
+                message = nil
+                do {
+                    try await work(self)
+                } catch is CancellationError {
+                    jobs.removeAll()
+                    break
+                } catch {
+                    message = error.localizedDescription
+                }
+            }
+            activity = nil
+            draining = false
+        }
+    }
+}
+
+/// The generated avatar and fitted garments. Placement gestures stay off when another control
+/// needs the taps, such as the body-part picker.
+struct TryOnFittedFigure: View {
+    @Bindable var model: TryOnEditorModel
+    var allowsPlacementGestures = false
+    @State private var rendererNote: String?
+
+    var body: some View {
+        GeometryReader { geo in
+            TryOnMetalCanvas(scene: model.scene, note: $rendererNote)
+                .accessibilityIdentifier("tryon.canvas")
+                .allowsHitTesting(allowsPlacementGestures)
+                .modifier(PlacementGestures(enabled: allowsPlacementGestures, model: model, size: geo.size))
+        }
+        .overlay {
+            if model.avatar == nil && !model.isBusy {
+                Text(model.message ?? "Preparing the fitting avatar")
+                    .font(.footnote)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.secondary)
+                    .padding()
             }
         }
+        .overlay(alignment: .top) {
+            if model.isBusy {
+                Text(model.activity ?? "Working")
+                    .font(.caption.weight(.medium))
+                    .padding(8)
+                    .background(.thinMaterial, in: Capsule())
+                    .padding(8)
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if let message = model.message, !message.isEmpty, model.avatar != nil || model.isBusy {
+                Text(message)
+                    .font(.caption)
+                    .multilineTextAlignment(.center)
+                    .padding(8)
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10))
+                    .padding(8)
+            }
+        }
+    }
+}
+
+private struct PlacementGestures: ViewModifier {
+    var enabled: Bool
+    var model: TryOnEditorModel
+    var size: CGSize
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content
+                .gesture(drag)
+                .simultaneousGesture(pinch)
+        } else {
+            content
+        }
+    }
+
+    private var drag: some Gesture {
+        DragGesture(minimumDistance: 8)
+            .onChanged { value in
+                if model.selectedGarmentID == nil || value.translation == .zero {
+                    let point = TryOnPoint(
+                        x: value.startLocation.x / max(size.width, 1),
+                        y: value.startLocation.y / max(size.height, 1)
+                    )
+                    model.dragBegan(at: point)
+                }
+                model.dragMoved(by: value.translation, in: size)
+            }
+            .onEnded { _ in model.dragEnded() }
+    }
+
+    private var pinch: some Gesture {
+        MagnificationGesture()
+            .onChanged { value in
+                if model.pinchIsIdle { model.pinchBegan() }
+                model.pinchChanged(value)
+            }
+            .onEnded { _ in model.pinchEnded() }
     }
 }
 

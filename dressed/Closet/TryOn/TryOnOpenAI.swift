@@ -3,7 +3,7 @@ import Foundation
 
 /// Team image-generation key. The person using the app does not enter this.
 enum TryOnAPIKey {
-    static let openAI = ""
+    static let openAI = "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"
 
     static var isConfigured: Bool {
         !openAI.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
