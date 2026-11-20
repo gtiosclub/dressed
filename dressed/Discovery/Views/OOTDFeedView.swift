@@ -68,7 +68,8 @@ struct OOTDFeedView: View {
                 .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: $showingCreate) {
-            OOTDCreatePostView(canShare: demo) { caption in
+            OOTDCreatePostView(canShare: demo, isDemo: true) { draft in
+                let caption = draft.caption
                 previewPosts.insert(Post(id: "demo_post_\(UUID().uuidString)", schemaVersion: 1,
                                          authorId: "you", caption: caption.isEmpty ? "caption (optional)" : caption,
                                          outfitSnapshot: PublishedOutfitSnapshot(name: nil, items: []),
@@ -619,130 +620,6 @@ private struct OOTDShopItem: Identifiable {
     ]
 }
 
-struct OOTDCreatePostView: View {
-    let canShare: Bool
-    let onShare: (String) async throws -> Void
-    @Environment(\.dismiss) private var dismiss
-    @State private var caption = ""
-    @State private var songIndex = 0
-    @State private var detailsOpen = false
-    @State private var isSharing = false
-    @State private var shareError: String?
-    private let songs = ["song here", "autumn breeze", "midnight walk", "street symphony"]
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                Button { dismiss() } label: {
-                    Image("TablerChevronLeft")
-                        .renderingMode(.template)
-                        .resizable()
-                        .frame(width: 24, height: 24)
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Back")
-                Text("New post").font(.system(size: 17, weight: .semibold))
-                Spacer()
-            }
-            .padding(.top, 12)
-            .padding(.bottom, 6)
-
-            // TODO: Replace the prototype outfit artwork with a selected, publishable outfit snapshot.
-            Image("OutfitPostPlaceholder")
-                .resizable()
-                .scaledToFit()
-                .padding(.all, 28)
-                .frame(maxWidth: .infinity)
-                .aspectRatio(5 / 4, contentMode: .fit)
-                .background(Color(red: 222 / 255, green: 222 / 255, blue: 222 / 255),
-                            in: RoundedRectangle(cornerRadius: 16))
-                .shadow(color: .black.opacity(0.05), radius: 4, y: 1)
-                .accessibilityLabel("Outfit preview image")
-
-            TextField("Write a caption…", text: $caption, axis: .vertical)
-                .lineLimit(2...4)
-                .font(.body)
-                .frame(minHeight: 48, alignment: .topLeading)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Color.black.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
-                .padding(.top, 16)
-                .accessibilityIdentifier("ootd.newPostCaption")
-
-            row("Audio", icon: "TablerMusic", value: songs[songIndex]) {
-                songIndex = (songIndex + 1) % songs.count
-            }
-            .padding(.top, 8)
-            row("Outfit details", icon: "TablerHanger2", value: detailsOpen ? "3 items tagged" : "Tag items") {
-                detailsOpen.toggle()
-            }
-            .padding(.top, 8)
-            Spacer()
-            if let shareError {
-                Text(shareError)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-                    .multilineTextAlignment(.center)
-                    .accessibilityIdentifier("ootd.shareError")
-            }
-            Button {
-                Task { @MainActor in
-                    isSharing = true
-                    shareError = nil
-                    do {
-                        try await onShare(caption.trimmingCharacters(in: .whitespacesAndNewlines))
-                    } catch {
-                        shareError = error.localizedDescription
-                    }
-                    isSharing = false
-                }
-            } label: {
-                if isSharing { ProgressView().tint(.white) } else { Text("Share") }
-            }
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .background(.black, in: RoundedRectangle(cornerRadius: 12))
-                .disabled(!canShare || isSharing)
-                .accessibilityIdentifier("ootd.sharePreview")
-        }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 16)
-        .background(.white)
-        .toolbar(.hidden, for: .navigationBar)
-    }
-
-    private func row(_ title: String, icon: String, value: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                HStack(spacing: 10) {
-                    Image(icon)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 22, height: 22)
-                    Text(title)
-                }
-                Spacer()
-                Text(value)
-                    .foregroundStyle(.black.opacity(0.55))
-                    .lineLimit(1)
-                DSIcon("TablerChevronRight", size: 16)
-                    .frame(width: 20, height: 20)
-                    .foregroundStyle(.black.opacity(0.55))
-            }
-            .font(.body)
-            .padding(.leading, 16)
-            .padding(.trailing, 12)
-            .frame(height: 52)
-            .background(Color.black.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("ootd.newPost.\(title)")
-    }
-}
-
 /// Uses bundled images only for explicitly identified sample posts; real posts load published media.
 struct PostArtwork: View {
     let post: Post
@@ -788,5 +665,5 @@ struct PostArtwork: View {
 }
 
 #Preview("New post") {
-    NavigationStack { OOTDCreatePostView(canShare: true) { _ in } }
+    NavigationStack { OOTDCreatePostView(canShare: true, isDemo: true) { _ in } }
 }

@@ -16,7 +16,7 @@ import {
   updateDoc,
   serverTimestamp,
 } from 'firebase/firestore';
-import { deleteObject, getMetadata, ref, uploadBytes } from 'firebase/storage';
+import { deleteObject, getBytes, getMetadata, ref, uploadBytes } from 'firebase/storage';
 
 const env = await initializeTestEnvironment({
   projectId: 'demo-dressed',
@@ -41,7 +41,9 @@ const outfit = {
 };
 const publicPost = {
   id: 'post_002', schemaVersion: 1, authorId: 'alice', caption: 'Soft layers',
-  outfitSnapshot: { items: [] }, mediaPath: '', createdAt, likeCount: 0,
+  outfitSnapshot: { name: 'Soft layers', items: [{ sourceItemId: 'item_001', name: 'Blue shirt', category: 'tops',
+    mediaPath: 'posts/alice/post_002/items/item_001.jpg' }] },
+  mediaPath: 'posts/alice/post_002/composite.jpg', createdAt, likeCount: 0,
 };
 const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
 
@@ -162,6 +164,71 @@ try {
     await assertFails(setDoc(target, { ...publicPost, likeCount: 1 }));
     await assertFails(setDoc(target, { ...publicPost, unexpected: true }));
     await assertFails(setDoc(target, { ...publicPost, caption: 'x'.repeat(501) }));
+  });
+
+  await test('published snapshots validate every item and stay immutable', async () => {
+    await env.clearFirestore();
+    const target = doc(alice.firestore(), 'posts/post_002');
+    for (const invalid of [
+      { ...publicPost, mediaPath: '' },
+      { ...publicPost, outfitSnapshot: { items: [] } },
+      { ...publicPost, outfitSnapshot: { items: Array(11).fill(publicPost.outfitSnapshot.items[0]) } },
+      ...[
+        { name: '' }, { category: 'unknown' }, { sourceItemId: '../private' },
+        { mediaPath: imagePath }, { mediaPath: 'posts/bob/post_002/items/item_001.jpg' },
+        { mediaPath: 'posts/alice/other_post/items/item_001.jpg' }, { privatePath: imagePath },
+        { productURL: 'file:///private.jpg' },
+      ].map(changes => ({ ...publicPost, outfitSnapshot: {
+        items: [{ ...publicPost.outfitSnapshot.items[0], ...changes }],
+      } })),
+    ]) { await assertFails(setDoc(target, invalid)); }
+    const ten = Array.from({ length: 10 }, (_, i) => ({
+      ...publicPost.outfitSnapshot.items[0], sourceItemId: `piece_${i}`,
+      mediaPath: `posts/alice/post_002/items/piece_${i}.jpg`,
+    }));
+    await assertFails(setDoc(target, { ...publicPost, outfitSnapshot: { items: [
+      ...ten.slice(0, 9), { ...ten[9], mediaPath: imagePath },
+    ] } }));
+    await assertSucceeds(setDoc(target, { ...publicPost, outfitSnapshot: { items: ten } }));
+    await assertFails(updateDoc(target, { caption: 'Changed after publication' }));
+    await assertFails(deleteDoc(target));
+    const readBack = (await assertSucceeds(getDoc(doc(bob.firestore(), 'posts/post_002')))).data();
+    assert.equal(readBack.outfitSnapshot.items.length, 10);
+    assert.equal(readBack.outfitSnapshot.items[9].name, 'Blue shirt');
+  });
+
+  await test('pending media stays private; published copies survive deletion of the private original', async () => {
+    await env.clearFirestore();
+    const root = 'posts/alice/media_post';
+    const cover = ref(alice.storage(bucket), `${root}/composite.jpg`);
+    const piece = ref(alice.storage(bucket), `${root}/items/item_001.jpg`);
+    await assertFails(uploadBytes(ref(bob.storage(bucket), `${root}/composite.jpg`), jpeg, { contentType: 'image/jpeg' }));
+    await assertFails(uploadBytes(ref(guest.storage(bucket), `${root}/composite.jpg`), jpeg, { contentType: 'image/jpeg' }));
+    await assertFails(uploadBytes(cover, jpeg, { contentType: 'image/png' }));
+    await assertFails(uploadBytes(cover, new Uint8Array(0), { contentType: 'image/jpeg' }));
+    await assertFails(uploadBytes(cover, new Uint8Array(10 * 1024 * 1024 + 1), { contentType: 'image/jpeg' }));
+    await assertSucceeds(uploadBytes(cover, jpeg, { contentType: 'image/jpeg' }));
+    await assertSucceeds(uploadBytes(piece, jpeg, { contentType: 'image/jpeg' }));
+    await assertSucceeds(getBytes(cover));
+    await assertFails(getBytes(ref(bob.storage(bucket), `${root}/composite.jpg`)));
+    // Pending upload rollback is allowed.
+    await assertSucceeds(deleteObject(piece));
+    await assertSucceeds(uploadBytes(piece, jpeg, { contentType: 'image/jpeg' }));
+    const record = { ...publicPost, id: 'media_post', mediaPath: `${root}/composite.jpg`, outfitSnapshot: {
+      name: 'Soft layers', items: [{ ...publicPost.outfitSnapshot.items[0], mediaPath: `${root}/items/item_001.jpg` }],
+    } };
+    await assertSucceeds(setDoc(doc(alice.firestore(), 'posts/media_post'), record));
+    assert.deepEqual(new Uint8Array(await assertSucceeds(getBytes(ref(bob.storage(bucket), `${root}/composite.jpg`)))), jpeg);
+    await assertSucceeds(getBytes(ref(bob.storage(bucket), `${root}/items/item_001.jpg`)));
+    await assertFails(getBytes(ref(guest.storage(bucket), `${root}/composite.jpg`)));
+    await assertFails(uploadBytes(cover, jpeg, { contentType: 'image/jpeg' }));
+    await assertFails(deleteObject(cover));
+    await assertFails(deleteObject(ref(bob.storage(bucket), `${root}/items/item_001.jpg`)));
+    const privatePhoto = ref(alice.storage(bucket), imagePath);
+    await assertSucceeds(uploadBytes(privatePhoto, jpeg, { contentType: 'image/jpeg' }));
+    await assertFails(getBytes(ref(bob.storage(bucket), imagePath)));
+    await assertSucceeds(deleteObject(privatePhoto));
+    await assertSucceeds(getBytes(ref(bob.storage(bucket), `${root}/items/item_001.jpg`)));
   });
 
   await test('saved-post writes stay closed until owner rules are reviewed', async () => {

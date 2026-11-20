@@ -85,6 +85,10 @@ private struct AppTabs: View {
         #endif
     }
 
+    private var postCompositionSource: any PostCompositionSource {
+        LocalPostCompositionSource(ownerId: userId, closet: closet, outfits: outfits)
+    }
+
     @ViewBuilder private var ootdFeed: some View {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
@@ -93,15 +97,15 @@ private struct AppTabs: View {
                 failSecondPage: arguments.contains("-failDiscoveryPage"),
                 section: $discoverySection,
                 showingCreate: $isCreatingPost, isSearching: $isSearchingDiscovery,
-                savedPosts: savedPosts, postLikes: postLikes
+                savedPosts: savedPosts, compositionSource: postCompositionSource, postLikes: postLikes
             )
         } else {
             InfiniteDiscoveryFeed.live(authorId: userId, section: $discoverySection, showingCreate: $isCreatingPost,
-                                       isSearching: $isSearchingDiscovery, savedPosts: savedPosts, postLikes: postLikes)
+                                       isSearching: $isSearchingDiscovery, savedPosts: savedPosts, compositionSource: postCompositionSource, postLikes: postLikes)
         }
         #else
         InfiniteDiscoveryFeed.live(authorId: userId, section: $discoverySection, showingCreate: $isCreatingPost,
-                                   isSearching: $isSearchingDiscovery, savedPosts: savedPosts, postLikes: postLikes)
+                                   isSearching: $isSearchingDiscovery, savedPosts: savedPosts, compositionSource: postCompositionSource, postLikes: postLikes)
         #endif
     }
 

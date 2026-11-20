@@ -115,7 +115,8 @@ committed; photo previews use `OutfitPostPlaceholder` until the team has photos 
 
 The November 17 merge keeps the social branch's infinite paging, ranking, retry,
 and post-detail implementation. The header's create button uses the existing
-preview composer; demo posts remain local and live publication is unavailable.
+composer; demo posts remain local. The November 19 implementation adds live
+photo/item publication adapters, with rule deployment and live verification still pending.
 Per the user's November 17 correction, the top For You / Friends switch directly
 controls the ranked outfit grid and chronological outfit cards. There is no inner
 selector. The catalog clothing-ideas view remains in the project but is no longer
@@ -156,3 +157,8 @@ below it compile but were not compared to their frames.
   (Closet, Discovery, Avatar, Camera). Avatars have a separate milestone.
 - Some SF Symbols were replaced by the nearest Tabler icon rather than an exact match,
   for example the garment preset icons in `GarmentPreset.icon`.
+
+- New post now uses a photo picker, `DSBackHeader`, shared buttons, `DSItemRow` and
+  selection marks for real closet/saved-outfit tagging. The audio placeholder was
+  removed. Live Figma design-context access was unavailable; the functional additions
+  have no independent frame comparison.

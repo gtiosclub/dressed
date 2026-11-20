@@ -144,33 +144,23 @@ final class ShareImportUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Washed suede bomber"].exists)
     }
 
-    func testOOTDCreatePostPreviewStaysInFeed() {
+    func testNewPostRequiresPhotoAndItemsAndCanCancel() {
         let app = XCUIApplication()
         app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showDiscovery", "-showOOTD"]
         app.launch()
-
-        XCTAssertTrue(app.buttons["ootd.createPost"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["infinite.items.infinite_0"].waitForExistence(timeout: 15))
         app.buttons["ootd.createPost"].tap()
-        XCTAssertTrue(app.staticTexts["New post"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.images["Outfit preview image"].exists)
-        XCTAssertTrue(app.buttons["ootd.newPost.Audio"].exists)
+        XCTAssertTrue(app.buttons["ootd.choosePhoto"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["ootd.sharePreview"].isEnabled)
+        XCTAssertFalse(app.buttons["ootd.newPost.Audio"].exists)
         XCTAssertTrue(app.buttons["ootd.newPost.Outfit details"].exists)
-        XCTAssertTrue(app.buttons["tab.discovery"].exists)
-        let createScreenshot = XCTAttachment(screenshot: app.screenshot())
-        createScreenshot.name = "New post creation"
-        createScreenshot.lifetime = .keepAlways
-        add(createScreenshot)
-
-        app.buttons["Back"].tap()
-        XCTAssertTrue(app.buttons["ootd.createPost"].waitForExistence(timeout: 5))
-        app.buttons["ootd.createPost"].tap()
         let caption = app.textFields["ootd.newPostCaption"]
-        XCTAssertTrue(caption.waitForExistence(timeout: 5))
         caption.tap()
-        caption.typeText("New fit")
-        app.buttons["ootd.sharePreview"].tap()
-        XCTAssertTrue(app.staticTexts["New fit"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.navigationBars["Post"].exists)
+        caption.typeText("Caption alone cannot create a post")
+        XCTAssertFalse(app.buttons["ootd.sharePreview"].isEnabled)
+        app.buttons["Back, New post"].tap()
+        XCTAssertTrue(app.buttons["ootd.createPost"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Caption alone cannot create a post"].exists)
     }
 
     func testInterruptedSharedDraftRestartsAndKeepsManualSelectionAfterRelaunch() {

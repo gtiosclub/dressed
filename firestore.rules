@@ -11,7 +11,7 @@ service cloud.firestore {
         && item.keys().hasOnly(['id', 'ownerId', 'name', 'category', 'imagePath', 'createdAt'])
         && item.id == itemId
         && item.ownerId == uid
-        && item.name is string && item.name.size() > 0 && item.name.size() <= 80
+        && item.name.matches('[\\s\\S]{1,80}')
         && item.category in ['tops', 'pants', 'skirts', 'dresses', 'shoes', 'outerwear', 'accessories', 'other']
         && item.imagePath is string
         && item.imagePath.matches('users/' + uid + '/items/' + itemId + '/original\\.jpg')
@@ -52,9 +52,24 @@ service cloud.firestore {
           || (exists(likePath) && !existsAfter(likePath) && after == before - 1));
     }
 
+    function validPublishedItem(item, root) {
+      return item.keys().hasOnly(['sourceItemId', 'name', 'category', 'mediaPath', 'productURL'])
+        && item.sourceItemId.matches('[A-Za-z0-9_-]{1,128}')
+        && item.name.matches('[\\s\\S]{1,80}')
+        && item.category in ['tops', 'pants', 'skirts', 'dresses', 'shoes', 'outerwear', 'accessories', 'other']
+        && item.mediaPath == root + '/items/' + item.sourceItemId + '.jpg'
+        && (!('productURL' in item) || (item.productURL is string && item.productURL.matches('https://.+')));
+    }
+
+    function validPublishedIndex(items, index, root) {
+      let item = items.size() > index ? items[index] : null;
+      return items.size() <= index || validPublishedItem(item, root);
+    }
+
     function validPostCreate(postId) {
       let post = request.resource.data;
       let outfit = post.outfitSnapshot;
+      let root = 'posts/' + request.auth.uid + '/' + postId;
       return post.keys().hasAll([
           'id', 'schemaVersion', 'authorId', 'caption', 'outfitSnapshot',
           'mediaPath', 'createdAt', 'likeCount'
@@ -66,13 +81,23 @@ service cloud.firestore {
         && post.id == postId && post.schemaVersion == 1
         && post.authorId == request.auth.uid
         && post.caption is string && post.caption.size() <= 500
-        && post.mediaPath == ''
+        && post.mediaPath == 'posts/' + request.auth.uid + '/' + postId + '/composite.jpg'
         && post.createdAt is timestamp && post.likeCount == 0
         && outfit is map
         && outfit.keys().hasAll(['items'])
         && outfit.keys().hasOnly(['name', 'items'])
         && (!('name' in outfit) || (outfit.name is string && outfit.name.size() <= 80))
-        && outfit.items is list && outfit.items.size() == 0;
+        && outfit.items is list && outfit.items.size() > 0 && outfit.items.size() <= 10
+        && validPublishedIndex(outfit.items, 0, root)
+        && validPublishedIndex(outfit.items, 1, root)
+        && validPublishedIndex(outfit.items, 2, root)
+        && validPublishedIndex(outfit.items, 3, root)
+        && validPublishedIndex(outfit.items, 4, root)
+        && validPublishedIndex(outfit.items, 5, root)
+        && validPublishedIndex(outfit.items, 6, root)
+        && validPublishedIndex(outfit.items, 7, root)
+        && validPublishedIndex(outfit.items, 8, root)
+        && validPublishedIndex(outfit.items, 9, root);
     }
 
     function postCountChangesBy(postId, delta) {
@@ -111,8 +136,7 @@ service cloud.firestore {
       allow delete: if owns(uid) && postCountChangesBy(postId, -1);
     }
 
-    // The first publication slice stores caption-only public snapshots. Media and closet-item
-    // publication remain closed until #59 defines their separate public storage contract.
+    // Immutable published copies; private closet paths are never valid post media.
     match /posts/{postId} {
       allow get, list: if request.auth != null;
       allow create: if request.auth != null && validPostCreate(postId);

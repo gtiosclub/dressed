@@ -11,7 +11,39 @@ service firebase.storage {
       allow delete: if request.auth != null && request.auth.uid == uid;
     }
 
-    // Published copies stay closed until #59 defines their creation and cleanup.
+    // Pending uploads are owner-only. A committed post makes its copies readable
+    // to signed-in members and immutable, including for the author.
+    match /posts/{uid}/{postId} {
+      function parentPath() {
+        return /databases/(default)/documents/posts/$(postId);
+      }
+      function published() {
+        return firestore.exists(parentPath());
+      }
+      function owner() {
+        return request.auth != null && request.auth.uid == uid;
+      }
+      function canRead() {
+        return request.auth != null
+          && (owner() || (published() && firestore.get(parentPath()).data.authorId == uid));
+      }
+      function canUpload() {
+        return owner() && !published()
+          && request.resource.size > 0 && request.resource.size <= 10 * 1024 * 1024
+          && request.resource.contentType == 'image/jpeg';
+      }
+      match /composite.jpg {
+        allow read: if canRead();
+        allow create, update: if canUpload();
+        allow delete: if owner() && !published();
+      }
+      match /items/{fileName} {
+        allow read: if fileName.matches('[A-Za-z0-9_-]{1,128}\\.jpg') && canRead();
+        allow create, update: if fileName.matches('[A-Za-z0-9_-]{1,128}\\.jpg') && canUpload();
+        allow delete: if fileName.matches('[A-Za-z0-9_-]{1,128}\\.jpg') && owner() && !published();
+      }
+    }
+
     match /{object=**} {
       allow read, write: if false;
     }

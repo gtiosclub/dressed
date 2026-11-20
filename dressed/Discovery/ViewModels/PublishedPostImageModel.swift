@@ -23,13 +23,32 @@ struct FirebasePublishedPostImageLoader: PublishedPostImageLoading {
         // Never resolve an arbitrary record's private closet path or external URL.
         guard !post.authorId.contains("/"), !post.id.contains("/"),
               post.mediaPath == "posts/\(post.authorId)/\(post.id)/composite.jpg" else { return nil }
-        if let image = Self.cache.object(forKey: post.mediaPath as NSString) { return image }
+        return try await image(path: post.mediaPath)
+    }
+
+    func image(for item: PublishedClothingSnapshot, in post: Post) async throws -> UIImage? {
+        guard !post.authorId.contains("/"), !post.id.contains("/"), !item.sourceItemId.contains("/"),
+              item.mediaPath == "posts/\(post.authorId)/\(post.id)/items/\(item.sourceItemId).jpg" else { return nil }
+        return try await image(path: item.mediaPath)
+    }
+
+    static func cache(draft: PostPublicationDraft, post: Post) {
+        cache.totalCostLimit = 32 * 1024 * 1024
+        for (path, data) in [(post.mediaPath, draft.photo)] + zip(post.outfitSnapshot.items, draft.items).map({
+            ($0.0.mediaPath, $0.1.photo)
+        }) {
+            if let image = UIImage(data: data) { cache.setObject(image, forKey: path as NSString, cost: data.count) }
+        }
+    }
+
+    private func image(path: String) async throws -> UIImage? {
+        if let image = Self.cache.object(forKey: path as NSString) { return image }
         try Task.checkCancellation()
-        let data = try await Storage.storage().reference(withPath: post.mediaPath).data(maxSize: 10 * 1024 * 1024)
+        let data = try await Storage.storage().reference(withPath: path).data(maxSize: 10 * 1024 * 1024)
         try Task.checkCancellation()
         guard let image = UIImage(data: data) else { return nil }
         Self.cache.totalCostLimit = 32 * 1024 * 1024
-        Self.cache.setObject(image, forKey: post.mediaPath as NSString, cost: data.count)
+        Self.cache.setObject(image, forKey: path as NSString, cost: data.count)
         return image
     }
 }
@@ -38,11 +57,23 @@ struct FirebasePublishedPostImageLoader: PublishedPostImageLoading {
 final class PublishedPostImageModel: ObservableObject {
     @Published private(set) var image: UIImage?
     @Published private(set) var isLoading = false
+    @Published private(set) var pieceImages: [String: UIImage] = [:]
     private var requestID = UUID()
     private let loader: any PublishedPostImageLoading
 
     init(loader: (any PublishedPostImageLoading)? = nil) {
         self.loader = loader ?? FirebasePublishedPostImageLoader()
+    }
+
+    func loadItems(_ post: Post) async {
+        pieceImages = [:]
+        let itemLoader = FirebasePublishedPostImageLoader()
+        for item in post.outfitSnapshot.items {
+            guard !Task.isCancelled else { return }
+            if let image = try? await itemLoader.image(for: item, in: post) {
+                pieceImages[item.mediaPath] = image
+            }
+        }
     }
 
     func load(_ post: Post) async {

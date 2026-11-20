@@ -42,3 +42,8 @@ The harness checks every top-level example for lossless Codable round-trip and r
 ## Starter templates
 
 Use the [template kit](../../templates/README.md) for copyable schema, repository, view, view-model and ticket starters. Keep placeholders out of compiled targets and fill only the scope of the chosen ticket.
+
+Post photo/item publication now has an implemented client and local emulator-tested
+rules. See [post-publication.md](post-publication.md) for paths, retry/cleanup behavior,
+limits and the deployment boundary; the presence of this code does not mean live
+Storage or rules are configured.

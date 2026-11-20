@@ -1,6 +1,53 @@
 import XCTest
 
 final class NavigationUITests: XCTestCase {
+    /// Fixture-backed publishing checks UI wiring only; Firebase is covered by emulator tests.
+    func testPostComposerSelectsPhotoAndSavedOutfitThenShowsSnapshotInFeed() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-mockSignedIn", "-showDiscovery"]
+        app.launch()
+        if app.buttons["Later"].waitForExistence(timeout: 2) { app.buttons["Later"].tap() }
+        XCTAssertTrue(app.buttons["infinite.post.infinite_0"].waitForExistence(timeout: 15))
+        let create = app.buttons["ootd.createPost"]
+        XCTAssertTrue(create.waitForExistence(timeout: 5))
+        create.tap()
+        let share = app.buttons["ootd.sharePreview"]
+        XCTAssertTrue(share.waitForExistence(timeout: 5))
+        XCTAssertFalse(share.isEnabled)
+        app.buttons["ootd.choosePhoto"].tap()
+        let photos = app.images.matching(NSPredicate(format: "label BEGINSWITH %@", "Photo,"))
+        XCTAssertTrue(photos.firstMatch.waitForExistence(timeout: 10), "Seed a synthetic photo in this test simulator first.")
+        photos.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        XCTAssertTrue(app.buttons["ootd.newPost.Outfit details"].waitForExistence(timeout: 10))
+        app.buttons["ootd.newPost.Outfit details"].tap()
+        let outfit = app.buttons["ootd.outfit.10000000-0000-4000-8000-000000000001"]
+        XCTAssertTrue(outfit.waitForExistence(timeout: 5))
+        outfit.tap()
+        app.buttons["Done"].tap()
+        XCTAssertTrue(app.staticTexts["3 items tagged"].waitForExistence(timeout: 5))
+        let caption = app.textFields["ootd.newPostCaption"]
+        caption.tap()
+        caption.typeText("Publication UI fixture")
+        XCTAssertTrue(share.isEnabled)
+        let composer = XCTAttachment(screenshot: app.screenshot())
+        composer.name = "Post photo and selected outfit"
+        composer.lifetime = .keepAlways
+        add(composer)
+        share.tap()
+        let details = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "infinite.items.")).firstMatch
+        XCTAssertTrue(details.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Publication UI fixture"].exists)
+        details.tap()
+        XCTAssertTrue(app.staticTexts["Cozy Weekend"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Brown Wool Sweater"].exists)
+        XCTAssertTrue(app.staticTexts["Wide-Leg Jeans"].exists)
+        XCTAssertTrue(app.staticTexts["Silver Pendant Necklace"].exists)
+        let breakdown = XCTAttachment(screenshot: app.screenshot())
+        breakdown.name = "Published outfit snapshot"
+        breakdown.lifetime = .keepAlways
+        add(breakdown)
+    }
+
     func testDesignSystemTabsClosetSectionsAndAvatarEntry() {
         let app = XCUIApplication()
         app.launchArguments = ["-mockSignedIn", "-skipDemoCloset"]

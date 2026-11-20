@@ -11,13 +11,17 @@ struct DemoOutfitPhoto: View {
     }
 
     var body: some View {
-        GeometryReader { geometry in
-            Image(assetName)
-                .resizable()
-                .scaledToFill()
-                .frame(width: geometry.size.width, height: geometry.size.height)
-                .clipped()
+        if UUID(uuidString: post.id) != nil {
+            PostArtwork(post: post)
+        } else {
+            GeometryReader { geometry in
+                Image(assetName)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .clipped()
+            }
+            .accessibilityLabel("Sample outfit photo")
         }
-        .accessibilityLabel("Sample outfit photo")
     }
 }

@@ -6,6 +6,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     @Binding private var section: Int
     @State private var nearBottom = false
     @State private var pageTask: Task<Void, Never>?
+    @State private var itemsPost: Post?
     @State private var selectedPost: Post?
     @State private var commentsPost: Post?
     @State private var previewCommentsPost: Post?
@@ -21,6 +22,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     private let canSharePreview: Bool
     private let authorId: String?
     private let publisher: (any PostPublishing)?
+    private let compositionSource: (any PostCompositionSource)?
     private let artwork: (Post) -> Artwork
     private let ranker: FeedRanker
     private let rankingContext: FeedRankingContext
@@ -38,6 +40,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         commentService: (any CommentService)? = nil,
         authorId: String? = nil,
         publisher: (any PostPublishing)? = nil,
+        compositionSource: (any PostCompositionSource)? = nil,
         savedPosts: SavedPostsViewModel? = nil,
         postLikes: PostLikesViewModel,
         @ViewBuilder artwork: @escaping (Post) -> Artwork
@@ -53,12 +56,18 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         _commentService = State(initialValue: commentService ?? FirebaseCommentService())
         self.authorId = authorId
         self.publisher = publisher
+        self.compositionSource = compositionSource
         self.savedPosts = savedPosts
         self.postLikes = postLikes
     }
 
     private var forYouPosts: [Post] {
-        previewPosts + ranker.rank(model.posts, context: rankingContext).map(\.post)
+        previewPosts + ranker.rank(remainingPosts, context: rankingContext).map(\.post)
+    }
+
+    private var remainingPosts: [Post] {
+        let insertedIds = Set(previewPosts.map(\.id))
+        return model.posts.filter { !insertedIds.contains($0.id) }
     }
 
     var body: some View {
@@ -87,7 +96,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                             }
                         }
                     } else {
-                        ForEach(previewPosts + model.posts) { post in
+                        ForEach(previewPosts + remainingPosts) { post in
                             friendCard(post)
                         }
                     }
@@ -130,21 +139,22 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         .onAppear { loadNextPageIfNeeded() }
         .onDisappear { pageTask?.cancel() }
         .navigationDestination(isPresented: $showingCreate) {
-            OOTDCreatePostView(canShare: canSharePreview || (publisher != nil && authorId != nil)) { caption in
+            OOTDCreatePostView(canShare: canSharePreview || (publisher != nil && authorId != nil), isDemo: canSharePreview, source: compositionSource) { draft in
+                let post: Post
                 if let publisher, let authorId {
-                    let post = try await publisher.publish(caption: caption, authorId: authorId)
-                    previewPosts.insert(post, at: 0)
+                    post = try await publisher.publish(draft: draft, authorId: authorId)
                 } else {
-                    previewPosts.insert(Post(
-                        id: "demo_post_\(UUID().uuidString)", schemaVersion: 1,
-                        authorId: "you", caption: caption.isEmpty ? "caption (optional)" : caption,
-                        outfitSnapshot: PublishedOutfitSnapshot(name: nil, items: []),
-                        mediaPath: "", createdAt: .now
-                    ), at: 0)
+                    post = draft.post(authorId: "preview_user")
                 }
+                FirebasePublishedPostImageLoader.cache(draft: draft, post: post)
+                previewPosts.removeAll { $0.id == post.id }
+                previewPosts.insert(post, at: 0)
                 section = 1
                 showingCreate = false
             }
+        }
+        .sheet(item: $itemsPost) { post in
+            PublishedOutfitDetailsView(post: post)
         }
         .sheet(item: $commentsPost, onDismiss: { refreshAllCounts() }) { post in
             PostCommentsSheet(postId: post.id, service: commentService)
@@ -241,7 +251,10 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
             ) {
                 artwork(post)
             }
-            if let savedPosts, !previewPosts.contains(where: { $0.id == post.id }) {
+            Button("Outfit details") { itemsPost = post }
+                .buttonStyle(.ds(.text))
+                .accessibilityIdentifier("infinite.items.\(post.id)")
+            if let savedPosts, !(canSharePreview && previewPosts.contains(where: { $0.id == post.id })) {
                 SavedPostControl(postId: post.id, post: post, model: savedPosts)
                     .padding(.horizontal, DSSpacing.md)
             }
@@ -269,6 +282,7 @@ extension InfiniteDiscoveryFeed where Artwork == DemoOutfitPhoto {
         showingCreate: Binding<Bool> = .constant(false),
         isSearching: Binding<Bool> = .constant(false),
         savedPosts: SavedPostsViewModel? = nil,
+        compositionSource: (any PostCompositionSource)? = nil,
         postLikes: PostLikesViewModel
     ) -> Self {
         let fixtures = InfiniteFeedFixtures(failSecondPage: failSecondPage)
@@ -279,6 +293,7 @@ extension InfiniteDiscoveryFeed where Artwork == DemoOutfitPhoto {
             isSearching: isSearching,
             canSharePreview: true,
             commentService: DemoCommentService(),
+            compositionSource: compositionSource,
             savedPosts: savedPosts,
             postLikes: postLikes
         ) { post in
@@ -292,12 +307,13 @@ extension InfiniteDiscoveryFeed where Artwork == PostArtwork {
     /// It can adopt cursor-based paging here once PostFunctions exposes a cursor contract.
     static func live(
         service: any PostFunctions = DiscoveryPostSource.current,
-        publisher: any PostPublishing = FirebasePostPublisher(),
+        publisher: (any PostPublishing)? = nil,
         authorId: String,
         section: Binding<Int> = .constant(0),
         showingCreate: Binding<Bool> = .constant(false),
         isSearching: Binding<Bool> = .constant(false),
         savedPosts: SavedPostsViewModel? = nil,
+        compositionSource: (any PostCompositionSource)? = nil,
         postLikes: PostLikesViewModel
     ) -> Self {
         Self(loadPage: { cursor in
@@ -310,7 +326,7 @@ extension InfiniteDiscoveryFeed where Artwork == PostArtwork {
                 removedPostIDs: []
             )
         }, section: section, showingCreate: showingCreate, isSearching: isSearching, authorId: authorId,
-           publisher: publisher, savedPosts: savedPosts,
+           publisher: publisher ?? FirebasePostPublisher(), compositionSource: compositionSource, savedPosts: savedPosts,
            postLikes: postLikes) { post in
             PostArtwork(post: post)
         }

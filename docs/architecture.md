@@ -1,3 +1,46 @@
+## Post photo and outfit publication (November 19, 2026)
+
+The current New post composer now requires an explicitly selected Photos image and
+1–10 tagged pieces from the signed-in owner's local closet, or a saved outfit.
+Choosing an outfit copies its name and item selection; missing pieces block that
+selection rather than silently producing a partial outfit. The ten-item publishing
+limit keeps every snapshot item within Firestore's rule-evaluation budget; private
+outfits retain their existing limit. Audio selection was a placeholder and is no
+longer shown. The caption limit is 500 characters.
+
+`PostComposerModel` coordinates selection and loading through `PostCompositionSource`.
+On Share it freezes a `PostPublicationDraft`, including an ID, caption, photo and
+item metadata/bytes. `FirebasePostPublisher` uses injected media/document stores,
+checks the Firebase identity, and uploads separate JPEG copies before creating
+`posts/{id}` in an idempotent transaction. See [publication contract](../backend/schemas/post-publication.md).
+The main image is at `posts/{uid}/{id}/composite.jpg`; individual copies are at
+`posts/{uid}/{id}/items/{sourceItemId}.jpg`. Images are rendered afresh to strip
+source metadata, bound dimensions and flatten item transparency onto white. No
+private image paths are written to the public snapshot. The existing `Post`,
+`PublishedOutfitSnapshot`, and six-field `ClothingItem` contracts are reused.
+
+Only a successful commit inserts the live post into Friends. Refresh merges avoid
+showing the same post twice. Both feed layouts load published main images, and
+Friends cards and For You previews offer Outfit details with the saved names,
+categories and separately published item images. Debug demo publication is local
+and uses an in-memory image cache, not Firebase.
+
+The same frozen draft is retried after failure, with editing disabled to avoid
+changing an ambiguous request. Failed uploads or rejected commits trigger cleanup;
+a lost commit acknowledgement is resolved with a server read. If the result is
+still unknown, media is retained and Retry Share checks the same ID before writing.
+Pending uploads are owner-only; published copies become immutable and readable to
+signed-in users. Removing a private original does not remove a published copy.
+Post deletion remains unavailable. Abandoned uploads after process termination
+need owner/administrator maintenance; there is no deployed scheduled cleanup job.
+
+The updated Firestore and Storage rules are local changes, tested against synthetic
+users in the emulators. They have **not been deployed by this change**. Live Storage
+availability and billing must be confirmed before deployment; prior setup notes
+recorded Storage as unavailable. No billing, bucket, cloud service, or existing user
+data was changed. Native simulator and test results are recorded with this change;
+they do not establish successful publication to the live project.
+
 ## Persistent comments implementation (November 17, 2026)
 
 The current feed now opens `PostCommentsSheet` from Friends cards and For You
@@ -261,15 +304,16 @@ OOTD renders the existing `Post` outfit snapshots as vertical cards with
 in-feed pin, Find items, comment and like controls. Find items shows published
 pieces in a category-filtered sheet. Debug UI tests use synthetic posts with
 `-mockSignedIn` (or the explicit `-demoPosts` flag); normal authenticated Debug
-and Release sessions use Firestore. Share creates a caption-only public post
-with an empty public outfit snapshot and zero likes. Public media loading and
-persistent comments remain unconnected. Saved posts are described above. The earlier midsemester
+and Release sessions use Firestore. Share now copies a selected photo and tagged
+items into the published snapshot described above. Persistent comments and public
+media loading are connected in the current `InfiniteDiscoveryFeed`. Saved posts are described above. The earlier midsemester
 Discovery post prototype below records previous behavior, not the current
 navigation.
 
-The OOTD plus button now pushes the New post composition screen within the
-Discovery tab, keeping the native tab bar visible. Its outfit image is the
-prototype's greyscale vector placeholder until publishable media is selected.
+The OOTD plus button pushes the New post composition screen within the Discovery
+tab. The photo picker replaces the former fixed outfit placeholder; Outfit details
+opens real closet/saved-outfit selection. The older `OOTDFeedView` below remains a
+historical preview and is not the app's current feed.
 The Find items sheet uses the prototype's product-row layout, sort and category
 chips, and a local bookmark toggle. Only the first Debug demo post has fixture
 brands, prices, ratings, and alternatives; other posts display their published
