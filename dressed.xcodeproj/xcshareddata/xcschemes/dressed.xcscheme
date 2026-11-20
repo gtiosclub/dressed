@@ -30,7 +30,16 @@
       shouldUseLaunchSchemeArgsEnv = "YES"
       shouldAutocreateTestPlan = "YES">
       <Testables>
-         <TestableReference skipped="NO"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="D20600000000000000000001" BuildableName="dressedTests.xctest" BlueprintName="dressedTests" ReferencedContainer="container:dressed.xcodeproj"/></TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "D20600000000000000000001"
+               BuildableName = "dressedTests.xctest"
+               BlueprintName = "dressedTests"
+               ReferencedContainer = "container:dressed.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
          <TestableReference
             skipped = "NO">
             <BuildableReference

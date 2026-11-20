@@ -13,6 +13,7 @@ These are contract templates, not deployed collections, security rules, services
 | Avatar | users/{uid}/private/avatar | viz | Owner only, later phase |
 | Post | posts/{id} | social | Signed-in community; author publishes |
 | SavedPost | users/{uid}/savedPosts/{postId} | social | Owner only |
+| PostLike | users/{uid}/postLikes/{postId} | social | Owner only; public posts expose only `likeCount` |
 | Follow | users/{uid}/following/{targetUid} | social | Owner write; read audience to be decided |
 | PreferenceEvent | users/{uid}/preferenceEvents/{id} | data | Owner only; later phase |
 | UserPreferences | users/{uid}/private/preferences | data | Owner only; later phase |

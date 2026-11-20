@@ -92,6 +92,21 @@ Their presence in the project does not establish a production publication or
 bookmark flow. The local changes on `feat/camera-capture-screen` are separate
 from this committed branch integration.
 
+## Persistent OOTD likes (November 17, 2026)
+
+The working tree now models one like at `users/{uid}/postLikes/{postId}` and exposes only
+`posts/{postId}.likeCount` to other signed-in viewers. `FirebasePostLikeFunctions` uses one
+Firestore transaction to create/delete the private relationship and increment/decrement the public
+count. The rules require both changes in the same atomic request, prevent direct count edits, and
+allow only the owner to read a relationship. Repeated desired states are no-ops. `Post.likeCount`
+is optional so existing posts decode as zero until their first like.
+
+`PostLikesViewModel` disables repeat taps while a write is pending, keeps the last confirmed state
+on failure, and reloads the signed-in user's relationship after relaunch. Debug fixtures persist in
+UserDefaults and do not contact Firebase. The Firestore emulator suite passes like, unlike, retry,
+privacy, and direct-write rejection checks. The rules are not deployed to `out-fitted`, so this is
+not yet a live production feature.
+
 ## Social branch promotion (November 17, 2026)
 
 The integration preserves main’s per-user saved-post state and adds its existing Save controls and Saved Posts destination to the infinite Discovery feed. The Friends cards and outfit-preview sheet share the same saved state. Demo saved-post lookups also resolve the paged fixtures after relaunch. Both bulk saved-post lookup and single-post detail lookup remain in `PostFunctions`. The public profile component from #256 is included without introducing a live profile route or backend service.
@@ -244,10 +259,11 @@ contract exists. An idea never becomes a private closet item on tap.
 
 OOTD renders the existing `Post` outfit snapshots as vertical cards with
 in-feed pin, Find items, comment and like controls. Find items shows published
-pieces in a category-filtered sheet. Debug builds use synthetic posts by default;
-`-livePosts` selects Firestore. The Debug Share button inserts only a local
-preview. There is still no connected publication, public media loader,
-persistent comments or likes. Saved posts are described above. The earlier midsemester
+pieces in a category-filtered sheet. Debug UI tests use synthetic posts with
+`-mockSignedIn` (or the explicit `-demoPosts` flag); normal authenticated Debug
+and Release sessions use Firestore. Share creates a caption-only public post
+with an empty public outfit snapshot and zero likes. Public media loading and
+persistent comments remain unconnected. Saved posts are described above. The earlier midsemester
 Discovery post prototype below records previous behavior, not the current
 navigation.
 
@@ -341,10 +357,9 @@ outside the search field and suggested styles returns to the prior feed state
 and discards edits from the current search session. Selected styles filter
 locally against the demo style associations or visible post text.
 Style associations for synthetic posts live only in the demo view. A public
-style-tag contract is still TBD. Debug builds show synthetic post snapshots by
-default; `-livePosts` uses `FirebasePostFunctions` for development checks.
-Release builds also use `FirebasePostFunctions`, but public media loading,
-author profiles, publishing, and saved-post state are not connected. Live posts
+style-tag contract is still TBD. `-mockSignedIn` and `-demoPosts` select
+synthetic snapshots; normal authenticated builds use `FirebasePostFunctions`.
+Public media loading, author profiles, and saved-post state are not connected. Live posts
 therefore show an explicit image fallback;
 the demo artwork does not resolve private clothing paths. `-showCatalog` still
 opens the Search section for existing Debug tests. Saved-post reads and writes

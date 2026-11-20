@@ -30,6 +30,7 @@ private struct AppTabs: View {
 
     @StateObject private var closet: PrototypeClosetStore
     @StateObject private var savedPosts: SavedPostsViewModel
+    @StateObject private var postLikes: PostLikesViewModel
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -69,6 +70,10 @@ private struct AppTabs: View {
             saves: DiscoveryPostSource.currentSavedPosts,
             posts: DiscoveryPostSource.current
         ))
+        _postLikes = StateObject(wrappedValue: PostLikesViewModel(
+            ownerId: userId,
+            service: DiscoveryPostSource.currentPostLikes
+        ))
 
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
@@ -83,17 +88,20 @@ private struct AppTabs: View {
     @ViewBuilder private var ootdFeed: some View {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
-        if !DiscoveryPostSource.isDemo {
-            InfiniteDiscoveryFeed.live(section: $discoverySection, showingCreate: $isCreatingPost, isSearching: $isSearchingDiscovery, savedPosts: savedPosts)
-        } else {
+        if DiscoveryPostSource.isDemo {
             InfiniteDiscoveryFeed.demo(
                 failSecondPage: arguments.contains("-failDiscoveryPage"),
                 section: $discoverySection,
-                showingCreate: $isCreatingPost, isSearching: $isSearchingDiscovery, savedPosts: savedPosts
+                showingCreate: $isCreatingPost, isSearching: $isSearchingDiscovery,
+                savedPosts: savedPosts, postLikes: postLikes
             )
+        } else {
+            InfiniteDiscoveryFeed.live(authorId: userId, section: $discoverySection, showingCreate: $isCreatingPost,
+                                       isSearching: $isSearchingDiscovery, savedPosts: savedPosts, postLikes: postLikes)
         }
         #else
-        InfiniteDiscoveryFeed.live(section: $discoverySection, showingCreate: $isCreatingPost, isSearching: $isSearchingDiscovery, savedPosts: savedPosts)
+        InfiniteDiscoveryFeed.live(authorId: userId, section: $discoverySection, showingCreate: $isCreatingPost,
+                                   isSearching: $isSearchingDiscovery, savedPosts: savedPosts, postLikes: postLikes)
         #endif
     }
 
