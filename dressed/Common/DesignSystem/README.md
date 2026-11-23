@@ -44,7 +44,7 @@ shows every component on one screen: preview it, or launch a Debug build with
 | --- | --- |
 | `DSChip` | Closet category pills; with `icon: "TablerX"`, removable filter chips (Discovery styles) |
 | `DSSegmentedControl` | For You / Friends switch |
-| `DSCircleButton` | Profile initial, new-post plus |
+| `DSCircleButton` | Profile initial, new-post plus, notifications bell (`showsDot` marks unread activity) |
 | `DSTile` | Closet item and For You photo grid tiles |
 | `DSFloatingSearchButton` | "Search Your Closet" / "Search Styles" pinned above the tab bar; opens search mode. Pad scroll content by `DSFloatingSearchButton.height` |
 | `DSButtonStyle` (`.ds(.primary/.secondary/.glass)`) | Search, Back, Skip, shop buttons |
@@ -109,6 +109,9 @@ comparison with the live Figma file has not been performed.
 
 - The Discovery header shows a profile icon where the mockup shows the user's initial;
   the session does not expose a display name yet.
+- The Discovery header's notifications bell (SOCIAL-P09, Debug builds only) is not in the
+  Figma frame. It sits beside Create Post, and the header spacers shrink to `DSSpacing.xs`
+  so four buttons and the switch fit a 375 pt wide screen.
 - The mockups are light mode only; dark-mode colors are TBD.
 - `DSFont` sizes are fixed and do not scale with Dynamic Type.
 - The product scope still describes three tabs; the app and mockups have four

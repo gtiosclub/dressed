@@ -57,6 +57,10 @@ Later engagement proposals [#214](https://github.com/gtiosclub/dressed/issues/21
 
 **Acceptance checks:** Search reports the current query without mutating posts; an unsupported query gives a clear state. A caption is editable before publishing; canceling compose creates no post; publication uses only the explicitly selected outfit and public snapshot.
 
+## Notifications prototype (SOCIAL-P09)
+
+Debug builds show a bell beside Create Post in the Discovery header. It opens a fixture-only inbox built from the shared `AppNotification` template: newest first, likes and comments grouped per post, follows grouped per day, and unread rows under **New**. A row opens the post-detail screen or a profile header only after a lookup confirms the post or account still exists; otherwise it shows an unavailable screen and nothing cached. Nothing creates notification records, sends push notifications or reads Firebase, and Release builds show no bell. `sh scripts/tests/check-notification-inbox.sh` checks the grouping and state logic; `NavigationUITests` exercises the screens with a mock session. The record writer, read-state rules and cleanup after deletion remain lead decisions.
+
 ## Delivery gates and proposed three-sprint sequence
 
 | Sprint | Social work | Observable review |

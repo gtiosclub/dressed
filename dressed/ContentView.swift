@@ -48,6 +48,13 @@ private struct AppTabs: View {
 
     @State private var studio = OutfitStudioModel()
 
+    #if DEBUG
+    // SOCIAL-P09 prototype: fixture notifications only. No notification service exists yet,
+    // so Release builds show no bell.
+    @StateObject private var notifications: NotificationInboxModel
+    @State private var showingNotifications = false
+    #endif
+
     init(session: SessionViewModel, userId: String) {
         self.session = session
         self.userId = userId
@@ -61,6 +68,10 @@ private struct AppTabs: View {
         _selectedTab = State(initialValue: arguments.contains("-showCamera") ? 2 :
             (arguments.contains("-showCatalog") || arguments.contains("-showDiscovery") ? 1 : 0))
         _discoverySection = State(initialValue: arguments.contains("-showOOTD") ? 1 : 0)
+        _notifications = StateObject(wrappedValue: NotificationInboxModel(service: NotificationFixtures(
+            empty: arguments.contains("-emptyNotifications"),
+            failingFetches: arguments.contains("-failNotificationRefresh") ? [2] : []
+        )))
         #else
         _selectedTab = State(initialValue: 0)
         #endif
@@ -105,7 +116,9 @@ private struct AppTabs: View {
                     VStack(spacing: 0) {
                         DiscoveryHeader(
                             section: $discoverySection,
+                            hasUnreadNotifications: hasUnreadNotifications,
                             onProfile: { selectedTab = 3 },
+                            onNotifications: openNotifications,
                             onCreatePost: {
                                 discoverySection = 1
                                 isCreatingPost = true
@@ -117,6 +130,12 @@ private struct AppTabs: View {
                     .toolbar(.hidden, for: .navigationBar)
                     // Hide on the navigation content too, so the system bar cannot intercept feed taps.
                     .toolbar(.hidden, for: .tabBar)
+                    #if DEBUG
+                    .navigationDestination(isPresented: $showingNotifications) {
+                        NotificationInboxView(model: notifications, postService: NotificationFixturePostService())
+                    }
+                    .task { await notifications.loadInitial() }
+                    #endif
                 }
                 .toolbar(.hidden, for: .tabBar)
                 .tag(1)
@@ -319,6 +338,24 @@ private struct AppTabs: View {
                 presentNextShare()
             }
         }
+    }
+
+    // MARK: - Notifications
+
+    private var hasUnreadNotifications: Bool {
+        #if DEBUG
+        notifications.hasUnread
+        #else
+        false
+        #endif
+    }
+
+    private var openNotifications: (() -> Void)? {
+        #if DEBUG
+        { showingNotifications = true }
+        #else
+        nil
+        #endif
     }
 
     // MARK: - Sign Out

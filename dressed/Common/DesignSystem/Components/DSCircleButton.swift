@@ -1,6 +1,7 @@
 import SwiftUI
 
-// 43 pt grey circle used for the profile initial and the new-post button.
+// 43 pt grey circle used for the profile initial, the new-post button and the
+// notifications bell. `showsDot` adds a brand-color dot for unread activity.
 struct DSCircleButton: View {
     enum Content {
         case initial(String)
@@ -9,6 +10,7 @@ struct DSCircleButton: View {
 
     let content: Content
     let accessibilityLabel: String
+    var showsDot = false
     let action: () -> Void
 
     var body: some View {
@@ -26,9 +28,19 @@ struct DSCircleButton: View {
             }
             .frame(width: 43, height: 43)
             .background(Circle().fill(DSColor.tile))
+            .overlay(alignment: .topTrailing) {
+                if showsDot {
+                    Circle()
+                        .fill(DSColor.brand)
+                        .frame(width: 10, height: 10)
+                        .overlay(Circle().stroke(DSColor.background, lineWidth: 2))
+                        .offset(x: -DSSpacing.xs, y: DSSpacing.xs)
+                }
+            }
         }
         .buttonStyle(.plain)
         .accessibilityLabel(accessibilityLabel)
+        .accessibilityValue(showsDot ? "Unread activity" : "")
     }
 }
 
@@ -36,6 +48,7 @@ struct DSCircleButton: View {
     HStack {
         DSCircleButton(content: .initial("E"), accessibilityLabel: "Profile") {}
         Spacer()
+        DSCircleButton(content: .icon("TablerBell"), accessibilityLabel: "Notifications", showsDot: true) {}
         DSCircleButton(content: .icon("TablerPlus"), accessibilityLabel: "New post") {}
     }
     .padding(DSSpacing.lg)
