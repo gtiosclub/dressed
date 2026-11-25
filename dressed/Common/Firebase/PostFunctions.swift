@@ -11,8 +11,27 @@ import FirebaseFirestore
 protocol PostFunctions {
     func fetchPost(id: String) async throws -> Post?
     func fetchRecentPosts() async throws -> [Post]
+    func fetchPostPage(after cursor: PostPageCursor?) async throws -> PostPage
     /// The posts that can be shown for these IDs. A missing post is left out, not an error.
     func fetchPosts(ids: [String]) async throws -> [Post]
+}
+
+struct PostPageCursor: Equatable {
+    let createdAt: Date
+    let id: String
+}
+
+struct PostPage {
+    let posts: [Post]
+    let nextCursor: PostPageCursor?
+}
+
+extension PostFunctions {
+    /// Compatibility for fixture services that expose a single bounded result set.
+    func fetchPostPage(after cursor: PostPageCursor?) async throws -> PostPage {
+        guard cursor == nil else { return PostPage(posts: [], nextCursor: nil) }
+        return PostPage(posts: try await fetchRecentPosts(), nextCursor: nil)
+    }
 }
 
 /// Firestore raises an exception that can't be caught for an empty ID or one containing "/".
@@ -22,17 +41,36 @@ func isValidFirestoreDocumentId(_ id: String) -> Bool {
 
 struct FirebasePostFunctions: PostFunctions {
     private let db = Firestore.firestore()
+    private let pageSize = 20
 
     func fetchRecentPosts() async throws -> [Post] {
         let snapshot = try await db
             .collection("posts")
             .order(by: "createdAt", descending: true)
-            .limit(to: 20)
+            .limit(to: pageSize)
             .getDocuments()
 
         return try snapshot.documents.map { document in
             try document.data(as: Post.self)
         }
+    }
+
+    func fetchPostPage(after cursor: PostPageCursor?) async throws -> PostPage {
+        var query: Query = db.collection("posts")
+            .order(by: "createdAt", descending: true)
+            .order(by: FieldPath.documentID())
+            .limit(to: pageSize)
+
+        if let cursor {
+            query = query.start(after: [cursor.createdAt, cursor.id])
+        }
+
+        let snapshot = try await query.getDocuments()
+        let posts = try snapshot.documents.map { try $0.data(as: Post.self) }
+        let nextCursor = posts.count == pageSize ? posts.last.map {
+            PostPageCursor(createdAt: $0.createdAt, id: $0.id)
+        } : nil
+        return PostPage(posts: posts, nextCursor: nextCursor)
     }
 
     func fetchPosts(ids: [String]) async throws -> [Post] {

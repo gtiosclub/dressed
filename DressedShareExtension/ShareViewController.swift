@@ -16,7 +16,7 @@ private struct SharedLinkEnvelope: Encodable {
 }
 
 final class ShareViewController: UIViewController {
-    private let groupId = "group.gtiosclub.dressed"
+    private let groupId = "group.com.jdayal.dresseddev"
     private let maxInputBytes = 40 * 1024 * 1024
     private let maxImageDimension: CGFloat = 2560
     private let status = UILabel()

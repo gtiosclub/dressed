@@ -19,7 +19,7 @@ Use three top-level tabs, in this order. Names below are proposed UI copy.
 | Tab | Primary job | Child flows |
 | --- | --- | --- |
 | My Closet | Browse owned items and saved outfits | Category filters, item detail/edit, create outfit, wishlist, future try-on |
-| Discovery | Browse individual clothing ideas and reach OOTD posts | Item search, OOTD feed, in-feed post controls, clothing breakdown, saved posts, profiles, future similar items |
+| Discovery | Browse individual clothing ideas and reach OOTD posts | Item search, OOTD feed, comments, likes, clothing breakdown, profiles, future similar items |
 | Camera | Capture or import clothing | Camera, photo library, incoming share draft, extraction, review, destination selection |
 
 Discovery uses a Discovery / OOTD switch inside the tab. Discovery shows individual public clothing ideas; OOTD shows user-published outfit posts. Profile and settings are child destinations, not extra tabs. Camera must offer a photo-library fallback if permission is denied or the device lacks a camera. Authentication gates the app shell; signing out clears user-specific state.
@@ -56,7 +56,7 @@ Included:
 - Closet grid, item detail, category filtering and item deletion.
 - Categories: Tops, Pants, Skirts, Dresses, Shoes, Outerwear, Accessories, Other. Pants and Skirts stay separate, matching the team's notes.
 - Saved outfits using selected closet items and a simple 2D arrangement.
-- OOTD publishing from a saved outfit, caption, OOTD feed, clothing breakdown and save/unsave.
+- OOTD publishing from a saved outfit, caption, OOTD feed and clothing breakdown.
 - Loading, empty, failed, permission-denied and retry states for each asynchronous flow.
 - Ownership rules and failure cleanup for private items/media before backend integration is considered complete.
 

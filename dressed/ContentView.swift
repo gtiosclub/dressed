@@ -29,7 +29,6 @@ private struct AppTabs: View {
     let userId: String
 
     @StateObject private var closet: PrototypeClosetStore
-    @StateObject private var savedPosts: SavedPostsViewModel
     @StateObject private var postLikes: PostLikesViewModel
     @StateObject private var profile: MyProfileModel
 
@@ -67,11 +66,6 @@ private struct AppTabs: View {
         _closet = StateObject(
             wrappedValue: PrototypeClosetStore(ownerId: userId)
         )
-        _savedPosts = StateObject(wrappedValue: SavedPostsViewModel(
-            ownerId: userId,
-            saves: DiscoveryPostSource.currentSavedPosts,
-            posts: DiscoveryPostSource.current
-        ))
         _postLikes = StateObject(wrappedValue: PostLikesViewModel(
             ownerId: userId,
             service: DiscoveryPostSource.currentPostLikes
@@ -100,15 +94,15 @@ private struct AppTabs: View {
                 failSecondPage: arguments.contains("-failDiscoveryPage"),
                 section: $discoverySection,
                 showingCreate: $isCreatingPost, isSearching: $isSearchingDiscovery,
-                savedPosts: savedPosts, compositionSource: postCompositionSource, postLikes: postLikes
+                compositionSource: postCompositionSource, postLikes: postLikes
             )
         } else {
             InfiniteDiscoveryFeed.live(authorId: userId, section: $discoverySection, showingCreate: $isCreatingPost,
-                                       isSearching: $isSearchingDiscovery, savedPosts: savedPosts, compositionSource: postCompositionSource, postLikes: postLikes)
+                                       isSearching: $isSearchingDiscovery, compositionSource: postCompositionSource, postLikes: postLikes)
         }
         #else
         InfiniteDiscoveryFeed.live(authorId: userId, section: $discoverySection, showingCreate: $isCreatingPost,
-                                   isSearching: $isSearchingDiscovery, savedPosts: savedPosts, compositionSource: postCompositionSource, postLikes: postLikes)
+                                   isSearching: $isSearchingDiscovery, compositionSource: postCompositionSource, postLikes: postLikes)
         #endif
     }
 

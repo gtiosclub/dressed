@@ -14,8 +14,8 @@ The Figma file has no published variables, so token values were read from the fr
 | `DSColor` | Brand purple `#9D83EB`, `brandLight` `#A98BFF` (selected outlines), scrim, camera bar, text, `iconMuted` `#6D6D6D` (inactive tabs, circle-button icons), surface and stroke colors |
 | `DSSpacing` | 2, 4, 8, 12, 20 pt |
 | `DSRadius` | 5, 8, 16, 26, 30 pt |
-| `DSFont` | 16 regular/medium, 14 medium button, 13 medium search, 20 nav title, 11 badge, 10 tab and field label |
-| `DSShadow` | raised, floating, card, brand glow, selected tile glow, selected row, and two inner shadows |
+| `DSFont` | 16 regular/medium, 14 medium button, 13 medium search, 20 nav title, 11 badge, 10 tab and field label, plus the compact-control optical baseline offset |
+| `DSShadow` | raised, centered control glass, floating, card, brand glow, selected tile glow, selected row, and inner shadows |
 
 ### Replacing literals
 
@@ -71,7 +71,7 @@ Components are presentational: callers own state, data and actions.
 
 | Screen | Figma | Notes |
 | --- | --- | --- |
-| Discovery For You grid (`InfiniteDiscoveryFeed`) | `1380:337` | Photos only: outfit photos plus retailer product photos (no titles or prices; the product page opens on tap), floating "Search Styles" above the tab bar, no Save pill or bookmark row. Friends cards have no Save control. Saved-posts code remains but has no entry point. |
+| Discovery For You grid (`InfiniteDiscoveryFeed`) | `1380:337` | Photos only: outfit photos plus retailer product photos (no titles or prices; the product page opens on tap), floating "Search Styles" above the tab bar. Friends cards expose comments, likes and outfit details; saving posts is not part of the design. |
 | My Closet (`PrototypeClosetView`), outfit detail and Create Outfit (`PrototypeOutfitViews`) | `915:526`, `973:5888`, `1280:421`, `1273:173` | Chip row (Outfits, All, Wishlist, then one per category), `DSTile` piece grid with a "New" badge on the newest piece (added in the last 24 h), `DSOutfitCollage` outfit tiles, floating `Search Your Closet` plus a purple new-outfit button on the Outfits chip, search via `DSSearchSheet`. Outfit detail uses `DSBackHeader`, `DSOutfitCollage` and `DSItemRow` with a `DSMoreMenu` (Try On). Create Outfit: `DSLabeledField`, flat `DSChip`s, `DSTile(isChecked:)`, a Create Outfit button. Tapping a piece still opens `PrototypeItemDetailView` (not restyled). |
 | Camera (`CameraCaptureView`, `PrototypeImportView`) | `1012:388` | Full-screen live camera with `DSCameraControls`. Close returns to the previous tab; Upload offers photos (one item or full outfit) or a product link, and goes straight to the existing review sheets. Flip switches front and back cameras. |
 | Discovery (`DiscoveryHeader`, `DiscoveryIdeasView`) | `915:933` | For You / Friends header, photo tiles, floating "Search Styles". The one top switch controls `InfiniteDiscoveryFeed`: ranked outfit grid / chronological outfit cards. Its body is not fully migrated yet. |
@@ -149,7 +149,7 @@ below it compile but were not compared to their frames.
 - The persistent comment sheet uses shared tokens and button styles. Live Figma
   design-context access was unavailable; an independent frame comparison is pending.
 
-- The main-branch integration retains Saved Posts access in a separate bookmark row below the Discovery header, plus the existing save control on Friends cards and outfit previews. This preserves the working saved-post flow; the added access has not been compared to the live Figma frame.
+- Saved Posts and the Friends-card save control were removed from the active Discovery flow because they are not present in the approved design.
 
 - The Discovery header shows a profile icon where the mockup shows the user's initial;
   the session does not expose a display name yet.
