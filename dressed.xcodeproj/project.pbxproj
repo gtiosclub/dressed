@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		360046AB307476B400F78859 /* .swiftlint.yml in Resources */ = {isa = PBXBuildFile; fileRef = 360046AA3074769B00F78859 /* .swiftlint.yml */; };
-
 		8B87D8B5305380D900F3CF9E /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8B4305380D900F3CF9E /* FirebaseCore */; };
 		8B87D8B7305380DD00F3CF9E /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8B6305380DD00F3CF9E /* FirebaseAuth */; };
 		8B87D8B9305380E200F3CF9E /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8B8305380E200F3CF9E /* FirebaseStorage */; };
@@ -20,36 +18,27 @@
 		A10100000000000000000002 /* DressedShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A10200000000000000000004 /* DressedShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B20100000000000000000001 /* ShareImportUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20200000000000000000001 /* ShareImportUITests.swift */; };
 		B20100000000000000000003 /* NavigationUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20200000000000000000003 /* NavigationUITests.swift */; };
-		D30100000000000000000001 /* MultiPhotoCandidateGrouperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30200000000000000000001 /* MultiPhotoCandidateGrouperTests.swift */; };
+		B20100000000000000000004 /* OutfitUndoRedoUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20200000000000000000004 /* OutfitUndoRedoUITests.swift */; };
 		C10100000000000000000001 /* InjectionNext in Frameworks */ = {isa = PBXBuildFile; productRef = C10300000000000000000001 /* InjectionNext */; };
 		C10100000000000000000002 /* Inject in Frameworks */ = {isa = PBXBuildFile; productRef = C10300000000000000000002 /* Inject */; };
-		B20100000000000000000004 /* OutfitUndoRedoUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20200000000000000000004 /* OutfitUndoRedoUITests.swift */; };
-		E20A00000000000000000209 /* AutomaticGarmentCutout.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000109 /* AutomaticGarmentCutout.swift */; };
-		E20A00000000000000000203 /* PrototypeImportStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000103 /* PrototypeImportStore.swift */; };
-		E20A00000000000000000208 /* OnDeviceGarmentRegions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000108 /* OnDeviceGarmentRegions.swift */; };
-		E20A00000000000000000202 /* ImportSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000102 /* ImportSchema.swift */; };
-		E20A00000000000000000207 /* PrototypeGarmentRecognition.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000107 /* PrototypeGarmentRecognition.swift */; };
-		E20A00000000000000000201 /* ClothingSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000101 /* ClothingSchema.swift */; };
-		E20A0000000000000000020C /* RecognitionLabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A0000000000000000010C /* RecognitionLabView.swift */; };
-		E20A0000000000000000020B /* RecognitionBenchmarkModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A0000000000000000010B /* RecognitionBenchmarkModel.swift */; };
-		E20A00000000000000000206 /* RecognitionImageSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000106 /* RecognitionImageSession.swift */; };
-		E20A00000000000000000200 /* RecognitionLabApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000100 /* RecognitionLabApp.swift */; };
-		E20A0000000000000000020A /* OnDeviceRecognitionPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A0000000000000000010A /* OnDeviceRecognitionPipeline.swift */; };
-		E20A00000000000000000205 /* RecognitionMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000105 /* RecognitionMetrics.swift */; };
-		E20A00000000000000000204 /* SharedImportDraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000104 /* SharedImportDraftStore.swift */; };
-		E20A0000000000000000020D /* VisionRequestRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A0000000000000000010D; };
+		D30100000000000000000001 /* MultiPhotoCandidateGrouperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30200000000000000000001 /* MultiPhotoCandidateGrouperTests.swift */; };
+		E20A00000000000000000200 /* tools/RecognitionLab/RecognitionLabApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000100 /* tools/RecognitionLab/RecognitionLabApp.swift */; };
+		E20A00000000000000000201 /* dressed/Common/Models/ClothingSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000101 /* dressed/Common/Models/ClothingSchema.swift */; };
+		E20A00000000000000000202 /* dressed/Common/Models/ImportSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000102 /* dressed/Common/Models/ImportSchema.swift */; };
+		E20A00000000000000000203 /* dressed/Camera/ViewModels/PrototypeImportStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000103 /* dressed/Camera/ViewModels/PrototypeImportStore.swift */; };
+		E20A00000000000000000204 /* dressed/Camera/ViewModels/SharedImportDraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000104 /* dressed/Camera/ViewModels/SharedImportDraftStore.swift */; };
+		E20A00000000000000000205 /* dressed/Camera/ViewModels/RecognitionMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000105 /* dressed/Camera/ViewModels/RecognitionMetrics.swift */; };
+		E20A00000000000000000206 /* dressed/Camera/ViewModels/RecognitionImageSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000106 /* dressed/Camera/ViewModels/RecognitionImageSession.swift */; };
+		E20A00000000000000000207 /* dressed/Camera/ViewModels/PrototypeGarmentRecognition.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000107 /* dressed/Camera/ViewModels/PrototypeGarmentRecognition.swift */; };
+		E20A00000000000000000208 /* dressed/Camera/ViewModels/OnDeviceGarmentRegions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000108 /* dressed/Camera/ViewModels/OnDeviceGarmentRegions.swift */; };
+		E20A00000000000000000209 /* dressed/Camera/ViewModels/AutomaticGarmentCutout.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000109 /* dressed/Camera/ViewModels/AutomaticGarmentCutout.swift */; };
+		E20A0000000000000000020A /* dressed/Camera/ViewModels/OnDeviceRecognitionPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A0000000000000000010A /* dressed/Camera/ViewModels/OnDeviceRecognitionPipeline.swift */; };
+		E20A0000000000000000020B /* dressed/Camera/ViewModels/RecognitionBenchmarkModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A0000000000000000010B /* dressed/Camera/ViewModels/RecognitionBenchmarkModel.swift */; };
+		E20A0000000000000000020C /* dressed/Camera/Views/RecognitionLabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A0000000000000000010C /* dressed/Camera/Views/RecognitionLabView.swift */; };
+		E20A0000000000000000020D /* dressed/Camera/ViewModels/VisionRequestRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A0000000000000000010D /* dressed/Camera/ViewModels/VisionRequestRunner.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		D20D00000000000000000001 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 8B87D85F30537AB400F3CF9E /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 8B87D86630537AB400F3CF9E;
-			remoteInfo = dressed;
-		};
-
-
 		A10D00000000000000000001 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 8B87D85F30537AB400F3CF9E /* Project object */;
@@ -64,6 +53,13 @@
 			remoteGlobalIDString = 8B87D86630537AB400F3CF9E;
 			remoteInfo = dressed;
 		};
+		D20D00000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8B87D85F30537AB400F3CF9E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8B87D86630537AB400F3CF9E;
+			remoteInfo = dressed;
+		};
 		D30A00000000000000000001 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 8B87D85F30537AB400F3CF9E /* Project object */;
@@ -71,7 +67,6 @@
 			remoteGlobalIDString = 8B87D86630537AB400F3CF9E;
 			remoteInfo = dressed;
 		};
-
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -89,9 +84,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		D20200000000000000000002 /* dressedTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = dressedTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-
-		360046AA3074769B00F78859 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = .swiftlint.yml; sourceTree = "<group>"; };
 		8B87D86730537AB400F3CF9E /* dressed.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = dressed.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10200000000000000000001 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		A10200000000000000000002 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -99,52 +91,42 @@
 		A10200000000000000000004 /* DressedShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DressedShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B20200000000000000000001 /* ShareImportUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareImportUITests.swift; sourceTree = "<group>"; };
 		B20200000000000000000002 /* dressedUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = dressedUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		D30200000000000000000001 /* MultiPhotoCandidateGrouperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiPhotoCandidateGrouperTests.swift; sourceTree = "<group>"; };
-		D30200000000000000000002 /* dressedUnitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = dressedUnitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B20200000000000000000003 /* NavigationUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationUITests.swift; sourceTree = "<group>"; };
 		B20200000000000000000004 /* OutfitUndoRedoUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutfitUndoRedoUITests.swift; sourceTree = "<group>"; };
-
-		E20A0000000000000000010C /* RecognitionLabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "dressed/Camera/Views/RecognitionLabView.swift"; sourceTree = SOURCE_ROOT; };
-		E20A00000000000000000107 /* PrototypeGarmentRecognition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "dressed/Camera/ViewModels/PrototypeGarmentRecognition.swift"; sourceTree = SOURCE_ROOT; };
-		E20A00000000000000000101 /* ClothingSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "dressed/Common/Models/ClothingSchema.swift"; sourceTree = SOURCE_ROOT; };
-		E20A0000000000000000010B /* RecognitionBenchmarkModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "dressed/Camera/ViewModels/RecognitionBenchmarkModel.swift"; sourceTree = SOURCE_ROOT; };
-		E20A00000000000000000106 /* RecognitionImageSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "dressed/Camera/ViewModels/RecognitionImageSession.swift"; sourceTree = SOURCE_ROOT; };
-		E20A00000000000000000100 /* RecognitionLabApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "tools/RecognitionLab/RecognitionLabApp.swift"; sourceTree = SOURCE_ROOT; };
-		E20A0000000000000000010A /* OnDeviceRecognitionPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "dressed/Camera/ViewModels/OnDeviceRecognitionPipeline.swift"; sourceTree = SOURCE_ROOT; };
-		E20A00000000000000000105 /* RecognitionMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "dressed/Camera/ViewModels/RecognitionMetrics.swift"; sourceTree = SOURCE_ROOT; };
-		E20A00000000000000000104 /* SharedImportDraftStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "dressed/Camera/ViewModels/SharedImportDraftStore.swift"; sourceTree = SOURCE_ROOT; };
+		D20200000000000000000002 /* dressedTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = dressedTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D30200000000000000000001 /* MultiPhotoCandidateGrouperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiPhotoCandidateGrouperTests.swift; sourceTree = "<group>"; };
+		D30200000000000000000002 /* dressedUnitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = dressedUnitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E20A00000000000000000002 /* DressedSpeedLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DressedSpeedLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		E20A00000000000000000109 /* AutomaticGarmentCutout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "dressed/Camera/ViewModels/AutomaticGarmentCutout.swift"; sourceTree = SOURCE_ROOT; };
-		E20A00000000000000000103 /* PrototypeImportStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "dressed/Camera/ViewModels/PrototypeImportStore.swift"; sourceTree = SOURCE_ROOT; };
-		E20A00000000000000000108 /* OnDeviceGarmentRegions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "dressed/Camera/ViewModels/OnDeviceGarmentRegions.swift"; sourceTree = SOURCE_ROOT; };
-		E20A00000000000000000102 /* ImportSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "dressed/Common/Models/ImportSchema.swift"; sourceTree = SOURCE_ROOT; };
-		E20A0000000000000000010D /* VisionRequestRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "dressed/Camera/ViewModels/VisionRequestRunner.swift"; sourceTree = SOURCE_ROOT; };
+		E20A00000000000000000100 /* tools/RecognitionLab/RecognitionLabApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = tools/RecognitionLab/RecognitionLabApp.swift; sourceTree = SOURCE_ROOT; };
+		E20A00000000000000000101 /* dressed/Common/Models/ClothingSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Common/Models/ClothingSchema.swift; sourceTree = SOURCE_ROOT; };
+		E20A00000000000000000102 /* dressed/Common/Models/ImportSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Common/Models/ImportSchema.swift; sourceTree = SOURCE_ROOT; };
+		E20A00000000000000000103 /* dressed/Camera/ViewModels/PrototypeImportStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/PrototypeImportStore.swift; sourceTree = SOURCE_ROOT; };
+		E20A00000000000000000104 /* dressed/Camera/ViewModels/SharedImportDraftStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/SharedImportDraftStore.swift; sourceTree = SOURCE_ROOT; };
+		E20A00000000000000000105 /* dressed/Camera/ViewModels/RecognitionMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/RecognitionMetrics.swift; sourceTree = SOURCE_ROOT; };
+		E20A00000000000000000106 /* dressed/Camera/ViewModels/RecognitionImageSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/RecognitionImageSession.swift; sourceTree = SOURCE_ROOT; };
+		E20A00000000000000000107 /* dressed/Camera/ViewModels/PrototypeGarmentRecognition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/PrototypeGarmentRecognition.swift; sourceTree = SOURCE_ROOT; };
+		E20A00000000000000000108 /* dressed/Camera/ViewModels/OnDeviceGarmentRegions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/OnDeviceGarmentRegions.swift; sourceTree = SOURCE_ROOT; };
+		E20A00000000000000000109 /* dressed/Camera/ViewModels/AutomaticGarmentCutout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/AutomaticGarmentCutout.swift; sourceTree = SOURCE_ROOT; };
+		E20A0000000000000000010A /* dressed/Camera/ViewModels/OnDeviceRecognitionPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/OnDeviceRecognitionPipeline.swift; sourceTree = SOURCE_ROOT; };
+		E20A0000000000000000010B /* dressed/Camera/ViewModels/RecognitionBenchmarkModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/RecognitionBenchmarkModel.swift; sourceTree = SOURCE_ROOT; };
+		E20A0000000000000000010C /* dressed/Camera/Views/RecognitionLabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/Views/RecognitionLabView.swift; sourceTree = SOURCE_ROOT; };
+		E20A0000000000000000010D /* dressed/Camera/ViewModels/VisionRequestRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/VisionRequestRunner.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		D20500000000000000000001 /* dressedTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = dressedTests;
-			sourceTree = "<group>";
-		};
 		8B87D86930537AB400F3CF9E /* dressed */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = dressed;
 			sourceTree = "<group>";
 		};
+		D20500000000000000000001 /* dressedTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = dressedTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		D20900000000000000000001 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-
-
 		8B87D86430537AB400F3CF9E /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -168,23 +150,38 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D20900000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		D30C00000000000000000001 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
-			files = ();
+			files = (
+			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-
-
-		E20A00000000000000000005 /* PBXFrameworksBuildPhase */ = {
+		E20A00000000000000000005 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
-			files = ();
+			files = (
+			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		467BDD3830B686450005ACCD /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				E20A0000000000000000010D /* dressed/Camera/ViewModels/VisionRequestRunner.swift */,
+			);
+			name = "Recovered References";
+			sourceTree = "<group>";
+		};
 		8B87D85E30537AB400F3CF9E = {
 			isa = PBXGroup;
 			children = (
@@ -193,10 +190,10 @@
 				B20500000000000000000001 /* dressedUITests */,
 				D30500000000000000000001 /* dressedUnitTests */,
 				D20500000000000000000001 /* dressedTests */,
-
 				8B87D8B3305380D900F3CF9E /* Frameworks */,
 				8B87D86830537AB400F3CF9E /* Products */,
-                E20A00000000000000000003 /* Standalone Recognition Lab */,
+				E20A00000000000000000003 /* Standalone Recognition Lab */,
+				467BDD3830B686450005ACCD /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -204,12 +201,11 @@
 			isa = PBXGroup;
 			children = (
 				8B87D86730537AB400F3CF9E /* dressed.app */,
-                E20A00000000000000000002 /* DressedSpeedLab.app */,
+				E20A00000000000000000002 /* DressedSpeedLab.app */,
 				A10200000000000000000004 /* DressedShareExtension.appex */,
 				B20200000000000000000002 /* dressedUITests.xctest */,
 				D30200000000000000000002 /* dressedUnitTests.xctest */,
 				D20200000000000000000002 /* dressedTests.xctest */,
-
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -237,13 +233,11 @@
 				B20200000000000000000001 /* ShareImportUITests.swift */,
 				B20200000000000000000003 /* NavigationUITests.swift */,
 				B20200000000000000000004 /* OutfitUndoRedoUITests.swift */,
-
 			);
 			path = dressedUITests;
 			sourceTree = "<group>";
 		};
 		D30500000000000000000001 /* dressedUnitTests */ = {
-
 			isa = PBXGroup;
 			children = (
 				D30200000000000000000001 /* MultiPhotoCandidateGrouperTests.swift */,
@@ -254,19 +248,19 @@
 		E20A00000000000000000003 /* Standalone Recognition Lab */ = {
 			isa = PBXGroup;
 			children = (
-				E20A00000000000000000100 /* RecognitionLabApp.swift */,
-				E20A00000000000000000101 /* ClothingSchema.swift */,
-				E20A00000000000000000102 /* ImportSchema.swift */,
-				E20A00000000000000000103 /* PrototypeImportStore.swift */,
-				E20A00000000000000000104 /* SharedImportDraftStore.swift */,
-				E20A00000000000000000105 /* RecognitionMetrics.swift */,
-				E20A00000000000000000106 /* RecognitionImageSession.swift */,
-				E20A00000000000000000107 /* PrototypeGarmentRecognition.swift */,
-				E20A00000000000000000108 /* OnDeviceGarmentRegions.swift */,
-				E20A00000000000000000109 /* AutomaticGarmentCutout.swift */,
-				E20A0000000000000000010A /* OnDeviceRecognitionPipeline.swift */,
-				E20A0000000000000000010B /* RecognitionBenchmarkModel.swift */,
-				E20A0000000000000000010C /* RecognitionLabView.swift */,
+				E20A00000000000000000100 /* tools/RecognitionLab/RecognitionLabApp.swift */,
+				E20A00000000000000000101 /* dressed/Common/Models/ClothingSchema.swift */,
+				E20A00000000000000000102 /* dressed/Common/Models/ImportSchema.swift */,
+				E20A00000000000000000103 /* dressed/Camera/ViewModels/PrototypeImportStore.swift */,
+				E20A00000000000000000104 /* dressed/Camera/ViewModels/SharedImportDraftStore.swift */,
+				E20A00000000000000000105 /* dressed/Camera/ViewModels/RecognitionMetrics.swift */,
+				E20A00000000000000000106 /* dressed/Camera/ViewModels/RecognitionImageSession.swift */,
+				E20A00000000000000000107 /* dressed/Camera/ViewModels/PrototypeGarmentRecognition.swift */,
+				E20A00000000000000000108 /* dressed/Camera/ViewModels/OnDeviceGarmentRegions.swift */,
+				E20A00000000000000000109 /* dressed/Camera/ViewModels/AutomaticGarmentCutout.swift */,
+				E20A0000000000000000010A /* dressed/Camera/ViewModels/OnDeviceRecognitionPipeline.swift */,
+				E20A0000000000000000010B /* dressed/Camera/ViewModels/RecognitionBenchmarkModel.swift */,
+				E20A0000000000000000010C /* dressed/Camera/Views/RecognitionLabView.swift */,
 			);
 			name = "Standalone Recognition Lab";
 			sourceTree = "<group>";
@@ -274,29 +268,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-
-		D20600000000000000000001 /* dressedTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = D20A00000000000000000001 /* Build configuration list for PBXNativeTarget "dressedTests" */;
-			buildPhases = (
-				D20800000000000000000001 /* Sources */,
-				D20900000000000000000001 /* Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				D20B00000000000000000001 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				D20500000000000000000001 /* dressedTests */,
-			);
-			name = dressedTests;
-			productName = dressedTests;
-			productReference = D20200000000000000000002 /* dressedTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
-
-
 		8B87D86630537AB400F3CF9E /* dressed */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 8B87D87230537AB500F3CF9E /* Build configuration list for PBXNativeTarget "dressed" */;
@@ -305,7 +276,7 @@
 				8B87D86330537AB400F3CF9E /* Sources */,
 				8B87D86430537AB400F3CF9E /* Frameworks */,
 				8B87D86530537AB400F3CF9E /* Resources */,
-				A10300000000000000000001 /* Embed Foundation Extensions */,
+				A10300000000000000000001 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
@@ -364,6 +335,26 @@
 			productReference = B20200000000000000000002 /* dressedUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		D20600000000000000000001 /* dressedTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D20A00000000000000000001 /* Build configuration list for PBXNativeTarget "dressedTests" */;
+			buildPhases = (
+				D20800000000000000000001 /* Sources */,
+				D20900000000000000000001 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D20B00000000000000000001 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D20500000000000000000001 /* dressedTests */,
+			);
+			name = dressedTests;
+			productName = dressedTests;
+			productReference = D20200000000000000000002 /* dressedTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		D30600000000000000000001 /* dressedUnitTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = D30700000000000000000001 /* Build configuration list for PBXNativeTarget "dressedUnitTests" */;
@@ -371,25 +362,33 @@
 				D30900000000000000000001 /* Sources */,
 				D30C00000000000000000001 /* Frameworks */,
 			);
-			buildRules = ();
-			dependencies = (D30B00000000000000000001 /* PBXTargetDependency */, );
+			buildRules = (
+			);
+			dependencies = (
+				D30B00000000000000000001 /* PBXTargetDependency */,
+			);
 			name = dressedUnitTests;
 			productName = dressedUnitTests;
 			productReference = D30200000000000000000002 /* dressedUnitTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-
-
 		E20A00000000000000000001 /* DressedSpeedLab */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = E20A00000000000000000007;
-			buildPhases = (E20A00000000000000000004, E20A00000000000000000005, E20A00000000000000000006,);
-			buildRules = ();
-			dependencies = ();
+			buildConfigurationList = E20A00000000000000000007 /* Build configuration list for PBXNativeTarget "DressedSpeedLab" */;
+			buildPhases = (
+				E20A00000000000000000004 /* Sources */,
+				E20A00000000000000000005 /* Frameworks */,
+				E20A00000000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
 			name = DressedSpeedLab;
-			packageProductDependencies = ();
+			packageProductDependencies = (
+			);
 			productName = DressedSpeedLab;
-			productReference = E20A00000000000000000002;
+			productReference = E20A00000000000000000002 /* DressedSpeedLab.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -433,13 +432,12 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-                E20A00000000000000000001 /* DressedSpeedLab */,
+				E20A00000000000000000001 /* DressedSpeedLab */,
 				8B87D86630537AB400F3CF9E /* dressed */,
 				A10600000000000000000001 /* DressedShareExtension */,
 				B20600000000000000000001 /* dressedUITests */,
 				D30600000000000000000001 /* dressedUnitTests */,
 				D20600000000000000000001 /* dressedTests */,
-
 			);
 		};
 /* End PBXProject section */
@@ -459,17 +457,11 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		A10900000000000000000001 /* Resources */ = {
+		E20A00000000000000000006 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		E20A00000000000000000006 /* PBXResourcesBuildPhase */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = ();
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
@@ -498,15 +490,6 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		D20800000000000000000001 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-
-
 		8B87D86330537AB400F3CF9E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -532,43 +515,45 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D20800000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		D30900000000000000000001 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
-			files = (D30100000000000000000001 /* MultiPhotoCandidateGrouperTests.swift in Sources */, );
+			files = (
+				D30100000000000000000001 /* MultiPhotoCandidateGrouperTests.swift in Sources */,
+			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		E20A00000000000000000004 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E20A00000000000000000200 /* RecognitionLabApp.swift in Sources */,
-				E20A00000000000000000201 /* ClothingSchema.swift in Sources */,
-				E20A00000000000000000202 /* ImportSchema.swift in Sources */,
-				E20A00000000000000000203 /* PrototypeImportStore.swift in Sources */,
-				E20A00000000000000000204 /* SharedImportDraftStore.swift in Sources */,
-				E20A00000000000000000205 /* RecognitionMetrics.swift in Sources */,
-				E20A00000000000000000206 /* RecognitionImageSession.swift in Sources */,
-				E20A00000000000000000207 /* PrototypeGarmentRecognition.swift in Sources */,
-				E20A00000000000000000208 /* OnDeviceGarmentRegions.swift in Sources */,
-				E20A00000000000000000209 /* AutomaticGarmentCutout.swift in Sources */,
-				E20A0000000000000000020A /* OnDeviceRecognitionPipeline.swift in Sources */,
-				E20A0000000000000000020B /* RecognitionBenchmarkModel.swift in Sources */,
-				E20A0000000000000000020C /* RecognitionLabView.swift in Sources */,
- E20A0000000000000000020D /* VisionRequestRunner.swift in Sources */,
+				E20A00000000000000000200 /* tools/RecognitionLab/RecognitionLabApp.swift in Sources */,
+				E20A00000000000000000201 /* dressed/Common/Models/ClothingSchema.swift in Sources */,
+				E20A00000000000000000202 /* dressed/Common/Models/ImportSchema.swift in Sources */,
+				E20A00000000000000000203 /* dressed/Camera/ViewModels/PrototypeImportStore.swift in Sources */,
+				E20A00000000000000000204 /* dressed/Camera/ViewModels/SharedImportDraftStore.swift in Sources */,
+				E20A00000000000000000205 /* dressed/Camera/ViewModels/RecognitionMetrics.swift in Sources */,
+				E20A00000000000000000206 /* dressed/Camera/ViewModels/RecognitionImageSession.swift in Sources */,
+				E20A00000000000000000207 /* dressed/Camera/ViewModels/PrototypeGarmentRecognition.swift in Sources */,
+				E20A00000000000000000208 /* dressed/Camera/ViewModels/OnDeviceGarmentRegions.swift in Sources */,
+				E20A00000000000000000209 /* dressed/Camera/ViewModels/AutomaticGarmentCutout.swift in Sources */,
+				E20A0000000000000000020A /* dressed/Camera/ViewModels/OnDeviceRecognitionPipeline.swift in Sources */,
+				E20A0000000000000000020B /* dressed/Camera/ViewModels/RecognitionBenchmarkModel.swift in Sources */,
+				E20A0000000000000000020C /* dressed/Camera/Views/RecognitionLabView.swift in Sources */,
+				E20A0000000000000000020D /* dressed/Camera/ViewModels/VisionRequestRunner.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		D20B00000000000000000001 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 8B87D86630537AB400F3CF9E /* dressed */;
-			targetProxy = D20D00000000000000000001 /* PBXContainerItemProxy */;
-		};
-
-
 		A10B00000000000000000001 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = A10600000000000000000001 /* DressedShareExtension */;
@@ -579,6 +564,11 @@
 			target = 8B87D86630537AB400F3CF9E /* dressed */;
 			targetProxy = B20D00000000000000000001 /* PBXContainerItemProxy */;
 		};
+		D20B00000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8B87D86630537AB400F3CF9E /* dressed */;
+			targetProxy = D20D00000000000000000001 /* PBXContainerItemProxy */;
+		};
 		D30B00000000000000000001 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 8B87D86630537AB400F3CF9E /* dressed */;
@@ -587,46 +577,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		D20C00000000000000000001 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = WDRKBQFYRJ;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressedTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/dressed.app/dressed";
-			};
-			name = Debug;
-		};
-		D20C00000000000000000002 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = WDRKBQFYRJ;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressedTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/dressed.app/dressed";
-			};
-			name = Release;
-		};
-
-
 		8B87D87030537AB500F3CF9E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -758,8 +708,8 @@
 				CODE_SIGN_ENTITLEMENTS = dressed/Dressed.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = WDRKBQFYRJ;
 				DEVELOPMENT_ASSET_PATHS = dressed/PreviewContent;
+				DEVELOPMENT_TEAM = 6DA37NS5R6;
 				EMIT_FRONTEND_COMMAND_LINES = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -781,7 +731,7 @@
 					"-Xlinker",
 					"-interposable",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressed;
+				PRODUCT_BUNDLE_IDENTIFIER = jdayal.dressed;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -801,8 +751,8 @@
 				CODE_SIGN_ENTITLEMENTS = dressed/Dressed.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = WDRKBQFYRJ;
 				DEVELOPMENT_ASSET_PATHS = dressed/PreviewContent;
+				DEVELOPMENT_TEAM = 6DA37NS5R6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CatalogAPIBaseURL = "$(CATALOG_API_BASE_URL)";
@@ -817,7 +767,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressed;
+				PRODUCT_BUNDLE_IDENTIFIER = jdayal.dressed;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -836,12 +786,12 @@
 				CODE_SIGN_ENTITLEMENTS = DressedShareExtension/DressedShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = WDRKBQFYRJ;
+				DEVELOPMENT_TEAM = 6DA37NS5R6;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = DressedShareExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressed.share;
+				PRODUCT_BUNDLE_IDENTIFIER = jdayal.dressed.share;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.0;
@@ -856,12 +806,12 @@
 				CODE_SIGN_ENTITLEMENTS = DressedShareExtension/DressedShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = WDRKBQFYRJ;
+				DEVELOPMENT_TEAM = 6DA37NS5R6;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = DressedShareExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressed.share;
+				PRODUCT_BUNDLE_IDENTIFIER = jdayal.dressed.share;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.0;
@@ -899,6 +849,44 @@
 			};
 			name = Release;
 		};
+		D20C00000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = WDRKBQFYRJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressedTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/dressed.app/dressed";
+			};
+			name = Debug;
+		};
+		D20C00000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = WDRKBQFYRJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = gtiosclub.dressedTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/dressed.app/dressed";
+			};
+			name = Release;
+		};
 		D30800000000000000000001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -931,43 +919,18 @@
 			};
 			name = Release;
 		};
-		E20A00000000000000000009 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = "";
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				INFOPLIST_KEY_CFBundleDisplayName = "Dressed Speed Lab";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.jneal47.dressed.speedlab;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) RECOGNITION_LAB";
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
 		E20A00000000000000000008 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = "";
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
 				INFOPLIST_KEY_CFBundleDisplayName = "Dressed Speed Lab";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jneal47.dressed.speedlab;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -981,20 +944,34 @@
 			};
 			name = Debug;
 		};
+		E20A00000000000000000009 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Dressed Speed Lab";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jneal47.dressed.speedlab;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) RECOGNITION_LAB";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		D20A00000000000000000001 /* Build configuration list for PBXNativeTarget "dressedTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				D20C00000000000000000001 /* Debug */,
-				D20C00000000000000000002 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-
-
 		8B87D86230537AB400F3CF9E /* Build configuration list for PBXProject "dressed" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -1031,17 +1008,30 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		D30700000000000000000001 /* Build configuration list for PBXNativeTarget "dressedUnitTests" */ = {
+		D20A00000000000000000001 /* Build configuration list for PBXNativeTarget "dressedTests" */ = {
 			isa = XCConfigurationList;
-			buildConfigurations = (D30800000000000000000001 /* Debug */, D30800000000000000000002 /* Release */, );
+			buildConfigurations = (
+				D20C00000000000000000001 /* Debug */,
+				D20C00000000000000000002 /* Release */,
+			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-
-
-		E20A00000000000000000007 /* Build configuration list for DressedSpeedLab */ = {
+		D30700000000000000000001 /* Build configuration list for PBXNativeTarget "dressedUnitTests" */ = {
 			isa = XCConfigurationList;
-			buildConfigurations = (E20A00000000000000000008, E20A00000000000000000009,);
+			buildConfigurations = (
+				D30800000000000000000001 /* Debug */,
+				D30800000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E20A00000000000000000007 /* Build configuration list for PBXNativeTarget "DressedSpeedLab" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E20A00000000000000000008 /* Debug */,
+				E20A00000000000000000009 /* Release */,
+			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};

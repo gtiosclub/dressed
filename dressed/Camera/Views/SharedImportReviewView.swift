@@ -217,7 +217,9 @@ struct SharedImportReviewView: View {
                         // Fill the width like the mockup, scrolled so the framed piece stays in view.
                         let scale = max(proxy.size.width / uiImage.size.width, proxy.size.height / uiImage.size.height)
                         let display = CGSize(width: uiImage.size.width * scale, height: uiImage.size.height * scale)
-                        let focusY = (candidate?.region).map { ($0.y + $0.height / 2) * display.height } ?? display.height / 2
+                        let focusY = candidate.flatMap(\.region).map {
+                            ($0.y + $0.height / 2) * display.height
+                        } ?? display.height / 2
                         let originY = min(0, max(proxy.size.height - display.height, proxy.size.height / 2 - focusY))
                         let origin = CGPoint(x: (proxy.size.width - display.width) / 2, y: originY)
                         Image(uiImage: uiImage).resizable()

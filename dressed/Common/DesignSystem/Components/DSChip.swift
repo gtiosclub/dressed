@@ -24,6 +24,7 @@ struct DSChip: View {
             .font(DSFont.label)
             .foregroundStyle(foreground)
             .fixedSize()
+            .offset(y: DSFont.controlLabelOpticalOffset)
             .padding(.horizontal, DSSpacing.lg)
             .frame(height: style == .flat ? 44 : 43)
             .background { background }
@@ -43,12 +44,12 @@ struct DSChip: View {
             Capsule().fill(isSelected ? DSColor.textPrimary : DSColor.tile)
         } else if isSelected {
             Capsule()
-                .fill(DSColor.pressed.shadow(DSShadow.pressedInner))
+                .fill(DSColor.pressed)
                 .overlay(Capsule().stroke(DSColor.pressedBorder, lineWidth: 1))
         } else {
             Capsule()
                 .fill(DSColor.raised)
-                .dsShadow(.raised)
+                .dsShadow(.controlRaised)
         }
     }
 }

@@ -17,7 +17,6 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     /// Set when the floating Search Styles button is tapped; the app shell presents the search sheet.
     @Binding private var isSearching: Bool
     @StateObject private var catalog = CatalogViewModel(service: DiscoveryCatalogSource.current)
-    private let savedPosts: SavedPostsViewModel?
     @ObservedObject private var postLikes: PostLikesViewModel
     private let canSharePreview: Bool
     private let authorId: String?
@@ -41,7 +40,6 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         authorId: String? = nil,
         publisher: (any PostPublishing)? = nil,
         compositionSource: (any PostCompositionSource)? = nil,
-        savedPosts: SavedPostsViewModel? = nil,
         postLikes: PostLikesViewModel,
         @ViewBuilder artwork: @escaping (Post) -> Artwork
     ) {
@@ -57,7 +55,6 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         self.authorId = authorId
         self.publisher = publisher
         self.compositionSource = compositionSource
-        self.savedPosts = savedPosts
         self.postLikes = postLikes
     }
 
@@ -277,7 +274,6 @@ extension InfiniteDiscoveryFeed where Artwork == DemoOutfitPhoto {
         section: Binding<Int> = .constant(0),
         showingCreate: Binding<Bool> = .constant(false),
         isSearching: Binding<Bool> = .constant(false),
-        savedPosts: SavedPostsViewModel? = nil,
         compositionSource: (any PostCompositionSource)? = nil,
         postLikes: PostLikesViewModel
     ) -> Self {
@@ -290,7 +286,6 @@ extension InfiniteDiscoveryFeed where Artwork == DemoOutfitPhoto {
             canSharePreview: true,
             commentService: DemoCommentService(),
             compositionSource: compositionSource,
-            savedPosts: savedPosts,
             postLikes: postLikes
         ) { post in
             DemoOutfitPhoto(post: post)
@@ -299,8 +294,6 @@ extension InfiniteDiscoveryFeed where Artwork == DemoOutfitPhoto {
 }
 
 extension InfiniteDiscoveryFeed where Artwork == PostArtwork {
-    /// The current post service returns one bounded chronological result set.
-    /// It can adopt cursor-based paging here once PostFunctions exposes a cursor contract.
     static func live(
         service: any PostFunctions = DiscoveryPostSource.current,
         publisher: (any PostPublishing)? = nil,
@@ -308,24 +301,30 @@ extension InfiniteDiscoveryFeed where Artwork == PostArtwork {
         section: Binding<Int> = .constant(0),
         showingCreate: Binding<Bool> = .constant(false),
         isSearching: Binding<Bool> = .constant(false),
-        savedPosts: SavedPostsViewModel? = nil,
         compositionSource: (any PostCompositionSource)? = nil,
         postLikes: PostLikesViewModel
     ) -> Self {
         Self(loadPage: { cursor in
-            guard cursor == nil else {
-                return FeedPage(posts: [], nextCursor: nil, removedPostIDs: [])
-            }
-            return FeedPage(
-                posts: try await service.fetchRecentPosts(),
-                nextCursor: nil,
-                removedPostIDs: []
-            )
+            let decodedCursor = cursor.flatMap(Self.decodeCursor)
+            let page = try await service.fetchPostPage(after: decodedCursor)
+            return FeedPage(posts: page.posts, nextCursor: page.nextCursor.map(Self.encodeCursor), removedPostIDs: [])
         }, section: section, showingCreate: showingCreate, isSearching: isSearching, authorId: authorId,
-           publisher: publisher ?? FirebasePostPublisher(), compositionSource: compositionSource, savedPosts: savedPosts,
+           publisher: publisher ?? FirebasePostPublisher(), compositionSource: compositionSource,
            postLikes: postLikes) { post in
             PostArtwork(post: post)
         }
+    }
+
+    nonisolated private static func encodeCursor(_ cursor: PostPageCursor) -> String {
+        "\(cursor.createdAt.timeIntervalSince1970)|\(cursor.id)"
+    }
+
+    nonisolated private static func decodeCursor(_ value: String) -> PostPageCursor? {
+        guard let separator = value.firstIndex(of: "|"),
+              let seconds = TimeInterval(value[..<separator]) else { return nil }
+        let id = String(value[value.index(after: separator)...])
+        guard isValidFirestoreDocumentId(id) else { return nil }
+        return PostPageCursor(createdAt: Date(timeIntervalSince1970: seconds), id: id)
     }
 }
 

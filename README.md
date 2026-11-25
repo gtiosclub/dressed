@@ -37,7 +37,7 @@ xcodebuild -project dressed.xcodeproj \
 
 For a physical iPhone or iPad, select your development team under **Signing & Capabilities** in Xcode. Simulator builds do not require a signing account.
 
-The Share Extension's App Group needs both targets signed with an Apple team that has the `group.gtiosclub.dressed` entitlement. Contributors without that entitlement can still run the simulator app's photo-library, manual review, local closet, Wishlist, and fixture-backed tests. Optional MobileBuildMCP setup is in [iOS development](docs/IOS_DEVELOPMENT.md); its tracked Codex command uses the contributor's `PATH`.
+The Share Extension's App Group needs both targets signed with an Apple team that has the `group.com.jdayal.dresseddev` entitlement. Contributors without that entitlement can still run the simulator app's photo-library, manual review, local closet, Wishlist, and fixture-backed tests. Optional MobileBuildMCP setup is in [iOS development](docs/IOS_DEVELOPMENT.md); its tracked Codex command uses the contributor's `PATH`.
 
 Keep the workspace's shared `Package.resolved` file in version control to preserve resolved dependency versions. Ignore generated build files and per-user Xcode settings using the included `.gitignore`.
 

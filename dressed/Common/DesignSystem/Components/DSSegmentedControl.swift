@@ -19,12 +19,14 @@ struct DSSegmentedControl<Option: Hashable>: View {
                     Text(title(option))
                         .font(DSFont.label)
                         .foregroundStyle(isSelected ? DSColor.textPrimary : DSColor.textMuted)
+                        .offset(y: DSFont.controlLabelOpticalOffset)
                         .frame(width: 93, height: 34)
                         .background {
                             if isSelected {
                                 Capsule()
                                     .fill(DSColor.raised)
-                                    .dsShadow(.raised)
+                                    .dsShadow(.controlRaised)
+                                    .padding(.horizontal, DSSpacing.xs)
                                     .matchedGeometryEffect(id: "thumb", in: thumb)
                             }
                         }
@@ -37,7 +39,7 @@ struct DSSegmentedControl<Option: Hashable>: View {
         .padding(4)
         .background {
             Capsule()
-                .fill(DSColor.pressed.shadow(DSShadow.pressedInner))
+                .fill(DSColor.pressed)
                 .overlay(Capsule().stroke(DSColor.pressedBorder, lineWidth: 1))
         }
     }

@@ -416,7 +416,7 @@ The current `main` working tree contains a local-only import prototype under
 `dressed/Camera/Views/PrototypeImportView.swift`, and
 `DressedShareExtension/ShareViewController.swift`. A share extension accepts one
 supported image from file, data, or UIImage share representations, converts it
-to a bounded JPEG, writes a user-bound draft into `group.gtiosclub.dressed`, and tells the
+to a bounded JPEG, writes a user-bound draft into `group.com.jdayal.dresseddev`, and tells the
 user to open Dressed. Camera and photo-library images enter the same review
 screen. Apple's on-device Vision classifier may suggest a category for one
 garment in the whole image; no-match and failure states allow manual details.
