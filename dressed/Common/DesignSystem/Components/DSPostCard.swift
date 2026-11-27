@@ -7,17 +7,27 @@ struct DSPostCard<Photo: View>: View {
     let date: String
     let caption: String
     let commentCount: Int
+    var commentCountText: String? = nil
     let likeCount: Int
     var isLiked = false
     var isLikeEnabled = true
     /// Overrides the default "N likes" label, e.g. "Like outfit" / "Unlike outfit".
     var likeLabel: String?
+    var shopID: String? = nil
     var commentID: String?
     var likeID: String?
+    var errorMessage: String? = nil
     var onShop: () -> Void = {}
     var onComment: () -> Void = {}
     var onLike: () -> Void = {}
+    var onRetryLike: (() -> Void)? = nil
     @ViewBuilder let photo: () -> Photo
+
+    @State private var isCaptionExpanded = false
+
+    private var commentDisplayText: String {
+        commentCountText ?? "\(commentCount)"
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -28,7 +38,7 @@ struct DSPostCard<Photo: View>: View {
 
             // Overlay keeps a scaledToFill photo from widening the card.
             Color.clear
-                .frame(height: 475)
+                .aspectRatio(4 / 5, contentMode: .fit)
                 .overlay { photo() }
                 .clipShape(RoundedRectangle(cornerRadius: DSRadius.xs))
                 .overlay(alignment: .bottomTrailing) {
@@ -37,32 +47,58 @@ struct DSPostCard<Photo: View>: View {
                     }
                     .buttonStyle(.ds(.glass))
                     .accessibilityLabel("Shop this look")
+                    .optionalAccessibilityIdentifier(shopID)
                     .padding(11)
                 }
 
-            HStack(spacing: DSSpacing.lg) {
+            HStack(alignment: isCaptionExpanded ? .top : .center, spacing: DSSpacing.lg) {
                 Text(caption)
-                    .lineLimit(1)
-                Spacer(minLength: 0)
+                    .lineLimit(isCaptionExpanded ? nil : 1)
+                    .fixedSize(horizontal: false, vertical: isCaptionExpanded)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        guard !caption.isEmpty else { return }
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isCaptionExpanded.toggle()
+                        }
+                    }
                 Button(action: onComment) {
-                    count(icon: "TablerMessageCircle", value: commentCount)
+                    count(icon: "TablerMessageCircle", text: commentDisplayText)
                 }
-                .accessibilityLabel("\(commentCount) comments")
-                .accessibilityIdentifier(commentID ?? "")
+                .accessibilityLabel("\(commentDisplayText) comments")
+                .optionalAccessibilityIdentifier(commentID)
                 Button(action: onLike) {
-                    count(icon: isLiked ? "TablerHeartFilled" : "TablerHeart", value: likeCount)
+                    count(icon: isLiked ? "TablerHeartFilled" : "TablerHeart", text: "\(likeCount)")
                 }
                 .disabled(!isLikeEnabled)
                 .accessibilityLabel(likeLabel ?? "\(likeCount) likes")
                 .accessibilityValue(likeLabel == nil ? "" : "\(likeCount) likes")
                 .accessibilityAddTraits(isLiked ? .isSelected : [])
-                .accessibilityIdentifier(likeID ?? "")
+                .optionalAccessibilityIdentifier(likeID)
             }
             .buttonStyle(.plain)
             .font(DSFont.bodyEmphasis)
             .foregroundStyle(DSColor.textPrimary)
             .padding(.horizontal, 18)
-            .frame(height: 56)
+            .padding(.vertical, isCaptionExpanded ? DSSpacing.sm : 0)
+            .frame(minHeight: 56)
+
+            if let errorMessage {
+                HStack(spacing: DSSpacing.sm) {
+                    Text(errorMessage)
+                        .font(DSFont.search)
+                        .foregroundStyle(DSColor.destructive)
+                        .lineLimit(2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    if let onRetryLike {
+                        Button("Retry", action: onRetryLike)
+                            .buttonStyle(.ds(.text))
+                    }
+                }
+                .padding(.horizontal, 18)
+                .padding(.bottom, DSSpacing.sm)
+            }
         }
         .background {
             RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous)
@@ -75,13 +111,24 @@ struct DSPostCard<Photo: View>: View {
         }
     }
 
-    private func count(icon: String, value: Int) -> some View {
+    private func count(icon: String, text: String) -> some View {
         HStack(spacing: DSSpacing.xs) {
             Image(icon).resizable().frame(width: 22, height: 22)
-            Text("\(value)").monospacedDigit()
+            Text(text).monospacedDigit()
         }
         .frame(minHeight: 44)
         .contentShape(Rectangle())
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func optionalAccessibilityIdentifier(_ id: String?) -> some View {
+        if let id {
+            accessibilityIdentifier(id)
+        } else {
+            self
+        }
     }
 }
 

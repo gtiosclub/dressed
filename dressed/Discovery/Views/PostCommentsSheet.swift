@@ -123,7 +123,7 @@ struct PostCommentsSheet: View {
             }
             if model.draft.count > 800 {
                 Text("\(model.draft.count)/1,000").font(DSFont.search)
-                    .foregroundStyle(model.draft.count > 1_000 ? Color.red : DSColor.textMuted)
+                    .foregroundStyle(model.draft.count > 1_000 ? DSColor.destructive : DSColor.textMuted)
             }
         }
         .padding(.horizontal, DSSpacing.lg)

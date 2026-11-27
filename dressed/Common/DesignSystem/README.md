@@ -11,7 +11,7 @@ The Figma file has no published variables, so token values were read from the fr
 
 | File | Contents |
 | --- | --- |
-| `DSColor` | Brand purple `#9D83EB`, `brandLight` `#A98BFF` (selected outlines), scrim, camera bar, text, `iconMuted` `#6D6D6D` (inactive tabs, circle-button icons), surface and stroke colors |
+| `DSColor` | Brand purple `#9D83EB`, `brandLight` `#A98BFF` (selected outlines), `destructive` `#D93025` (validation/errors), scrim, camera bar, text, `iconMuted` `#6D6D6D` (inactive tabs, circle-button icons), surface and stroke colors |
 | `DSSpacing` | 2, 4, 8, 12, 20 pt |
 | `DSRadius` | 5, 8, 16, 26, 30 pt |
 | `DSFont` | 16 regular/medium, 14 medium button, 13 medium search, 20 nav title, 11 badge, 10 tab and field label, plus the compact-control optical baseline offset |
@@ -22,6 +22,7 @@ The Figma file has no published variables, so token values were read from the fr
 | Instead of | Use |
 | --- | --- |
 | `Color(hex: 0x9D83EB)`, purple accents | `DSColor.brand` |
+| `Color.red`, validation or error text | `DSColor.destructive` |
 | `.secondary`, grey captions and dates | `DSColor.textMuted` |
 | `Color(.secondarySystemBackground)`, grey tile fill | `DSColor.tile` |
 | `.padding(.horizontal, 16)` screen margins | `.padding(.horizontal, DSSpacing.lg)` (20 in the mockups) |
@@ -151,8 +152,6 @@ below it compile but were not compared to their frames.
 
 - Saved Posts and the Friends-card save control were removed from the active Discovery flow because they are not present in the approved design.
 
-- The Discovery header shows a profile icon where the mockup shows the user's initial;
-  the session does not expose a display name yet.
 - The mockups are light mode only; dark-mode colors are TBD.
 - `DSFont` sizes are fixed and do not scale with Dynamic Type.
 - The product scope still describes three tabs; the app and mockups have four

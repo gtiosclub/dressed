@@ -7,9 +7,11 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     @State private var nearBottom = false
     @State private var pageTask: Task<Void, Never>?
     @State private var itemsPost: Post?
+    @State private var previewItemsPost: Post?
     @State private var selectedPost: Post?
     @State private var commentsPost: Post?
     @State private var previewCommentsPost: Post?
+    @State private var lastCommentsPostId: String?
     @State private var commentService: any CommentService
     @State private var commentCounts: [String: Int] = [:]
     @State private var previewPosts: [Post] = []
@@ -26,7 +28,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     private let ranker: FeedRanker
     private let rankingContext: FeedRankingContext
     private let accent = DSColor.brand
-    private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+    private let columns = [GridItem(.flexible(), spacing: DSSpacing.md), GridItem(.flexible(), spacing: DSSpacing.md)]
 
     init(
         loadPage: @escaping ChronologicalFeedModel.PageLoader,
@@ -70,7 +72,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
-                LazyVStack(spacing: 20) {
+                LazyVStack(spacing: DSSpacing.lg) {
                     if section == 0 {
                         LazyVGrid(columns: columns, spacing: DSSpacing.md) {
                             ForEach(forYouEntries) { entry in
@@ -99,9 +101,9 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                     }
                     footer
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-                .padding(.bottom, section == 0 ? DSFloatingSearchButton.height + 2 * DSSpacing.lg : 24)
+                .padding(.horizontal, DSSpacing.lg)
+                .padding(.top, DSSpacing.md)
+                .padding(.bottom, section == 0 ? DSFloatingSearchButton.height + 2 * DSSpacing.lg : DSSpacing.lg)
             }
             .accessibilityIdentifier("infinite.scroll")
             .onScrollGeometryChange(for: CGFloat?.self) { geometry in
@@ -118,7 +120,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                 await refreshTask.value
             }
         }
-        .background(.white)
+        .background(DSColor.background)
         .tint(accent)
         .preferredColorScheme(.light)
         .navigationTitle("Discovery")
@@ -153,13 +155,17 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         .sheet(item: $itemsPost) { post in
             PublishedOutfitDetailsView(post: post)
         }
-        .sheet(item: $commentsPost, onDismiss: { refreshAllCounts() }) { post in
+        .sheet(item: $commentsPost, onDismiss: { refreshDismissedCommentCount() }) { post in
             PostCommentsSheet(postId: post.id, service: commentService)
         }
         .sheet(item: $selectedPost) { post in
             NavigationStack {
-                ScrollView { friendCard(post, inPreview: true).padding(20) }
-                    .sheet(item: $previewCommentsPost, onDismiss: { refreshAllCounts() }) { selected in
+                ScrollView { friendCard(post, inPreview: true).padding(DSSpacing.lg) }
+                    .background(DSColor.background)
+                    .sheet(item: $previewItemsPost) { selected in
+                        PublishedOutfitDetailsView(post: selected)
+                    }
+                    .sheet(item: $previewCommentsPost, onDismiss: { refreshDismissedCommentCount() }) { selected in
                         PostCommentsSheet(postId: selected.id, service: commentService)
                     }
                     .navigationTitle("Outfit preview")
@@ -177,22 +183,36 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     @ViewBuilder private var footer: some View {
         if model.isLoading {
             ProgressView(model.isRefreshing ? "Refreshing…" : "Loading outfits…")
-                .padding()
+                .font(DSFont.search)
+                .foregroundStyle(DSColor.textMuted)
+                .padding(DSSpacing.lg)
                 .accessibilityIdentifier("infinite.loading")
         } else if let message = model.errorMessage {
-            VStack(spacing: 10) {
-                Text(message).font(.subheadline).multilineTextAlignment(.center)
+            VStack(spacing: DSSpacing.md) {
+                Text(message)
+                    .font(DSFont.body)
+                    .foregroundStyle(DSColor.textMuted)
+                    .multilineTextAlignment(.center)
                 Button("Retry") { Task { await model.retry() } }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.ds(.primary))
                     .accessibilityIdentifier("infinite.retry")
             }
-            .padding()
+            .padding(DSSpacing.lg)
         } else if model.hasLoaded && !model.hasMore {
-            Label(model.posts.isEmpty ? "No outfits yet" : "You're all caught up", tabler: "TablerCircleCheck")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .padding()
+            if model.posts.isEmpty && previewPosts.isEmpty {
+                DSEmptyState(
+                    icon: "TablerHanger2",
+                    title: "No outfits yet",
+                    message: "Share your first look or check back soon."
+                )
                 .accessibilityIdentifier("infinite.end")
+            } else {
+                Label("You're all caught up", tabler: "TablerCircleCheck")
+                    .font(DSFont.search)
+                    .foregroundStyle(DSColor.textMuted)
+                    .padding(DSSpacing.lg)
+                    .accessibilityIdentifier("infinite.end")
+            }
         }
     }
 
@@ -220,8 +240,10 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         return entries + products.map(GridEntry.product)
     }
 
-    private func refreshAllCounts() {
-        Task { for id in Array(commentCounts.keys) { await refreshCommentCount(id) } }
+    private func refreshDismissedCommentCount() {
+        guard let postId = lastCommentsPostId else { return }
+        lastCommentsPostId = nil
+        Task { await refreshCommentCount(postId) }
     }
 
     private func loadNextPageIfNeeded() {
@@ -231,26 +253,30 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
 
     private func friendCard(_ post: Post, inPreview: Bool = false) -> some View {
         let like = postLikes.state(for: post)
-        return VStack(alignment: .leading, spacing: DSSpacing.sm) {
-            DSPostCard(
-                handle: "@\(post.authorId)",
-                date: Self.dateLabel(post.createdAt),
-                caption: post.caption,
-                commentCount: commentCounts[post.id] ?? 0,
-                likeCount: like.likeCount,
-                isLiked: like.isLiked,
-                isLikeEnabled: like.isLoaded && !like.isPending,
-                likeLabel: like.isLiked ? "Unlike outfit" : "Like outfit",
-                commentID: "infinite.comments.\(post.id)",
-                likeID: "ootd.like.\(post.id)",
-                onComment: { if inPreview { previewCommentsPost = post } else { commentsPost = post } },
-                onLike: { postLikes.toggle(post: post) }
-            ) {
-                artwork(post)
-            }
-            Button("Outfit details") { itemsPost = post }
-                .buttonStyle(.ds(.text))
-                .accessibilityIdentifier("infinite.items.\(post.id)")
+        let commentCount = commentCounts[post.id] ?? 0
+        return DSPostCard(
+            handle: "@\(post.authorId)",
+            date: Self.dateLabel(post.createdAt),
+            caption: post.caption,
+            commentCount: commentCount,
+            commentCountText: commentCount >= 50 ? "50+" : nil,
+            likeCount: like.likeCount,
+            isLiked: like.isLiked,
+            isLikeEnabled: like.isLoaded && !like.isPending,
+            likeLabel: like.isLiked ? "Unlike outfit" : "Like outfit",
+            shopID: "infinite.items.\(post.id)",
+            commentID: "infinite.comments.\(post.id)",
+            likeID: "ootd.like.\(post.id)",
+            errorMessage: like.errorMessage,
+            onShop: { if inPreview { previewItemsPost = post } else { itemsPost = post } },
+            onComment: {
+                lastCommentsPostId = post.id
+                if inPreview { previewCommentsPost = post } else { commentsPost = post }
+            },
+            onLike: { postLikes.toggle(post: post) },
+            onRetryLike: { Task { await postLikes.loadIfNeeded(post: post) } }
+        ) {
+            artwork(post)
         }
         .task(id: post.id) { await refreshCommentCount(post.id) }
         .accessibilityElement(children: .contain)
