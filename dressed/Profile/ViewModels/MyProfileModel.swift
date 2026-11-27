@@ -34,18 +34,22 @@ final class MyProfileModel: ObservableObject {
         return nil
     }
 
-    // TODO(social): PostFunctions has no author query yet, so this filters the most recent
-    // public posts. Older posts by this user are missing until an author query exists.
     func load() async {
         posts = .loading
         do {
-            let recent = try await service.fetchRecentPosts()
+            let fetched = try await service.fetchPosts(authorId: ownerId)
             try Task.checkCancellation()
-            posts = .loaded(filterPostsByAuthor(recent, authorId: ownerId))
+            posts = .loaded(fetched)
         } catch is CancellationError {
             return
         } catch {
             posts = .failed("Your posts couldn't load. Check your connection and try again.")
+        }
+    }
+
+    func removePost(id: String) {
+        if case .loaded(let existing) = posts {
+            posts = .loaded(existing.filter { $0.id != id })
         }
     }
 }
