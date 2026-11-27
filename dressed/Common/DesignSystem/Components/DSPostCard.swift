@@ -21,6 +21,11 @@ struct DSPostCard<Photo: View>: View {
     var onComment: () -> Void = {}
     var onLike: () -> Void = {}
     var onRetryLike: (() -> Void)? = nil
+    var onAuthorTap: (() -> Void)? = nil
+    var isOwnPost = false
+    var onDelete: (() -> Void)? = nil
+    var onReport: (() -> Void)? = nil
+    var onBlockAuthor: (() -> Void)? = nil
     @ViewBuilder let photo: () -> Photo
 
     @State private var isCaptionExpanded = false
@@ -29,12 +34,55 @@ struct DSPostCard<Photo: View>: View {
         commentCountText ?? "\(commentCount)"
     }
 
+    private var hasMenuActions: Bool {
+        (isOwnPost && onDelete != nil) || (!isOwnPost && (onReport != nil || onBlockAuthor != nil))
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("\(handle) · \(Text(date).foregroundStyle(DSColor.textMuted))")
-                .font(DSFont.bodyEmphasis)
-                .padding(.horizontal, 18)
-                .frame(height: 56)
+            HStack(spacing: DSSpacing.xs) {
+                if let onAuthorTap {
+                    Button(action: onAuthorTap) {
+                        Text(handle)
+                            .font(DSFont.bodyEmphasis)
+                            .foregroundStyle(DSColor.textPrimary)
+                    }
+                    .buttonStyle(.plain)
+                    .frame(minHeight: 44)
+                    .accessibilityLabel("View \(handle) profile")
+                } else {
+                    Text(handle)
+                        .font(DSFont.bodyEmphasis)
+                        .foregroundStyle(DSColor.textPrimary)
+                }
+
+                Text("· \(Text(date).foregroundStyle(DSColor.textMuted))")
+                    .font(DSFont.bodyEmphasis)
+                    .foregroundStyle(DSColor.textPrimary)
+                    .lineLimit(1)
+
+                Spacer(minLength: 0)
+
+                if hasMenuActions {
+                    DSMoreMenu(accessibilityLabel: "Post options") {
+                        if isOwnPost {
+                            if let onDelete {
+                                Button("Delete post", role: .destructive, action: onDelete)
+                            }
+                        } else {
+                            if let onReport {
+                                Button("Report post", action: onReport)
+                            }
+                            if let onBlockAuthor {
+                                Button("Block user", role: .destructive, action: onBlockAuthor)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.leading, 18)
+            .padding(.trailing, hasMenuActions ? DSSpacing.sm : 18)
+            .frame(height: 56)
 
             // Overlay keeps a scaledToFill photo from widening the card.
             Color.clear

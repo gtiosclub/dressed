@@ -1,4 +1,15 @@
+import Combine
 import SwiftUI
+
+private final class FeedExposureTracker {
+    var postCounts: [String: Int] = [:]
+    var authorCounts: [String: Int] = [:]
+
+    func record(post: Post) {
+        postCounts[post.id, default: 0] += 1
+        authorCounts[post.authorId, default: 0] += 1
+    }
+}
 
 /// Paginates supplied Post snapshots and displays artwork supplied by the caller.
 struct InfiniteDiscoveryFeed<Artwork: View>: View {
@@ -15,12 +26,30 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     @State private var commentService: any CommentService
     @State private var commentCounts: [String: Int] = [:]
     @State private var previewPosts: [Post] = []
+    @State private var deletedPostIds: Set<String> = []
     @State private var refreshGeneration = 0
+    @State private var socialStateRevision = 0
+    @State private var exposureTracker = FeedExposureTracker()
+    @State private var appliedPostExposureCounts: [String: Int] = [:]
+    @State private var appliedAuthorExposureCounts: [String: Int] = [:]
+    @State private var postPendingDelete: Post?
+    @State private var previewPostPendingDelete: Post?
+    @State private var postPendingReport: Post?
+    @State private var previewPostPendingReport: Post?
+    @State private var authorPendingBlock: String?
+    @State private var previewAuthorPendingBlock: String?
+    @State private var actionFeedback: String?
     @Binding private var showingCreate: Bool
     /// Set when the floating Search Styles button is tapped; the app shell presents the search sheet.
     @Binding private var isSearching: Bool
     @StateObject private var catalog = CatalogViewModel(service: DiscoveryCatalogSource.current)
     @ObservedObject private var postLikes: PostLikesViewModel
+    @ObservedObject private var userProfiles: UserProfileStore
+    private let follows: FollowViewModel?
+    private let moderation: ModerationViewModel?
+    private let postService: (any PostFunctions)?
+    private let closetCategories: [ClothingCategory]
+    private let onOpenProfile: ((String) -> Void)?
     private let canSharePreview: Bool
     private let authorId: String?
     private let publisher: (any PostPublishing)?
@@ -44,6 +73,12 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         publisher: (any PostPublishing)? = nil,
         compositionSource: (any PostCompositionSource)? = nil,
         postLikes: PostLikesViewModel,
+        userProfiles: UserProfileStore? = nil,
+        follows: FollowViewModel? = nil,
+        moderation: ModerationViewModel? = nil,
+        postService: (any PostFunctions)? = nil,
+        closetCategories: [ClothingCategory] = [],
+        onOpenProfile: ((String) -> Void)? = nil,
         @ViewBuilder artwork: @escaping (Post) -> Artwork
     ) {
         _model = StateObject(wrappedValue: ChronologicalFeedModel(loadPage: loadPage))
@@ -59,15 +94,84 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         self.publisher = publisher
         self.compositionSource = compositionSource
         self.postLikes = postLikes
+        self.userProfiles = userProfiles ?? UserProfileStore(service: DiscoveryPostSource.currentUserProfiles)
+        self.follows = follows
+        self.moderation = moderation
+        self.postService = postService
+        self.closetCategories = closetCategories
+        self.onOpenProfile = onOpenProfile
     }
 
-    private var forYouPosts: [Post] {
-        previewPosts + ranker.rank(remainingPosts, context: rankingContext).map(\.post)
+    private var visiblePreviewPosts: [Post] {
+        _ = socialStateRevision
+        return previewPosts.filter { !deletedPostIds.contains($0.id) && moderation?.isBlocked($0.authorId) != true }
     }
 
     private var remainingPosts: [Post] {
+        _ = socialStateRevision
         let insertedIds = Set(previewPosts.map(\.id))
-        return model.posts.filter { !insertedIds.contains($0.id) }
+        return model.posts.filter {
+            !insertedIds.contains($0.id)
+                && !deletedPostIds.contains($0.id)
+                && moderation?.isBlocked($0.authorId) != true
+        }
+    }
+
+    private var categoryAffinity: [ClothingCategory: Double] {
+        guard !closetCategories.isEmpty else { return [:] }
+        var counts: [ClothingCategory: Int] = [:]
+        for category in closetCategories {
+            counts[category, default: 0] += 1
+        }
+        guard let maxCount = counts.values.max(), maxCount > 0 else { return [:] }
+        var affinity: [ClothingCategory: Double] = [:]
+        for (category, count) in counts {
+            affinity[category] = Double(count) / Double(maxCount)
+        }
+        return affinity
+    }
+
+    private var effectiveRankingContext: FeedRankingContext {
+        _ = socialStateRevision
+        var context = rankingContext
+        if context.followedAuthorIDs.isEmpty, let follows {
+            context.followedAuthorIDs = follows.followingIds
+        }
+        if context.categoryAffinity.isEmpty {
+            context.categoryAffinity = categoryAffinity
+        }
+        if context.postExposureCounts.isEmpty {
+            context.postExposureCounts = appliedPostExposureCounts
+        }
+        if context.authorExposureCounts.isEmpty {
+            context.authorExposureCounts = appliedAuthorExposureCounts
+        }
+        return context
+    }
+
+    private var forYouPosts: [Post] {
+        visiblePreviewPosts + ranker.rank(remainingPosts, context: effectiveRankingContext).map(\.post)
+    }
+
+    private var friendsPosts: [Post] {
+        let all = visiblePreviewPosts + remainingPosts
+        guard let follows, follows.hasLoadedFollowing else { return all }
+        return all.filter { post in
+            follows.isFollowing(post.authorId) || (authorId != nil && post.authorId == authorId)
+        }
+    }
+
+    private var loadedAuthorIds: [String] {
+        (previewPosts + model.posts).map(\.authorId)
+    }
+
+    private var showFriendsEmptyState: Bool {
+        section == 1
+            && friendsPosts.isEmpty
+            && model.hasLoaded
+            && !model.isLoading
+            && model.errorMessage == nil
+            && follows?.hasLoadedFollowing == true
     }
 
     var body: some View {
@@ -88,15 +192,23 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                                             .clipShape(RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous))
                                     }
                                     .buttonStyle(.dsPress(0.98))
-                                    .accessibilityLabel("\(post.caption), by \(post.authorId)")
+                                    .accessibilityLabel("\(post.caption), by \(userProfiles.displayName(for: post.authorId))")
                                     .accessibilityIdentifier("infinite.post.\(post.id)")
+                                    .onAppear { exposureTracker.record(post: post) }
                                 case .product(let product):
                                     DiscoveryRetailPhotoTile(product: product)
                                 }
                             }
                         }
+                    } else if showFriendsEmptyState {
+                        DSEmptyState(
+                            icon: "TablerUsers",
+                            title: "No friends' posts yet",
+                            message: "Follow people from For You to see their outfits here."
+                        )
+                        .padding(.top, DSSpacing.lg)
                     } else {
-                        ForEach(previewPosts + remainingPosts) { post in
+                        ForEach(friendsPosts) { post in
                             friendCard(post)
                         }
                     }
@@ -118,6 +230,8 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
             .refreshable {
                 // Await a separately owned task, as in the working manual preview.
                 let refreshTask = Task { @MainActor in
+                    appliedPostExposureCounts = exposureTracker.postCounts
+                    appliedAuthorExposureCounts = exposureTracker.authorCounts
                     postLikes.reset()
                     commentCounts = [:]
                     refreshGeneration += 1
@@ -133,6 +247,24 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { await model.loadInitial() }
         .task { catalog.search(query: "", category: nil) }
+        .task(id: loadedAuthorIds) {
+            await userProfiles.loadIfNeeded(userIds: loadedAuthorIds)
+        }
+        .onReceive(follows?.$followingIds.eraseToAnyPublisher() ?? Empty().eraseToAnyPublisher()) { _ in
+            socialStateRevision += 1
+        }
+        .onReceive(follows?.$hasLoadedFollowing.eraseToAnyPublisher() ?? Empty().eraseToAnyPublisher()) { _ in
+            socialStateRevision += 1
+        }
+        .onReceive(moderation?.$blockedUserIds.eraseToAnyPublisher() ?? Empty().eraseToAnyPublisher()) { _ in
+            socialStateRevision += 1
+        }
+        .onChange(of: section) { _, newSection in
+            if newSection == 0 {
+                appliedPostExposureCounts = exposureTracker.postCounts
+                appliedAuthorExposureCounts = exposureTracker.authorCounts
+            }
+        }
         .overlay(alignment: .bottom) {
             if section == 0 {
                 DSFloatingSearchButton(title: "Search Styles") { isSearching = true }
@@ -149,7 +281,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                 if let publisher, let authorId {
                     post = try await publisher.publish(draft: draft, authorId: authorId)
                 } else {
-                    post = draft.post(authorId: "preview_user")
+                    post = draft.post(authorId: authorId ?? "preview_user")
                 }
                 FirebasePublishedPostImageLoader.cache(draft: draft, post: post)
                 previewPosts.removeAll { $0.id == post.id }
@@ -162,7 +294,12 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
             PublishedOutfitDetailsView(post: post)
         }
         .sheet(item: $commentsPost, onDismiss: { refreshDismissedCommentCount() }) { post in
-            PostCommentsSheet(postId: post.id, service: commentService)
+            PostCommentsSheet(
+                postId: post.id,
+                service: commentService,
+                userProfiles: userProfiles,
+                moderation: moderation
+            )
         }
         .sheet(item: $selectedPost) { post in
             NavigationStack {
@@ -172,8 +309,20 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                         PublishedOutfitDetailsView(post: selected)
                     }
                     .sheet(item: $previewCommentsPost, onDismiss: { refreshDismissedCommentCount() }) { selected in
-                        PostCommentsSheet(postId: selected.id, service: commentService)
+                        PostCommentsSheet(
+                            postId: selected.id,
+                            service: commentService,
+                            userProfiles: userProfiles,
+                            moderation: moderation
+                        )
                     }
+                    .modifier(
+                        postActionDialogs(
+                            deletePost: $previewPostPendingDelete,
+                            reportPost: $previewPostPendingReport,
+                            blockAuthor: $previewAuthorPendingBlock
+                        )
+                    )
                     .navigationTitle("Outfit preview")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
@@ -183,6 +332,24 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                     }
             }
             .tint(accent)
+        }
+        .modifier(
+            postActionDialogs(
+                deletePost: $postPendingDelete,
+                reportPost: $postPendingReport,
+                blockAuthor: $authorPendingBlock
+            )
+        )
+        .alert(
+            "Notice",
+            isPresented: Binding(
+                get: { actionFeedback != nil },
+                set: { if !$0 { actionFeedback = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { actionFeedback = nil }
+        } message: {
+            Text(actionFeedback ?? "")
         }
     }
 
@@ -204,8 +371,10 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                     .accessibilityIdentifier("infinite.retry")
             }
             .padding(DSSpacing.lg)
+        } else if showFriendsEmptyState {
+            EmptyView()
         } else if model.hasLoaded && !model.hasMore {
-            if model.posts.isEmpty && previewPosts.isEmpty {
+            if remainingPosts.isEmpty && visiblePreviewPosts.isEmpty {
                 DSEmptyState(
                     icon: "TablerHanger2",
                     title: "No outfits yet",
@@ -260,8 +429,9 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     private func friendCard(_ post: Post, inPreview: Bool = false) -> some View {
         let like = postLikes.state(for: post)
         let commentCount = commentCounts[post.id] ?? 0
+        let isOwnPost = authorId != nil && post.authorId == authorId
         return DSPostCard(
-            handle: "@\(post.authorId)",
+            handle: userProfiles.handle(for: post.authorId),
             date: Self.dateLabel(post.createdAt),
             caption: post.caption,
             commentCount: commentCount,
@@ -280,7 +450,23 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                 if inPreview { previewCommentsPost = post } else { commentsPost = post }
             },
             onLike: { postLikes.toggle(post: post) },
-            onRetryLike: like.isRemoved ? nil : { postLikes.retry(post: post) }
+            onRetryLike: like.isRemoved ? nil : { postLikes.retry(post: post) },
+            onAuthorTap: onOpenProfile.map { cb in
+                {
+                    if inPreview { selectedPost = nil }
+                    cb(post.authorId)
+                }
+            },
+            isOwnPost: isOwnPost,
+            onDelete: isOwnPost ? {
+                if inPreview { previewPostPendingDelete = post } else { postPendingDelete = post }
+            } : nil,
+            onReport: (!isOwnPost && moderation != nil) ? {
+                if inPreview { previewPostPendingReport = post } else { postPendingReport = post }
+            } : nil,
+            onBlockAuthor: (!isOwnPost && moderation != nil) ? {
+                if inPreview { previewAuthorPendingBlock = post.authorId } else { authorPendingBlock = post.authorId }
+            } : nil
         ) {
             artwork(post)
         }
@@ -288,6 +474,69 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("infinite.card.\(post.id)")
         .task(id: "\(post.id)|\(refreshGeneration)") { await postLikes.loadIfNeeded(post: post) }
+    }
+
+    private func postActionDialogs(
+        deletePost: Binding<Post?>,
+        reportPost: Binding<Post?>,
+        blockAuthor: Binding<String?>
+    ) -> PostActionDialogsModifier {
+        PostActionDialogsModifier(
+            deletePost: deletePost,
+            reportPost: reportPost,
+            blockAuthor: blockAuthor,
+            handleForAuthor: { userProfiles.handle(for: $0) },
+            onConfirmDelete: { post in
+                Task { await delete(post: post) }
+            },
+            onConfirmReport: { post, reason in
+                Task { await report(post: post, reason: reason) }
+            },
+            onConfirmBlock: { targetUserId in
+                Task { await block(userId: targetUserId) }
+            }
+        )
+    }
+
+    private func delete(post: Post) async {
+        do {
+            if let postService {
+                try await postService.deletePost(id: post.id)
+            }
+            deletedPostIds.insert(post.id)
+            previewPosts.removeAll { $0.id == post.id }
+            if selectedPost?.id == post.id {
+                selectedPost = nil
+            }
+        } catch {
+            actionFeedback = error.localizedDescription
+        }
+    }
+
+    private func report(post: Post, reason: String) async {
+        guard let moderation else { return }
+        let succeeded = await moderation.report(
+            targetType: .post,
+            targetId: post.id,
+            postId: post.id,
+            reason: reason
+        )
+        if succeeded {
+            actionFeedback = "Thanks for letting us know. We've received your report."
+        } else if let error = moderation.errorMessage {
+            actionFeedback = error
+        }
+    }
+
+    private func block(userId targetUserId: String) async {
+        guard let moderation else { return }
+        await moderation.block(userId: targetUserId)
+        if selectedPost?.authorId == targetUserId {
+            selectedPost = nil
+        }
+        if let error = moderation.errorMessage {
+            actionFeedback = error
+        }
     }
 
     private static func dateLabel(_ date: Date) -> String {
@@ -302,14 +551,100 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     }
 }
 
+private struct PostActionDialogsModifier: ViewModifier {
+    @Binding var deletePost: Post?
+    @Binding var reportPost: Post?
+    @Binding var blockAuthor: String?
+    let handleForAuthor: (String) -> String
+    let onConfirmDelete: (Post) -> Void
+    let onConfirmReport: (Post, String) -> Void
+    let onConfirmBlock: (String) -> Void
+
+    private static let reportReasons = [
+        "Spam or misleading",
+        "Inappropriate content",
+        "Harassment or hate",
+        "Copyright or impersonation"
+    ]
+
+    func body(content: Content) -> some View {
+        content
+            .confirmationDialog(
+                "Delete post?",
+                isPresented: Binding(
+                    get: { deletePost != nil },
+                    set: { if !$0 { deletePost = nil } }
+                ),
+                titleVisibility: .visible,
+                presenting: deletePost
+            ) { post in
+                Button("Delete post", role: .destructive) {
+                    deletePost = nil
+                    onConfirmDelete(post)
+                }
+                Button("Cancel", role: .cancel) {
+                    deletePost = nil
+                }
+            } message: { _ in
+                Text("This permanently removes the post from Discovery.")
+            }
+            .confirmationDialog(
+                "Report post",
+                isPresented: Binding(
+                    get: { reportPost != nil },
+                    set: { if !$0 { reportPost = nil } }
+                ),
+                titleVisibility: .visible,
+                presenting: reportPost
+            ) { post in
+                ForEach(Self.reportReasons, id: \.self) { reason in
+                    Button(reason) {
+                        reportPost = nil
+                        onConfirmReport(post, reason)
+                    }
+                }
+                Button("Cancel", role: .cancel) {
+                    reportPost = nil
+                }
+            } message: { _ in
+                Text("Choose a reason for reporting this post.")
+            }
+            .confirmationDialog(
+                blockAuthor.map { "Block \(handleForAuthor($0))?" } ?? "Block user?",
+                isPresented: Binding(
+                    get: { blockAuthor != nil },
+                    set: { if !$0 { blockAuthor = nil } }
+                ),
+                titleVisibility: .visible,
+                presenting: blockAuthor
+            ) { targetUserId in
+                Button("Block user", role: .destructive) {
+                    blockAuthor = nil
+                    onConfirmBlock(targetUserId)
+                }
+                Button("Cancel", role: .cancel) {
+                    blockAuthor = nil
+                }
+            } message: { _ in
+                Text("You will no longer see posts or comments from this user.")
+            }
+    }
+}
+
 extension InfiniteDiscoveryFeed where Artwork == DemoOutfitPhoto {
     static func demo(
         failSecondPage: Bool = false,
+        authorId: String? = "preview_user",
         section: Binding<Int> = .constant(0),
         showingCreate: Binding<Bool> = .constant(false),
         isSearching: Binding<Bool> = .constant(false),
         compositionSource: (any PostCompositionSource)? = nil,
-        postLikes: PostLikesViewModel
+        postLikes: PostLikesViewModel,
+        userProfiles: UserProfileStore? = nil,
+        follows: FollowViewModel? = nil,
+        moderation: ModerationViewModel? = nil,
+        closetCategories: [ClothingCategory] = [],
+        onOpenProfile: ((String) -> Void)? = nil
     ) -> Self {
         let fixtures = InfiniteFeedFixtures(failSecondPage: failSecondPage)
         return Self(
@@ -319,8 +654,14 @@ extension InfiniteDiscoveryFeed where Artwork == DemoOutfitPhoto {
             isSearching: isSearching,
             canSharePreview: true,
             commentService: DemoCommentService(),
+            authorId: authorId,
             compositionSource: compositionSource,
-            postLikes: postLikes
+            postLikes: postLikes,
+            userProfiles: userProfiles,
+            follows: follows,
+            moderation: moderation,
+            closetCategories: closetCategories,
+            onOpenProfile: onOpenProfile
         ) { post in
             DemoOutfitPhoto(post: post)
         }
@@ -336,15 +677,33 @@ extension InfiniteDiscoveryFeed where Artwork == PostArtwork {
         showingCreate: Binding<Bool> = .constant(false),
         isSearching: Binding<Bool> = .constant(false),
         compositionSource: (any PostCompositionSource)? = nil,
-        postLikes: PostLikesViewModel
+        postLikes: PostLikesViewModel,
+        userProfiles: UserProfileStore? = nil,
+        follows: FollowViewModel? = nil,
+        moderation: ModerationViewModel? = nil,
+        closetCategories: [ClothingCategory] = [],
+        onOpenProfile: ((String) -> Void)? = nil
     ) -> Self {
-        Self(loadPage: { cursor in
-            let decodedCursor = cursor.flatMap(Self.decodeCursor)
-            let page = try await service.fetchPostPage(after: decodedCursor)
-            return FeedPage(posts: page.posts, nextCursor: page.nextCursor.map(Self.encodeCursor), removedPostIDs: [])
-        }, section: section, showingCreate: showingCreate, isSearching: isSearching, authorId: authorId,
-           publisher: publisher ?? FirebasePostPublisher(), compositionSource: compositionSource,
-           postLikes: postLikes) { post in
+        Self(
+            loadPage: { cursor in
+                let decodedCursor = cursor.flatMap(Self.decodeCursor)
+                let page = try await service.fetchPostPage(after: decodedCursor)
+                return FeedPage(posts: page.posts, nextCursor: page.nextCursor.map(Self.encodeCursor), removedPostIDs: [])
+            },
+            section: section,
+            showingCreate: showingCreate,
+            isSearching: isSearching,
+            authorId: authorId,
+            publisher: publisher ?? FirebasePostPublisher(),
+            compositionSource: compositionSource,
+            postLikes: postLikes,
+            userProfiles: userProfiles,
+            follows: follows,
+            moderation: moderation,
+            postService: service,
+            closetCategories: closetCategories,
+            onOpenProfile: onOpenProfile
+        ) { post in
             PostArtwork(post: post)
         }
     }

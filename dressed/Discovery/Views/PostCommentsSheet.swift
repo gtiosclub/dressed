@@ -1,16 +1,37 @@
+import Combine
 import SwiftUI
 
 struct PostCommentsSheet: View {
     @StateObject private var model: CommentsViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var profileRevision = 0
+    @State private var moderationRevision = 0
 
-    init(postId: String, service: any CommentService) {
+    private let postId: String
+    private let userProfiles: UserProfileStore?
+    private let moderation: ModerationViewModel?
+
+    init(
+        postId: String,
+        service: any CommentService,
+        userProfiles: UserProfileStore? = nil,
+        moderation: ModerationViewModel? = nil
+    ) {
+        self.postId = postId
+        self.userProfiles = userProfiles
+        self.moderation = moderation
         _model = StateObject(wrappedValue: CommentsViewModel(postId: postId, service: service))
     }
 
-    private var isEmpty: Bool { model.hasLoaded && model.comments.isEmpty && !model.isRemoved }
+    private var visibleComments: [PostComment] {
+        _ = moderationRevision
+        return model.comments.filter { moderation?.isBlocked($0.authorId) != true }
+    }
+
+    private var isEmpty: Bool { model.hasLoaded && visibleComments.isEmpty && !model.isRemoved }
 
     var body: some View {
+        let displayedComments = visibleComments
         NavigationStack {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
@@ -25,9 +46,9 @@ struct PostCommentsSheet: View {
                         )
                         .frame(minHeight: 360)
                     }
-                    ForEach(model.comments) { comment in
+                    ForEach(displayedComments) { comment in
                         commentRow(comment)
-                        if comment.id != model.comments.last?.id {
+                        if comment.id != displayedComments.last?.id {
                             Divider().overlay(DSColor.divider).padding(.leading, 52)
                         }
                     }
@@ -59,22 +80,38 @@ struct PostCommentsSheet: View {
             }
             .foregroundStyle(DSColor.textPrimary)
             .background(DSColor.background)
-            .navigationTitle(model.comments.isEmpty ? "Comments" : "Comments · \(model.comments.count)")
+            .navigationTitle(displayedComments.isEmpty ? "Comments" : "Comments · \(displayedComments.count)")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }.accessibilityLabel("Close comments")
                 }
             }
-            .task { await model.load() }
+            .task {
+                await model.load()
+                await userProfiles?.loadIfNeeded(userIds: model.comments.map(\.authorId))
+            }
+            .task(id: model.comments.map(\.authorId)) {
+                await userProfiles?.loadIfNeeded(userIds: model.comments.map(\.authorId))
+            }
+            .onReceive(userProfiles?.$profiles.eraseToAnyPublisher() ?? Empty().eraseToAnyPublisher()) { _ in
+                profileRevision += 1
+            }
+            .onReceive(moderation?.$blockedUserIds.eraseToAnyPublisher() ?? Empty().eraseToAnyPublisher()) { _ in
+                moderationRevision += 1
+            }
         }
         .tint(DSColor.brand)
     }
 
     private func commentRow(_ comment: PostComment) -> some View {
+        _ = profileRevision
         let isYou = comment.authorId == model.currentUserId
+        let authorName = isYou ? "You" : (userProfiles?.displayName(for: comment.authorId) ?? "Member")
+        let initial = authorName.first.map { String($0).uppercased() } ?? "M"
+        let hasMenu = isYou || moderation != nil
         return HStack(alignment: .top, spacing: DSSpacing.md) {
-            Text(isYou ? "Y" : "M")
+            Text(initial)
                 .font(DSFont.button)
                 .foregroundStyle(isYou ? Color.white : DSColor.iconMuted)
                 .frame(width: 40, height: 40)
@@ -82,15 +119,40 @@ struct PostCommentsSheet: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: DSSpacing.xs) {
                 HStack(spacing: DSSpacing.sm) {
-                    Text(isYou ? "You" : "Member").font(DSFont.bodyEmphasis)
+                    Text(authorName).font(DSFont.bodyEmphasis)
                     Text(comment.createdAt, style: .relative)
                         .font(DSFont.search).foregroundStyle(DSColor.textMuted)
                 }
                 Text(comment.text).font(DSFont.body).textSelection(.enabled)
             }
+            .accessibilityElement(children: .combine)
+            Spacer(minLength: 0)
+            if hasMenu {
+                DSMoreMenu(accessibilityLabel: "Comment options") {
+                    if isYou {
+                        Button("Delete", role: .destructive) {
+                            Task { await model.delete(commentId: comment.id) }
+                        }
+                    } else if let moderation {
+                        Button("Report comment") {
+                            Task {
+                                _ = await moderation.report(
+                                    targetType: .comment,
+                                    targetId: comment.id,
+                                    postId: postId,
+                                    reason: "Inappropriate comment"
+                                )
+                            }
+                        }
+                        Button("Block user", role: .destructive) {
+                            Task { await moderation.block(userId: comment.authorId) }
+                        }
+                    }
+                }
+            }
         }
         .padding(.vertical, DSSpacing.md)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
     }
 
     private var composer: some View {

@@ -31,6 +31,9 @@ private struct AppTabs: View {
     @StateObject private var closet: PrototypeClosetStore
     @StateObject private var postLikes: PostLikesViewModel
     @StateObject private var profile: MyProfileModel
+    @StateObject private var userProfiles: UserProfileStore
+    @StateObject private var follows: FollowViewModel
+    @StateObject private var moderation: ModerationViewModel
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -71,6 +74,9 @@ private struct AppTabs: View {
             service: DiscoveryPostSource.currentPostLikes
         ))
         _profile = StateObject(wrappedValue: MyProfileModel(ownerId: userId, service: DiscoveryPostSource.current))
+        _userProfiles = StateObject(wrappedValue: UserProfileStore(service: DiscoveryPostSource.currentUserProfiles))
+        _follows = StateObject(wrappedValue: FollowViewModel(ownerId: userId, service: DiscoveryPostSource.currentFollows))
+        _moderation = StateObject(wrappedValue: ModerationViewModel(ownerId: userId, service: DiscoveryPostSource.currentModeration))
 
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
@@ -87,22 +93,50 @@ private struct AppTabs: View {
     }
 
     @ViewBuilder private var ootdFeed: some View {
+        let categories = closet.items.map(\.category)
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         if DiscoveryPostSource.isDemo {
             InfiniteDiscoveryFeed.demo(
                 failSecondPage: arguments.contains("-failDiscoveryPage"),
+                authorId: userId,
                 section: $discoverySection,
-                showingCreate: $isCreatingPost, isSearching: $isSearchingDiscovery,
-                compositionSource: postCompositionSource, postLikes: postLikes
+                showingCreate: $isCreatingPost,
+                isSearching: $isSearchingDiscovery,
+                compositionSource: postCompositionSource,
+                postLikes: postLikes,
+                userProfiles: userProfiles,
+                follows: follows,
+                moderation: moderation,
+                closetCategories: categories
             )
         } else {
-            InfiniteDiscoveryFeed.live(authorId: userId, section: $discoverySection, showingCreate: $isCreatingPost,
-                                       isSearching: $isSearchingDiscovery, compositionSource: postCompositionSource, postLikes: postLikes)
+            InfiniteDiscoveryFeed.live(
+                authorId: userId,
+                section: $discoverySection,
+                showingCreate: $isCreatingPost,
+                isSearching: $isSearchingDiscovery,
+                compositionSource: postCompositionSource,
+                postLikes: postLikes,
+                userProfiles: userProfiles,
+                follows: follows,
+                moderation: moderation,
+                closetCategories: categories
+            )
         }
         #else
-        InfiniteDiscoveryFeed.live(authorId: userId, section: $discoverySection, showingCreate: $isCreatingPost,
-                                   isSearching: $isSearchingDiscovery, compositionSource: postCompositionSource, postLikes: postLikes)
+        InfiniteDiscoveryFeed.live(
+            authorId: userId,
+            section: $discoverySection,
+            showingCreate: $isCreatingPost,
+            isSearching: $isSearchingDiscovery,
+            compositionSource: postCompositionSource,
+            postLikes: postLikes,
+            userProfiles: userProfiles,
+            follows: follows,
+            moderation: moderation,
+            closetCategories: categories
+        )
         #endif
     }
 
@@ -252,6 +286,11 @@ private struct AppTabs: View {
         #if DEBUG
         .task { DemoClosetSeeder.seedIfNeeded(closet: closet, outfits: outfits) }
         #endif
+        .task {
+            await userProfiles.ensureOwnProfile(userId: userId, accountName: session.accountName)
+            await follows.loadFollowing()
+            await moderation.loadBlockedUsers()
+        }
         .onChange(of: selectedTab) { old, new in
             if new == 2 && old != 2 { tabBeforeCamera = old }
         }
