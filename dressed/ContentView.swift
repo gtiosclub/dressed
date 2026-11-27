@@ -60,12 +60,19 @@ private struct AppTabs: View {
     @State private var deferredSharedLinkId: String?
 
     @StateObject private var studio: OutfitStudioModel
+    @StateObject private var avatar: AvatarTryOnModel
+    @StateObject private var avatarCatalog: AvatarCatalogStore
     @StateObject private var outfits: PrototypeOutfitStore
 
     init(session: SessionViewModel, userId: String) {
         self.session = session
         self.userId = userId
         _studio = StateObject(wrappedValue: OutfitStudioModel(ownerId: userId))
+        #if DEBUG
+        AvatarTryOnModel.applyDebugLaunchArguments(ownerId: userId)
+        #endif
+        _avatar = StateObject(wrappedValue: AvatarTryOnModel(ownerId: userId))
+        _avatarCatalog = StateObject(wrappedValue: AvatarCatalogStore(ownerId: userId))
         _outfits = StateObject(wrappedValue: PrototypeOutfitStore(ownerId: userId))
 
         _closet = StateObject(
@@ -180,6 +187,7 @@ private struct AppTabs: View {
                             }
                             studio.worn = worn
                             selectedTab = 3
+                            avatar.generate(worn: worn, pieceImage: { [closet] in closet.image(for: $0) })
                         }
                     )
                 }
@@ -262,15 +270,16 @@ private struct AppTabs: View {
                 // MARK: - Avatar
 
                 NavigationStack {
-                    ProfileView(
-                        username: userId,
-                        items: closet.items,
-                        model: studio,
+                    AvatarTabView(
+                        model: avatar,
+                        studio: studio,
                         closet: closet,
                         outfits: outfits,
+                        catalog: avatarCatalog,
+                        ownerId: userId,
                         onSignOut: signOut,
                         image: { photo(for: $0) },
-                        uiImage: { closet.image(for: $0) }
+                        closetImage: { closet.image(for: $0) }
                     )
                 }
                 .toolbar(.hidden, for: .tabBar)

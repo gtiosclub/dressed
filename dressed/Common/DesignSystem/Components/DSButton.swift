@@ -7,6 +7,7 @@ struct DSButtonStyle: ButtonStyle {
         case primary    // purple, white icon (search)
         case secondary  // warm grey (Back)
         case glass      // translucent white over photos (Skip, shop, close)
+        case tile       // light grey icon buttons over the avatar (settings, outfit)
         case text       // no fill (Find More)
     }
 
@@ -36,6 +37,7 @@ struct DSButtonStyle: ButtonStyle {
         case .primary: DSColor.brand
         case .secondary: DSColor.secondaryFill
         case .glass: DSColor.glass
+        case .tile: DSColor.tile
         case .text: .clear
         }
     }

@@ -71,7 +71,7 @@ shows every component on one screen: preview it, or launch a Debug build with
 | `DSSearchField` | Bordered floating pill search field used by `DSSearchSheet` and the review search |
 | `DSCameraControls` | Upload, shutter and flip inside the translucent capture bar |
 | `DSFloatingSearchButton` | "Search Your Closet" / "Search Styles" pinned above the tab bar; opens search mode. Pad scroll content by `DSFloatingSearchButton.height` |
-| `DSButtonStyle` (`.ds(.primary/.secondary/.glass/.text)`) | Search, Back, Skip, Next, shop, close, full-width Import / Create Outfit (put `.frame(maxWidth: .infinity)` on the label, inside the `Button`, not on the button), Find More (`.text`) |
+| `DSButtonStyle` (`.ds(.primary/.secondary/.glass/.tile/.text)`) | Search, Back, Skip, Next, shop, close, full-width Import / Create Outfit (put `.frame(maxWidth: .infinity)` on the label, inside the `Button`, not on the button), Find More (`.text`) |
 | `DSPostCard` | Friends feed card |
 | `DSPageIndicator` | Friends carousel dots |
 | `DSCandidateRow` | Share-to-Dressed product rows; `isSelected` adds the purple outline |
@@ -90,6 +90,7 @@ Components are presentational: callers own state, data and actions.
 | Camera (`CameraCaptureView`, `PrototypeImportView`) | `1012:388` | Full-screen live camera with `DSCameraControls`. Close returns to the previous tab; Upload offers photos (one item or full outfit) or a product link, and goes straight to the existing review sheets. Flip switches front and back cameras. |
 | Discovery (`DiscoveryHeader`, `DiscoveryIdeasView`) | `915:933` | For You / Friends header, photo tiles, floating "Search Styles". The one top switch controls `InfiniteDiscoveryFeed`: ranked outfit grid / chronological outfit cards. Its body is not fully migrated yet. |
 
+| Avatar (`AvatarTabView`, `AvatarSettingsView`) | none yet (provided mockups) | Full-bleed generated look, or the 3D mannequin until one exists. Settings and outfit buttons are 50 pt `.ds(.tile)` buttons with `TablerSettings` / `TablerShirt` in `iconMuted`. The outfit button opens the old Avatar Studio in a sheet until the picker sheet from the mockups is built. The generating state uses a soft `brand` radial glow and a "Pairing the pieces" label. See `docs/eric-avatar-aiimg.md`. |
 | My profile (`MyProfileView`) | none yet | Opened from the Discovery header's initial circle (`DSCircleButton(.initial)`, first letter of the account name). `DSBackHeader`, `ProfileHeader` with an initial avatar and closet summary, Posts / Followers / Following row, a 3-column grid of the user's posts, and Sign Out (`.ds(.secondary)` with a confirmation). No Figma frame exists; the name comes from the Firebase account (display name, else the email before "@") until a UserProfile service exists. Followers and Following show "–" placeholders, and posts are filtered from the 20 most recent until `PostFunctions` has an author query. |
 
 Other feature views still use their own styling.

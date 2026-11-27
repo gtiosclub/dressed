@@ -91,7 +91,8 @@ final class NavigationUITests: XCTestCase {
 
         app.buttons["tab.avatar"].tap()
         XCTAssertTrue(app.buttons["tab.avatar"].isSelected)
-        XCTAssertTrue(app.navigationBars["Avatar Studio"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["avatar.settings"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["avatar.outfit"].exists)
         allowCameraAccess()
         app.buttons["tab.camera"].tap()
         // The camera is full screen: no tab bar, and Close returns to the tab it was opened from.
@@ -153,6 +154,142 @@ final class NavigationUITests: XCTestCase {
         close.tap()
         XCTAssertTrue(upload.waitForExistence(timeout: 5))
         XCTAssertFalse(close.exists)
+    }
+
+    /// Closet outfit → Try On Outfit → Avatar tab shows a generated look. Uses the mock generator and a
+    /// rendered reference photo, so no network or real photo is involved; not a real sign-in check.
+    func testTryOnOutfitGeneratesAvatarLook() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        // AVATAR_BRIDGE=1 (TEST_RUNNER_AVATAR_BRIDGE=1 with xcodebuild) uses the Mac bridge instead of the
+        // in-app mock; start backend/avatar/avatar_service.py first (--fixture for no paid calls).
+        let usesBridge = ProcessInfo.processInfo.environment["AVATAR_BRIDGE"] == "1"
+        // AVATAR_REFERENCE_PATH points at a consented test photo on the Mac (simulator only).
+        let referencePath = ProcessInfo.processInfo.environment["AVATAR_REFERENCE_PATH"]
+        let reference = referencePath.map { ["-avatarReferencePath", $0] } ?? ["-avatarReferenceFixture"]
+        app.launchArguments = ["-mockSignedIn"] + reference + (usesBridge ? [] : ["-mockAvatarGenerator"])
+        app.launch()
+        openDemoOutfitAndTryOn(app)
+
+        XCTAssertTrue(app.buttons["tab.avatar"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["tab.avatar"].isSelected)
+        if app.otherElements["avatar.generating"].waitForExistence(timeout: 5) {
+            let generating = XCTAttachment(screenshot: app.screenshot())
+            generating.name = "Avatar generating"; generating.lifetime = .keepAlways; add(generating)
+        }
+        XCTAssertTrue(app.otherElements["avatar.look"].waitForExistence(timeout: usesBridge ? 200 : 15),
+                      "The generated look should appear")
+        let early = XCTAttachment(screenshot: app.screenshot())
+        early.name = "Avatar look appeared"; early.lifetime = .keepAlways; add(early)
+        sleep(3) // let the mosaic-and-blur reveal finish before the screenshot
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "Avatar generated look"; shot.lifetime = .keepAlways; add(shot)
+
+        app.buttons["avatar.settings"].tap()
+        XCTAssertTrue(app.staticTexts["Avatar Settings"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Remove Photo"].exists)
+        let settings = XCTAttachment(screenshot: app.screenshot())
+        settings.name = "Avatar settings"; settings.lifetime = .keepAlways; add(settings)
+    }
+
+    func testTryOnOutfitWithoutPhotoAsksForOne() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-mockSignedIn", "-mockAvatarGenerator", "-avatarNoReference"]
+        app.launch()
+        openDemoOutfitAndTryOn(app)
+
+        XCTAssertTrue(app.buttons["avatar.addPhoto"].waitForExistence(timeout: 10))
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "Avatar asks for a photo"; shot.lifetime = .keepAlways; add(shot)
+        app.buttons["Add Photo"].tap()
+        XCTAssertTrue(app.staticTexts["Avatar Settings"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["avatar.settings.upload"].exists)
+    }
+
+    /// The outfit button opens the piece picker; choosing a piece and closing the picker generates a look.
+    func testPiecePickerChoosesPiecesAndGeneratesOnClose() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-mockSignedIn", "-mockAvatarGenerator", "-avatarReferenceFixture"]
+        app.launch()
+        if app.buttons["sharedImport.close"].waitForExistence(timeout: 2) {
+            app.buttons["sharedImport.close"].tap()
+        }
+        app.buttons["tab.avatar"].tap()
+        XCTAssertTrue(app.buttons["avatar.outfit"].waitForExistence(timeout: 10))
+        app.buttons["avatar.outfit"].tap()
+        XCTAssertTrue(app.buttons["avatar.picker.Outfits"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["avatar.picker.Outfits"].isSelected)
+        app.buttons["avatar.picker.Tops"].tap()
+        let tee = app.otherElements["avatar.picker"].buttons["Navy Tee"]
+        XCTAssertTrue(tee.waitForExistence(timeout: 5))
+        tee.tap()
+        XCTAssertTrue(tee.isSelected)
+        let picker = XCTAttachment(screenshot: app.screenshot())
+        picker.name = "Avatar piece picker"; picker.lifetime = .keepAlways; add(picker)
+
+        app.buttons["avatar.picker.searchButton"].tap()
+        XCTAssertTrue(app.textFields["avatar.picker.search"].waitForExistence(timeout: 5))
+        let search = XCTAttachment(screenshot: app.screenshot())
+        search.name = "Avatar picker search"; search.lifetime = .keepAlways; add(search)
+        app.buttons["Cancel"].tap()
+
+        app.buttons["avatar.outfit"].tap()
+        XCTAssertTrue(app.otherElements["avatar.look"].waitForExistence(timeout: 15))
+        sleep(2)
+        let look = XCTAttachment(screenshot: app.screenshot())
+        look.name = "Avatar look after picker"; look.lifetime = .keepAlways; add(look)
+    }
+
+    /// Real Firebase session (no mock flags): the picker's Shop section lists `catalogProducts`, and trying
+    /// on a product generates a look. Opt-in, because it needs a signed-in simulator and makes a paid call
+    /// through the bridge: AVATAR_SHOP_LIVE=1 and AVATAR_REFERENCE_PATH (TEST_RUNNER_ prefix with xcodebuild).
+    func testShopCatalogProductCanBeTriedOnWithRealSession() throws {
+        let environment = ProcessInfo.processInfo.environment
+        guard environment["AVATAR_SHOP_LIVE"] == "1", let reference = environment["AVATAR_REFERENCE_PATH"] else {
+            throw XCTSkip("Set AVATAR_SHOP_LIVE=1 and AVATAR_REFERENCE_PATH on a signed-in simulator")
+        }
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-avatarReferencePath", reference]
+        app.launch()
+        if app.buttons["sharedImport.close"].waitForExistence(timeout: 2) {
+            app.buttons["sharedImport.close"].tap()
+        }
+        XCTAssertTrue(app.buttons["tab.avatar"].waitForExistence(timeout: 20), "Sign in on this simulator first")
+        app.buttons["tab.avatar"].tap()
+        app.buttons["avatar.outfit"].tap()
+        let shop = app.buttons["avatar.picker.Shop"]
+        XCTAssertTrue(shop.waitForExistence(timeout: 20), "Shop needs catalogProducts from Firebase")
+        shop.tap()
+        let picker = app.otherElements["avatar.picker"]
+        let first = picker.buttons.matching(NSPredicate(format: "isEnabled == true AND label != 'Search' AND NOT (identifier BEGINSWITH 'avatar.picker.')")).firstMatch
+        XCTAssertTrue(first.waitForExistence(timeout: 20), "A catalog photo should download")
+        sleep(2)
+        let grid = XCTAttachment(screenshot: app.screenshot())
+        grid.name = "Avatar Shop section"; grid.lifetime = .keepAlways; add(grid)
+        first.tap()
+        app.buttons["avatar.outfit"].tap()
+        XCTAssertTrue(app.otherElements["avatar.look"].waitForExistence(timeout: 200))
+        sleep(3)
+        let look = XCTAttachment(screenshot: app.screenshot())
+        look.name = "Avatar look from Shop"; look.lifetime = .keepAlways; add(look)
+    }
+
+    /// Opens the demo closet's "Easy Denim" outfit (the delete test removes "Cozy Weekend").
+    private func openDemoOutfitAndTryOn(_ app: XCUIApplication) {
+        if app.buttons["sharedImport.close"].waitForExistence(timeout: 2) {
+            app.buttons["sharedImport.close"].tap()
+        }
+        XCTAssertTrue(app.buttons["closet.filter.Outfits"].waitForExistence(timeout: 10))
+        app.buttons["closet.filter.Outfits"].tap()
+        let outfit = app.buttons["Easy Denim"]
+        XCTAssertTrue(outfit.waitForExistence(timeout: 5), "Run on a fresh install so the demo outfit exists.")
+        outfit.tap()
+        let tryOn = app.buttons["Try On Outfit"]
+        XCTAssertTrue(tryOn.waitForExistence(timeout: 5))
+        tryOn.tap()
     }
 
     /// Uses the Debug demo closet, which seeds two outfits into a fresh install.
