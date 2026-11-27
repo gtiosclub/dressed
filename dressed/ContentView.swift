@@ -44,6 +44,7 @@ private struct AppTabs: View {
     @State private var discoverySection = 0
     @State private var isSearchingDiscovery = false
     @State private var isShowingProfile = false
+    @State private var selectedAuthorId: String?
     @State private var isSearchingCloset = false
     @State private var closetSearchText = ""
     @State private var discoverySearchQuery: String?
@@ -94,6 +95,13 @@ private struct AppTabs: View {
 
     @ViewBuilder private var ootdFeed: some View {
         let categories = closet.items.map(\.category)
+        let openProfile: (String) -> Void = { authorId in
+            if authorId == userId {
+                isShowingProfile = true
+            } else {
+                selectedAuthorId = authorId
+            }
+        }
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         if DiscoveryPostSource.isDemo {
@@ -108,7 +116,8 @@ private struct AppTabs: View {
                 userProfiles: userProfiles,
                 follows: follows,
                 moderation: moderation,
-                closetCategories: categories
+                closetCategories: categories,
+                onOpenProfile: openProfile
             )
         } else {
             InfiniteDiscoveryFeed.live(
@@ -121,7 +130,8 @@ private struct AppTabs: View {
                 userProfiles: userProfiles,
                 follows: follows,
                 moderation: moderation,
-                closetCategories: categories
+                closetCategories: categories,
+                onOpenProfile: openProfile
             )
         }
         #else
@@ -135,7 +145,8 @@ private struct AppTabs: View {
             userProfiles: userProfiles,
             follows: follows,
             moderation: moderation,
-            closetCategories: categories
+            closetCategories: categories,
+            onOpenProfile: openProfile
         )
         #endif
     }
@@ -177,7 +188,7 @@ private struct AppTabs: View {
                     VStack(spacing: 0) {
                         DiscoveryHeader(
                             section: $discoverySection,
-                            profileInitial: profileInitial(session.accountName),
+                            profileInitial: profileInitial(userProfiles.profile(for: userId)?.displayName ?? session.accountName),
                             onProfile: { isShowingProfile = true },
                             onCreatePost: {
                                 discoverySection = 1
@@ -199,7 +210,22 @@ private struct AppTabs: View {
                             pieceCount: closet.items.count,
                             outfitCount: outfits.outfits.count,
                             model: profile,
-                            onSignOut: signOut
+                            onSignOut: signOut,
+                            ownerId: userId,
+                            userProfiles: userProfiles,
+                            follows: follows,
+                            onDeletePost: { post in
+                                try await DiscoveryPostSource.current.deletePost(id: post.id)
+                            }
+                        )
+                    }
+                    .navigationDestination(item: $selectedAuthorId) { authorId in
+                        AuthorProfileView(
+                            authorId: authorId,
+                            currentUserId: userId,
+                            userProfiles: userProfiles,
+                            follows: follows,
+                            moderation: moderation
                         )
                     }
                 }
