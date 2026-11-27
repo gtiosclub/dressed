@@ -50,6 +50,19 @@ struct FirebaseCommentService: CommentService {
             return nil
         }
     }
+
+    func delete(postId: String, commentId: String) async throws {
+        guard currentUserId != nil else { throw CommentError.signedOut }
+        guard isValidFirestoreDocumentId(postId), isValidFirestoreDocumentId(commentId) else {
+            throw CommentError.postRemoved
+        }
+        try await firestore
+            .collection("posts")
+            .document(postId)
+            .collection("comments")
+            .document(commentId)
+            .delete()
+    }
 }
 
 /// Explicitly isolated from Firebase, including when preview posts are composed.
@@ -70,5 +83,10 @@ final class DemoCommentService: CommentService {
         records[postId, default: []].insert(
             PostComment(id: id, authorId: "preview_user", text: text, createdAt: .now), at: 0
         )
+    }
+
+    func delete(postId: String, commentId: String) async throws {
+        try Task.checkCancellation()
+        records[postId]?.removeAll { $0.id == commentId }
     }
 }

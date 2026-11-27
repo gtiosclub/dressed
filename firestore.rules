@@ -100,10 +100,94 @@ service cloud.firestore {
         && validPublishedIndex(outfit.items, 9, root);
     }
 
+    function validUserProfile(uid) {
+      let profile = request.resource.data;
+      return profile.keys().hasAll(['id', 'schemaVersion', 'username', 'displayName', 'createdAt', 'updatedAt'])
+        && profile.keys().hasOnly(['id', 'schemaVersion', 'username', 'displayName', 'avatarPath', 'createdAt', 'updatedAt'])
+        && profile.id == uid
+        && profile.schemaVersion == 1
+        && profile.username is string
+        && profile.username.matches('[a-z0-9._]{2,30}')
+        && profile.displayName is string
+        && profile.displayName.size() >= 1 && profile.displayName.size() <= 50
+        && (!('avatarPath' in profile) || profile.avatarPath == null
+          || (profile.avatarPath is string && profile.avatarPath.size() <= 256))
+        && profile.createdAt is timestamp
+        && profile.updatedAt is timestamp;
+    }
+
+    function validFollow(ownerUid, targetUid, docId) {
+      let follow = request.resource.data;
+      return ownerUid != targetUid
+        && follow.keys().hasAll(['id', 'schemaVersion', 'ownerId', 'targetUserId', 'createdAt'])
+        && follow.keys().hasOnly(['id', 'schemaVersion', 'ownerId', 'targetUserId', 'createdAt'])
+        && follow.id == docId
+        && follow.schemaVersion == 1
+        && follow.ownerId == ownerUid
+        && follow.targetUserId == targetUid
+        && follow.createdAt is timestamp;
+    }
+
+    function validBlockedUser(uid, targetUid) {
+      let block = request.resource.data;
+      return uid != targetUid
+        && block.keys().hasAll(['id', 'schemaVersion', 'ownerId', 'targetUserId', 'createdAt'])
+        && block.keys().hasOnly(['id', 'schemaVersion', 'ownerId', 'targetUserId', 'createdAt'])
+        && block.id == targetUid
+        && block.schemaVersion == 1
+        && block.ownerId == uid
+        && block.targetUserId == targetUid
+        && block.createdAt is timestamp;
+    }
+
+    function validReport(reportId) {
+      let report = request.resource.data;
+      return report.keys().hasAll(['id', 'schemaVersion', 'reporterId', 'targetType', 'targetId', 'reason', 'createdAt'])
+        && report.keys().hasOnly(['id', 'schemaVersion', 'reporterId', 'targetType', 'targetId', 'postId', 'reason', 'createdAt'])
+        && report.id == reportId
+        && report.schemaVersion == 1
+        && report.reporterId == request.auth.uid
+        && report.targetType in ['post', 'comment', 'user']
+        && report.targetId is string && report.targetId.size() >= 1 && report.targetId.size() <= 128
+        && (!('postId' in report) || (report.postId is string && report.postId.size() >= 1 && report.postId.size() <= 128))
+        && report.reason is string && report.reason.size() >= 1 && report.reason.size() <= 500
+        && report.createdAt is timestamp;
+    }
+
     function postCountChangesBy(postId, delta) {
       let postPath = /databases/$(database)/documents/posts/$(postId);
       return exists(postPath) && existsAfter(postPath)
         && likeCount(getAfter(postPath).data) == likeCount(get(postPath).data) + delta;
+    }
+
+    match /users/{uid} {
+      allow get, list: if request.auth != null;
+      allow create: if owns(uid) && validUserProfile(uid);
+      allow update: if owns(uid)
+        && validUserProfile(uid)
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
+    }
+
+    match /users/{uid}/following/{targetUid} {
+      allow get, list: if request.auth != null;
+      allow create: if owns(uid) && validFollow(uid, targetUid, targetUid);
+      allow update: if false;
+      allow delete: if owns(uid);
+    }
+
+    match /users/{uid}/followers/{followerUid} {
+      allow get, list: if request.auth != null;
+      allow create: if owns(followerUid) && validFollow(followerUid, uid, followerUid);
+      allow update: if false;
+      allow delete: if owns(followerUid);
+    }
+
+    match /users/{uid}/blockedUsers/{targetUid} {
+      allow get, list: if owns(uid);
+      allow create: if owns(uid) && validBlockedUser(uid, targetUid);
+      allow update: if false;
+      allow delete: if owns(uid);
     }
 
     match /users/{uid}/items/{itemId} {
@@ -141,7 +225,7 @@ service cloud.firestore {
       allow get, list: if request.auth != null;
       allow create: if request.auth != null && validPostCreate(postId);
       allow update: if request.auth != null && validLikeCountTransition(postId);
-      allow delete: if false;
+      allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
     }
 
     // Comments belong only to existing published posts. Reads are bounded;
@@ -164,7 +248,13 @@ service cloud.firestore {
       allow get: if visiblePost();
       allow list: if visiblePost() && request.query.limit != null && request.query.limit <= 50;
       allow create: if visiblePost() && validComment();
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
+    }
+
+    match /reports/{reportId} {
+      allow create: if request.auth != null && validReport(reportId);
+      allow read, update, delete: if false;
     }
 
     // Public retailer metadata is curated by the backend, never by client writes.

@@ -19,4 +19,9 @@ protocol CommentService {
     var isDemo: Bool { get }
     func fetch(postId: String) async throws -> [PostComment]
     func submit(postId: String, id: String, text: String) async throws
+    func delete(postId: String, commentId: String) async throws
+}
+
+extension CommentService {
+    func delete(postId: String, commentId: String) async throws {}
 }

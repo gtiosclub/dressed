@@ -67,6 +67,17 @@ final class CommentsViewModel: ObservableObject {
         }
     }
 
+    func delete(commentId: String) async {
+        errorMessage = nil
+        do {
+            try await service.delete(postId: postId, commentId: commentId)
+            try Task.checkCancellation()
+            comments.removeAll { $0.id == commentId }
+        } catch {
+            handle(error)
+        }
+    }
+
     private func handle(_ error: Error) {
         guard !Task.isCancelled, !(error is CancellationError) else { return }
         if case CommentError.postRemoved = error {
