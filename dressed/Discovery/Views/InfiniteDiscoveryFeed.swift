@@ -28,7 +28,6 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     @State private var previewPosts: [Post] = []
     @State private var deletedPostIds: Set<String> = []
     @State private var refreshGeneration = 0
-    @State private var socialStateRevision = 0
     @State private var exposureTracker = FeedExposureTracker()
     @State private var appliedPostExposureCounts: [String: Int] = [:]
     @State private var appliedAuthorExposureCounts: [String: Int] = [:]
@@ -45,8 +44,10 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     @StateObject private var catalog = CatalogViewModel(service: DiscoveryCatalogSource.current)
     @ObservedObject private var postLikes: PostLikesViewModel
     @ObservedObject private var userProfiles: UserProfileStore
-    private let follows: FollowViewModel?
-    private let moderation: ModerationViewModel?
+    @ObservedObject private var follows: FollowViewModel
+    @ObservedObject private var moderation: ModerationViewModel
+    private let hasFollowsFilter: Bool
+    private let moderationEnabled: Bool
     private let postService: (any PostFunctions)?
     private let closetCategories: [ClothingCategory]
     private let onOpenProfile: ((String) -> Void)?
@@ -95,25 +96,25 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         self.compositionSource = compositionSource
         self.postLikes = postLikes
         self.userProfiles = userProfiles ?? UserProfileStore(service: DiscoveryPostSource.currentUserProfiles)
-        self.follows = follows
-        self.moderation = moderation
+        self.hasFollowsFilter = follows != nil
+        self.follows = follows ?? FollowViewModel(ownerId: authorId ?? "preview_user", service: DemoFollowFunctions())
+        self.moderationEnabled = moderation != nil
+        self.moderation = moderation ?? ModerationViewModel(ownerId: authorId ?? "preview_user", service: DemoModerationFunctions())
         self.postService = postService
         self.closetCategories = closetCategories
         self.onOpenProfile = onOpenProfile
     }
 
     private var visiblePreviewPosts: [Post] {
-        _ = socialStateRevision
-        return previewPosts.filter { !deletedPostIds.contains($0.id) && moderation?.isBlocked($0.authorId) != true }
+        previewPosts.filter { !deletedPostIds.contains($0.id) && !(moderationEnabled && moderation.isBlocked($0.authorId)) }
     }
 
     private var remainingPosts: [Post] {
-        _ = socialStateRevision
         let insertedIds = Set(previewPosts.map(\.id))
         return model.posts.filter {
             !insertedIds.contains($0.id)
                 && !deletedPostIds.contains($0.id)
-                && moderation?.isBlocked($0.authorId) != true
+                && !(moderationEnabled && moderation.isBlocked($0.authorId))
         }
     }
 
@@ -132,9 +133,8 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     }
 
     private var effectiveRankingContext: FeedRankingContext {
-        _ = socialStateRevision
         var context = rankingContext
-        if context.followedAuthorIDs.isEmpty, let follows {
+        if context.followedAuthorIDs.isEmpty, hasFollowsFilter {
             context.followedAuthorIDs = follows.followingIds
         }
         if context.categoryAffinity.isEmpty {
@@ -155,7 +155,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
 
     private var friendsPosts: [Post] {
         let all = visiblePreviewPosts + remainingPosts
-        guard let follows, follows.hasLoadedFollowing else { return all }
+        guard hasFollowsFilter, follows.hasLoadedFollowing else { return all }
         return all.filter { post in
             follows.isFollowing(post.authorId) || (authorId != nil && post.authorId == authorId)
         }
@@ -171,7 +171,8 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
             && model.hasLoaded
             && !model.isLoading
             && model.errorMessage == nil
-            && follows?.hasLoadedFollowing == true
+            && hasFollowsFilter
+            && follows.hasLoadedFollowing
     }
 
     var body: some View {
@@ -250,15 +251,6 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         .task(id: loadedAuthorIds) {
             await userProfiles.loadIfNeeded(userIds: loadedAuthorIds)
         }
-        .onReceive(follows?.$followingIds.eraseToAnyPublisher() ?? Empty().eraseToAnyPublisher()) { _ in
-            socialStateRevision += 1
-        }
-        .onReceive(follows?.$hasLoadedFollowing.eraseToAnyPublisher() ?? Empty().eraseToAnyPublisher()) { _ in
-            socialStateRevision += 1
-        }
-        .onReceive(moderation?.$blockedUserIds.eraseToAnyPublisher() ?? Empty().eraseToAnyPublisher()) { _ in
-            socialStateRevision += 1
-        }
         .onChange(of: section) { _, newSection in
             if newSection == 0 {
                 appliedPostExposureCounts = exposureTracker.postCounts
@@ -298,7 +290,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                 postId: post.id,
                 service: commentService,
                 userProfiles: userProfiles,
-                moderation: moderation
+                moderation: moderationEnabled ? moderation : nil
             )
         }
         .sheet(item: $selectedPost) { post in
@@ -313,7 +305,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                             postId: selected.id,
                             service: commentService,
                             userProfiles: userProfiles,
-                            moderation: moderation
+                            moderation: moderationEnabled ? moderation : nil
                         )
                     }
                     .modifier(
@@ -461,10 +453,10 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
             onDelete: isOwnPost ? {
                 if inPreview { previewPostPendingDelete = post } else { postPendingDelete = post }
             } : nil,
-            onReport: (!isOwnPost && moderation != nil) ? {
+            onReport: (!isOwnPost && moderationEnabled) ? {
                 if inPreview { previewPostPendingReport = post } else { postPendingReport = post }
             } : nil,
-            onBlockAuthor: (!isOwnPost && moderation != nil) ? {
+            onBlockAuthor: (!isOwnPost && moderationEnabled) ? {
                 if inPreview { previewAuthorPendingBlock = post.authorId } else { authorPendingBlock = post.authorId }
             } : nil
         ) {
@@ -514,7 +506,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     }
 
     private func report(post: Post, reason: String) async {
-        guard let moderation else { return }
+        guard moderationEnabled else { return }
         let succeeded = await moderation.report(
             targetType: .post,
             targetId: post.id,
@@ -529,7 +521,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     }
 
     private func block(userId targetUserId: String) async {
-        guard let moderation else { return }
+        guard moderationEnabled else { return }
         await moderation.block(userId: targetUserId)
         if selectedPost?.authorId == targetUserId {
             selectedPost = nil

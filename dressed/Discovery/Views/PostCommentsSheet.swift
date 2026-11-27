@@ -1,15 +1,14 @@
-import Combine
 import SwiftUI
 
 struct PostCommentsSheet: View {
     @StateObject private var model: CommentsViewModel
+    @ObservedObject private var userProfiles: UserProfileStore
+    @ObservedObject private var moderation: ModerationViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var profileRevision = 0
-    @State private var moderationRevision = 0
 
     private let postId: String
-    private let userProfiles: UserProfileStore?
-    private let moderation: ModerationViewModel?
+    private let hasProfiles: Bool
+    private let moderationEnabled: Bool
 
     init(
         postId: String,
@@ -18,14 +17,15 @@ struct PostCommentsSheet: View {
         moderation: ModerationViewModel? = nil
     ) {
         self.postId = postId
-        self.userProfiles = userProfiles
-        self.moderation = moderation
+        self.hasProfiles = userProfiles != nil
+        self.moderationEnabled = moderation != nil
+        _userProfiles = ObservedObject(wrappedValue: userProfiles ?? UserProfileStore(service: DemoUserProfileFunctions()))
+        _moderation = ObservedObject(wrappedValue: moderation ?? ModerationViewModel(ownerId: "preview_user", service: DemoModerationFunctions()))
         _model = StateObject(wrappedValue: CommentsViewModel(postId: postId, service: service))
     }
 
     private var visibleComments: [PostComment] {
-        _ = moderationRevision
-        return model.comments.filter { moderation?.isBlocked($0.authorId) != true }
+        model.comments.filter { !(moderationEnabled && moderation.isBlocked($0.authorId)) }
     }
 
     private var isEmpty: Bool { model.hasLoaded && visibleComments.isEmpty && !model.isRemoved }
@@ -89,27 +89,24 @@ struct PostCommentsSheet: View {
             }
             .task {
                 await model.load()
-                await userProfiles?.loadIfNeeded(userIds: model.comments.map(\.authorId))
+                if hasProfiles {
+                    await userProfiles.loadIfNeeded(userIds: model.comments.map(\.authorId))
+                }
             }
             .task(id: model.comments.map(\.authorId)) {
-                await userProfiles?.loadIfNeeded(userIds: model.comments.map(\.authorId))
-            }
-            .onReceive(userProfiles?.$profiles.eraseToAnyPublisher() ?? Empty().eraseToAnyPublisher()) { _ in
-                profileRevision += 1
-            }
-            .onReceive(moderation?.$blockedUserIds.eraseToAnyPublisher() ?? Empty().eraseToAnyPublisher()) { _ in
-                moderationRevision += 1
+                if hasProfiles {
+                    await userProfiles.loadIfNeeded(userIds: model.comments.map(\.authorId))
+                }
             }
         }
         .tint(DSColor.brand)
     }
 
     private func commentRow(_ comment: PostComment) -> some View {
-        _ = profileRevision
         let isYou = comment.authorId == model.currentUserId
-        let authorName = isYou ? "You" : (userProfiles?.displayName(for: comment.authorId) ?? "Member")
+        let authorName = isYou ? "You" : (hasProfiles ? userProfiles.displayName(for: comment.authorId) : "Member")
         let initial = authorName.first.map { String($0).uppercased() } ?? "M"
-        let hasMenu = isYou || moderation != nil
+        let hasMenu = isYou || moderationEnabled
         return HStack(alignment: .top, spacing: DSSpacing.md) {
             Text(initial)
                 .font(DSFont.button)
@@ -133,7 +130,7 @@ struct PostCommentsSheet: View {
                         Button("Delete", role: .destructive) {
                             Task { await model.delete(commentId: comment.id) }
                         }
-                    } else if let moderation {
+                    } else if moderationEnabled {
                         Button("Report comment") {
                             Task {
                                 _ = await moderation.report(
