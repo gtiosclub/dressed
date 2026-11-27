@@ -97,4 +97,15 @@ final class PrototypeOutfitStore: ObservableObject {
         outfits = updated
         return outfit
     }
+
+    /// Removes a saved outfit. Its pieces stay in the closet.
+    func delete(id: String) throws {
+        // Another screen's store may have saved since this one last read the file.
+        reload()
+        guard error == nil else { throw PrototypeOutfitError.unavailableStorage }
+        guard outfits.contains(where: { $0.id == id }) else { return }
+        let updated = outfits.filter { $0.id != id }
+        try JSONEncoder().encode(updated).write(to: file, options: .atomic)
+        outfits = updated
+    }
 }

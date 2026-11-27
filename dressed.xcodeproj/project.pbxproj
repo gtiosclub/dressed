@@ -31,6 +31,7 @@
 		E20A00000000000000000206 /* dressed/Camera/ViewModels/RecognitionImageSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000106 /* dressed/Camera/ViewModels/RecognitionImageSession.swift */; };
 		E20A00000000000000000207 /* dressed/Camera/ViewModels/PrototypeGarmentRecognition.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000107 /* dressed/Camera/ViewModels/PrototypeGarmentRecognition.swift */; };
 		E20A00000000000000000208 /* dressed/Camera/ViewModels/OnDeviceGarmentRegions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000108 /* dressed/Camera/ViewModels/OnDeviceGarmentRegions.swift */; };
+		E20A00000000000000000219 /* dressed/Camera/ViewModels/GarmentPoseRegions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000119 /* dressed/Camera/ViewModels/GarmentPoseRegions.swift */; };
 		E20A00000000000000000209 /* dressed/Camera/ViewModels/AutomaticGarmentCutout.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000109 /* dressed/Camera/ViewModels/AutomaticGarmentCutout.swift */; };
 		E20A0000000000000000020A /* dressed/Camera/ViewModels/OnDeviceRecognitionPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A0000000000000000010A /* dressed/Camera/ViewModels/OnDeviceRecognitionPipeline.swift */; };
 		E20A0000000000000000020B /* dressed/Camera/ViewModels/RecognitionBenchmarkModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A0000000000000000010B /* dressed/Camera/ViewModels/RecognitionBenchmarkModel.swift */; };
@@ -106,6 +107,7 @@
 		E20A00000000000000000106 /* dressed/Camera/ViewModels/RecognitionImageSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/RecognitionImageSession.swift; sourceTree = SOURCE_ROOT; };
 		E20A00000000000000000107 /* dressed/Camera/ViewModels/PrototypeGarmentRecognition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/PrototypeGarmentRecognition.swift; sourceTree = SOURCE_ROOT; };
 		E20A00000000000000000108 /* dressed/Camera/ViewModels/OnDeviceGarmentRegions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/OnDeviceGarmentRegions.swift; sourceTree = SOURCE_ROOT; };
+		E20A00000000000000000119 /* dressed/Camera/ViewModels/GarmentPoseRegions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/GarmentPoseRegions.swift; sourceTree = SOURCE_ROOT; };
 		E20A00000000000000000109 /* dressed/Camera/ViewModels/AutomaticGarmentCutout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/AutomaticGarmentCutout.swift; sourceTree = SOURCE_ROOT; };
 		E20A0000000000000000010A /* dressed/Camera/ViewModels/OnDeviceRecognitionPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/OnDeviceRecognitionPipeline.swift; sourceTree = SOURCE_ROOT; };
 		E20A0000000000000000010B /* dressed/Camera/ViewModels/RecognitionBenchmarkModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/RecognitionBenchmarkModel.swift; sourceTree = SOURCE_ROOT; };
@@ -257,6 +259,7 @@
 				E20A00000000000000000106 /* dressed/Camera/ViewModels/RecognitionImageSession.swift */,
 				E20A00000000000000000107 /* dressed/Camera/ViewModels/PrototypeGarmentRecognition.swift */,
 				E20A00000000000000000108 /* dressed/Camera/ViewModels/OnDeviceGarmentRegions.swift */,
+				E20A00000000000000000119 /* dressed/Camera/ViewModels/GarmentPoseRegions.swift */,
 				E20A00000000000000000109 /* dressed/Camera/ViewModels/AutomaticGarmentCutout.swift */,
 				E20A0000000000000000010A /* dressed/Camera/ViewModels/OnDeviceRecognitionPipeline.swift */,
 				E20A0000000000000000010B /* dressed/Camera/ViewModels/RecognitionBenchmarkModel.swift */,
@@ -543,6 +546,7 @@
 				E20A00000000000000000206 /* dressed/Camera/ViewModels/RecognitionImageSession.swift in Sources */,
 				E20A00000000000000000207 /* dressed/Camera/ViewModels/PrototypeGarmentRecognition.swift in Sources */,
 				E20A00000000000000000208 /* dressed/Camera/ViewModels/OnDeviceGarmentRegions.swift in Sources */,
+				E20A00000000000000000219 /* dressed/Camera/ViewModels/GarmentPoseRegions.swift in Sources */,
 				E20A00000000000000000209 /* dressed/Camera/ViewModels/AutomaticGarmentCutout.swift in Sources */,
 				E20A0000000000000000020A /* dressed/Camera/ViewModels/OnDeviceRecognitionPipeline.swift in Sources */,
 				E20A0000000000000000020B /* dressed/Camera/ViewModels/RecognitionBenchmarkModel.swift in Sources */,

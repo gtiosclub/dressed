@@ -11,6 +11,8 @@ struct DSButtonStyle: ButtonStyle {
     }
 
     var kind: Kind = .secondary
+    /// Fixed fill width, such as the 81 pt Back / Next / Skip buttons (1012:282).
+    var width: CGFloat?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -18,8 +20,8 @@ struct DSButtonStyle: ButtonStyle {
         configuration.label
             .font(DSFont.button)
             .foregroundStyle(kind == .primary ? Color.white : DSColor.textPrimary)
-            .padding(.horizontal, 13)
-            .frame(minWidth: 50, minHeight: 50)
+            .padding(.horizontal, width == nil ? 13 : 0)
+            .frame(minWidth: width ?? 50, maxWidth: width, minHeight: 50)
             .background(
                 RoundedRectangle(cornerRadius: DSRadius.md, style: .continuous)
                     .fill(fill)
@@ -40,15 +42,16 @@ struct DSButtonStyle: ButtonStyle {
 }
 
 extension ButtonStyle where Self == DSButtonStyle {
-    static func ds(_ kind: DSButtonStyle.Kind) -> DSButtonStyle { DSButtonStyle(kind: kind) }
+    static func ds(_ kind: DSButtonStyle.Kind, width: CGFloat? = nil) -> DSButtonStyle {
+        DSButtonStyle(kind: kind, width: width)
+    }
 }
 
 #Preview {
     VStack(spacing: DSSpacing.lg) {
         HStack {
             Button("Back") {}
-                .buttonStyle(.ds(.secondary))
-                .frame(width: 81)
+                .buttonStyle(.ds(.secondary, width: 81))
             Spacer()
             Button {} label: {
                 Image("TablerSearch").resizable().frame(width: 24, height: 24)
@@ -58,8 +61,7 @@ extension ButtonStyle where Self == DSButtonStyle {
         }
         HStack {
             Button("Skip") {}
-                .buttonStyle(.ds(.glass))
-                .frame(width: 81)
+                .buttonStyle(.ds(.glass, width: 81))
             Button {} label: {
                 Image("TablerBuildingStore").resizable().frame(width: 24, height: 24)
             }

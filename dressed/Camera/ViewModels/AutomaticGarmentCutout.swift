@@ -8,7 +8,9 @@ import Vision
 nonisolated enum AutomaticGarmentCutout {
     private static let sharedContext = CIContext()
 
-    static func png(from croppedImage: Data, reuseContext: Bool = true,
+    /// `allowsBackgroundFill` enables the plain-backdrop flood fill, which only the speed lab still uses:
+    /// it leaves patches on real photos, so imports keep a clean rectangle instead.
+    static func png(from croppedImage: Data, reuseContext: Bool = true, allowsBackgroundFill: Bool = true,
                     metrics: RecognitionMetrics? = nil) async throws -> Data? {
         try await RecognitionExecution.offMain { () throws -> Data? in
             try Task.checkCancellation()
@@ -26,6 +28,7 @@ nonisolated enum AutomaticGarmentCutout {
                 return masked
             }
             try Task.checkCancellation()
+            guard allowsBackgroundFill else { return nil }
             if let metrics {
                 return metrics.measure("background fallback") { simpleBackgroundMask(cgImage, optimized: reuseContext) }
             }
@@ -52,7 +55,7 @@ nonisolated enum AutomaticGarmentCutout {
             guard let output = (reuseContext ? sharedContext : CIContext()).createCGImage(ciImage, from: ciImage.extent) else { return nil }
             return UIImage(cgImage: output).pngData()
         } catch {
-            metrics?.warning("Vision foreground mask failed; using plain-background fallback.", error: error)
+            metrics?.warning("Vision foreground mask failed.", error: error)
             return nil
         }
     }

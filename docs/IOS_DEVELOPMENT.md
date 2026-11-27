@@ -40,11 +40,23 @@ for the isolated diagnostic. See [the #208 demo guide](recognition-speed-demo.md
 for Release comparisons, exported timings, regression tests and remaining phone checks.
 
 The Python fixture service and Google response adapters remain separate developer
-tools; starting that service no longer changes the app's recognition results.
+tools. Only its `--apple-vision` mode, described below, feeds the app (Debug
+simulator builds); the Google and fixture modes do not change imports.
 See [the recognition prototype guide](../backend/recognition/README.md) for those
 legacy experiments. Historical observations below are dated explicitly.
 
-For a shared image, return to Dressed after finishing the iOS share sheet. The extension cannot force the app to open; Dressed presents the queued review when it becomes active. Recognition begins automatically. The app tries Apple's foreground-instance mask on each suggested crop, then a local edge flood fill for plain product-photo backgrounds. A mask can include skin, miss fabric or retain a shadow, so inspect it before selecting. **Add Piece Manually** opens the region editor. Choose **Draw Outline**, trace with a finger or tap several points and **Close Outline**, then **Use Outline** to replace an inaccurate cutout. A transparent cutout saves as PNG; a rectangle keeps JPEG. Both build configurations use only on-device suggestions.
+**Pieces in the simulator:** the simulator cannot run Apple's body-pose model, so a worn outfit comes back as one whole-photo piece. To split it into Top, Bottom and Shoes, run the same Apple Vision step on your Mac while testing (local only, no cloud calls). A Debug simulator build uses it automatically for new imports; physical devices run the model themselves.
+
+```sh
+python3 backend/recognition/local_service.py --apple-vision
+# Optional garment outlines: add --clothes-model <ClothesParser.mlpackage> (backend/recognition/README.md)
+```
+
+The same bridge compares catalog images for product matches, which the simulator also cannot do itself. Without it, review shows no matches.
+
+Upload takes one photo or a product link. Closing a photo review discards it immediately; a review interrupted by quitting the app resumes on the next launch.
+
+For a shared image, return to Dressed after finishing the iOS share sheet. The extension cannot force the app to open; Dressed presents the queued review when it becomes active. Recognition begins automatically. With a [clothes-parsing model](../backend/recognition/README.md#clothes-parsing-evaluation-only) each piece is cut out along its outline. Otherwise the app tries Apple's foreground-instance mask on each suggested crop and keeps the plain rectangle if that fails (imports no longer use the edge flood fill). A mask can include skin, miss fabric or retain a shadow, so inspect it before selecting. **Add Piece Manually** opens the region editor. Choose **Draw Outline**, trace with a finger or tap several points and **Close Outline**, then **Use Outline** to replace an inaccurate cutout. A transparent cutout saves as PNG; a rectangle keeps JPEG. Both build configurations use only on-device suggestions.
 
 On October 16, a real public shoe photo selected from Photos on the iOS 27 simulator opened review and automatically produced one unselected candidate. The background fallback made a 1620×785 transparent PNG; its alpha ranged from 0 to 1 and the shoe was visibly isolated. The simulator's on-device classifier returned an Espresso context error, so the candidate kept the generic name **Piece**. This verifies one plain-background cutout, not general garment segmentation or category accuracy.
 
@@ -98,7 +110,7 @@ xcrun simctl create 'Dressed Data E2E' \
 SIMULATOR_ID=<UDID printed above> tests/run-data-feature-ui-tests.sh
 ```
 
-The runner verifies the simulator name, erases that device, seeds two synthetic photos, and runs eight focused XCUITests covering photo picker handoff, multi-photo review, Share to Dressed review and persistence, and product-link Wishlist save/relaunch. It prints an `.xcresult` path and a `screenshots` directory with exported review screenshots. The test session uses `-mockSignedIn` to isolate import behavior; run the normal signed-in app separately for Firebase authentication. The synthetic photos prove picker and review wiring, not recognition accuracy. The reader service is not started by this runner, so the product-link test covers manual fallback.
+The runner verifies the simulator name, erases that device, seeds two synthetic photos, and runs seven focused XCUITests covering photo picker handoff, Share to Dressed review and persistence, and product-link Wishlist save/relaunch. It prints an `.xcresult` path and a `screenshots` directory with exported review screenshots. The test session uses `-mockSignedIn` to isolate import behavior; run the normal signed-in app separately for Firebase authentication. The synthetic photos prove picker and review wiring, not recognition accuracy. The reader service is not started by this runner, so the product-link test covers manual fallback.
 
 ## Hot reload loop
 

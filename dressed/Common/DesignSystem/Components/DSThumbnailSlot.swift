@@ -18,14 +18,14 @@ struct DSCropFrame: View {
     var color: Color = .white
 
     var body: some View {
-        RoundedRectangle(cornerRadius: DSRadius.xl, style: .continuous)
+        RoundedRectangle(cornerRadius: DSRadius.crop, style: .continuous)
             .strokeBorder(color, lineWidth: 5)
     }
 }
 
 #Preview("Thumbnail slots") {
     HStack(spacing: DSSpacing.xs) {
-        Button("Back") {}.buttonStyle(.ds(.secondary)).frame(width: 81)
+        Button("Back") {}.buttonStyle(.ds(.secondary, width: 81))
         DSThumbnailSlot {
             Image("PreviewJeans").resizable().scaledToFit()
         }

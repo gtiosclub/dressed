@@ -11,6 +11,8 @@ struct RetailCatalogRecord: Decodable {
     let source: String
     let status: String
     let retailProduct: RetailProduct
+    /// An https URL in a hosted catalog, or a pack-relative path in a local catalog pack.
+    var cutoutImageURL: String? = nil
 
     var catalogProduct: CatalogProduct {
         var result = CatalogProduct(
@@ -22,6 +24,7 @@ struct RetailCatalogRecord: Decodable {
             status: status, lastCheckedAt: retailProduct.observedAt
         )
         result.retailProduct = retailProduct
+        result.cutoutImageURL = cutoutImageURL.flatMap(URL.init(string:)).flatMap { $0.scheme == "https" ? $0 : nil }
         return result
     }
 }

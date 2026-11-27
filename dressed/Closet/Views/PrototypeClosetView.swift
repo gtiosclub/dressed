@@ -229,7 +229,7 @@ struct PrototypeClosetView: View {
                     ForEach(visibleOutfits) { outfit in
                         let pieces = outfit.placements.compactMap { closet.item(id: $0.itemId) }
                         NavigationLink {
-                            PrototypeOutfitDetailView(outfit: outfit, closet: closet,
+                            PrototypeOutfitDetailView(outfit: outfit, closet: closet, outfits: outfits,
                                                       onTryOutfit: onTryOutfit, onTryOn: onTryOn)
                         } label: {
                             DSOutfitCollage(count: min(4, pieces.count),

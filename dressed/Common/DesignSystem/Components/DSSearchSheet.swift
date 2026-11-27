@@ -50,7 +50,8 @@ struct DSSearchSheet: View {
                     .padding(.top, 23)
                     .padding(.bottom, DSSpacing.lg)
 
-                    field
+                    DSSearchField(prompt: prompt, query: $query, onSubmit: onSubmit)
+                        .focused($focused)
                         .padding(.horizontal, 9)
                         .padding(.bottom, DSSpacing.sm)
                 }
@@ -68,26 +69,6 @@ struct DSSearchSheet: View {
             focused = true
             withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) { appeared = true }
         }
-    }
-
-    private var field: some View {
-        TextField("", text: $query, prompt: Text(prompt).foregroundStyle(DSColor.textMuted))
-            .font(DSFont.search)
-            .tint(DSColor.textPrimary)
-            .focused($focused)
-            .submitLabel(.search)
-            .onSubmit(onSubmit)
-            .padding(.horizontal, DSSpacing.lg)
-            .frame(height: DSFloatingSearchButton.height)
-            .background(
-                RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous)
-                    .fill(DSColor.background)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous)
-                            .stroke(DSColor.fieldBorder, lineWidth: 1)
-                    )
-                    .dsShadow(.floating)
-            )
     }
 }
 

@@ -248,7 +248,12 @@ private struct AppTabs: View {
                             deferredSharedId = nil
                             deferredSharedLinkId = nil
                             presentNextShare()
-                        } : nil
+                        } : nil,
+                        onReviewImage: { image in
+                            guard pendingSharedImage == nil, pendingSharedLink == nil else { return }
+                            presentedSharedId = image.id
+                            pendingSharedImage = image
+                        }
                     )
                 }
                 .toolbar(.hidden, for: .tabBar)
@@ -375,7 +380,7 @@ private struct AppTabs: View {
 
         // MARK: - Shared Image Review
 
-        .sheet(
+        .fullScreenCover(
             item: $pendingSharedImage,
             onDismiss: {
                 if let presentedSharedId {
@@ -391,10 +396,7 @@ private struct AppTabs: View {
                 ownerId: userId,
                 closet: closet,
                 recognizer: sharedRecognitionService,
-                onLater: {
-                    deferredSharedId = image.id
-                    pendingSharedImage = nil
-                },
+                matcher: productMatcher,
                 onDiscard: {
                     SharedImageInbox.remove(id: image.id)
                     presentedSharedId = nil
@@ -452,6 +454,17 @@ private struct AppTabs: View {
                 catch { sharedImageError = error.localizedDescription }
             }
 
+            // Reviews a photo from this Mac, for simulator checks with real images.
+            if let marker = arguments.firstIndex(of: "-importPhoto"),
+               arguments.indices.contains(marker + 1) {
+                do {
+                    let data = try Data(contentsOf: URL(fileURLWithPath: arguments[marker + 1]))
+                    _ = try SharedImageInbox.enqueue(imageData: data, ownerId: userId, source: "Debug photo")
+                } catch {
+                    sharedImageError = error.localizedDescription
+                }
+            }
+
             if let marker = arguments.firstIndex(
                 of: "-seedShareFixture"
             ),
@@ -491,6 +504,18 @@ private struct AppTabs: View {
         return OnDeviceImportRecognitionService()
     }
 
+
+    private var productMatcher: any ProductMatching {
+        #if DEBUG
+        // Fixture-backed import tests isolate review behavior from catalog matches unless they opt in.
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-mockSignedIn") && !arguments.contains("-demoMatches") {
+            return NoProductMatches()
+        }
+        #endif
+        if let indexed = CatalogIndexMatcher.configured { return indexed }
+        return CatalogVisualMatcher.shared
+    }
 
     private func signOut() {
         do {

@@ -231,3 +231,23 @@ Discovery → For You → Shop retailers shows a mixed shelf; See all searches t
 retailers, brands and categories. The catalog is read-only for signed-in clients;
 client writes and guest reads are denied. The first version is bounded to 200
 products, with the richer `RetailProduct` retained in each presentation record.
+
+## Catalog pack for matching (local evaluation)
+
+`build_catalog_pack.py` turns the Livostyle snapshot above into cut-out product images plus a matching index. For each product it prefers a gallery photo with no person (cut out with Apple's foreground mask) and otherwise cuts the garment off the model photo with the [parsing model](../recognition/README.md#clothes-parsing-evaluation-only); products with no usable outline are skipped. Vectors are Apple feature prints (revision 2) of each cutout on white, produced by the same Swift code the app uses.
+
+```sh
+python3 backend/catalog/build_catalog_pack.py /private/tmp/dressed-livostyle-products.json \
+  /private/tmp/dressed-ml/pack --model /private/tmp/dressed-ml/ClothesParser.mlpackage
+python3 backend/catalog/evaluate_catalog_pack.py /private/tmp/dressed-ml/pack \
+  --model /private/tmp/dressed-ml/ClothesParser.mlpackage
+```
+
+Run a Debug simulator build with `-catalogPackPath /private/tmp/dressed-ml/pack` while `local_service.py --apple-vision` is running (it computes each piece's vector). Devices compute vectors themselves; a pack folder named `CatalogPack` in the app bundle is picked up, but none is committed.
+
+The dataset is MIT licensed, but reuse of the product images and of edited copies is unreviewed. Keep packs local: do not commit, upload or ship them. Nothing here writes to Firebase or Cloud Storage, and `upload_catalog_seed.py` still accepts only the original 80-product seed.
+
+
+November 27, 2026 run: 907 products (tops 249, dresses 250, pants 216, accessories 79, outerwear 57, skirts 38, shoes 18). Skirts, shoes and outerwear are limited by this single source (35 shoes also had no usable outline), far below the 150-300 per category in the plan. 206 cutouts came from product-only photos and 701 from model photos; some have holes where hair or arms covered the garment, and some are fragments or fabric close-ups.
+
+`evaluate_catalog_pack.py` reported 70% top-3 and 62% top-1 over 50 queries (pants 36% top-3), excluding the retailer's square copies. **Do not treat this as passing the matching gate.** This source's galleries are largely crops and variants of one photograph, so many queries are nearly the indexed image. Accuracy on a person's own photo is unmeasured and likely lower. A valid test needs separately photographed products. In simulator spot checks, tee, jeans, sneaker and blouse matches were plausible; a headscarf matched earrings and sunglasses because the catalog has no similar item.

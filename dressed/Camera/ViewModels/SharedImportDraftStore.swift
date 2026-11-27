@@ -157,27 +157,33 @@ nonisolated enum SharedImportDraftStore {
 
     static func addAutomaticCutouts(to candidates: [ImportCandidate], imageData: Data) async -> [ImportCandidate] {
         var result = candidates
-        guard let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SharedImageInbox.groupId) else {
-            return result
-        }
-        let directory = root.appendingPathComponent("Cutouts", isDirectory: true)
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         for index in result.indices {
             guard !Task.isCancelled else { break }
             let candidate = result[index]
             guard candidate.outline == nil,
                   candidate.temporaryCutoutPath == nil,
                   let crop = try? Self.imageData(for: candidate, in: imageData),
-                  let png = try? await AutomaticGarmentCutout.png(from: crop) else { continue }
-            let path = "Cutouts/\(candidate.id).png"
-            do {
-                try png.write(to: root.appendingPathComponent(path), options: .atomic)
-                result[index].temporaryCutoutPath = path
-            } catch {
-                // Keep the rectangular crop if the temporary file cannot be written.
-            }
+                  let png = try? await AutomaticGarmentCutout.png(from: crop, allowsBackgroundFill: false) else { continue }
+            // Keep the rectangular crop if the temporary file cannot be written.
+            result[index].temporaryCutoutPath = writeCutout(png, for: candidate.id)
         }
         return result
+    }
+
+    /// Saves a piece's temporary cutout and returns the draft-relative path, or nil if it cannot be written.
+    static func writeCutout(_ png: Data, for candidateID: String) -> String? {
+        guard UUID(uuidString: candidateID) != nil,
+              let root = FileManager.default.containerURL(
+                forSecurityApplicationGroupIdentifier: SharedImageInbox.groupId) else { return nil }
+        let path = "Cutouts/\(candidateID).png"
+        do {
+            try FileManager.default.createDirectory(at: root.appendingPathComponent("Cutouts", isDirectory: true),
+                                                    withIntermediateDirectories: true)
+            try png.write(to: root.appendingPathComponent(path), options: .atomic)
+            return path
+        } catch {
+            return nil
+        }
     }
 
     static func removeAutomaticCutouts(for candidates: [ImportCandidate]) {

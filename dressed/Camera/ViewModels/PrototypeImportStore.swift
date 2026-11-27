@@ -244,6 +244,35 @@ enum SharedImageInbox {
         return .none
     }
 
+    /// Queues a camera capture or single uploaded photo so it goes through the same
+    /// piece review, Later and Discard handling as an image shared from another app.
+    static func enqueue(imageData: Data, ownerId: String, source: String) throws -> ReviewImage {
+        guard !ownerId.isEmpty, let image = UIImage(data: imageData),
+              let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId) else {
+            throw PrototypeImportError.invalidImage
+        }
+        // Normalize orientation and format: the review stores JPEG and crops in display coordinates.
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let upright = UIGraphicsImageRenderer(size: image.size, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: image.size))
+        }
+        guard let jpeg = upright.jpegData(compressionQuality: 0.9) else { throw PrototypeImportError.invalidImage }
+        let inbox = root.appendingPathComponent("Inbox", isDirectory: true)
+        try FileManager.default.createDirectory(at: inbox, withIntermediateDirectories: true)
+        let id = UUID().uuidString
+        let imageURL = inbox.appendingPathComponent("\(id).jpg")
+        try jpeg.write(to: imageURL, options: .atomic)
+        do {
+            try JSONEncoder().encode(SharedImageEnvelope(id: id, ownerId: ownerId, createdAt: Date()))
+                .write(to: inbox.appendingPathComponent("\(id).json"), options: .atomic)
+        } catch {
+            try? FileManager.default.removeItem(at: imageURL)
+            throw error
+        }
+        return ReviewImage(id: id, data: jpeg, source: source, isShared: true)
+    }
+
     static func remove(id: String) {
         guard UUID(uuidString: id) != nil else { return }
         guard let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId) else {

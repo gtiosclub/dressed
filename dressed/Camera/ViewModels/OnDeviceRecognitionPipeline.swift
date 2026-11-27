@@ -18,9 +18,11 @@ nonisolated struct RecognitionRun {
 
 nonisolated enum OnDeviceRecognitionPipeline {
     static func run(imageData: Data, importID: String,
-                    mode: RecognitionMode = .nativePixels) async throws -> RecognitionRun {
+                    mode: RecognitionMode = .nativePixels,
+                    allowsBackgroundFill: Bool = true) async throws -> RecognitionRun {
         let task = Task.detached(priority: .userInitiated) {
-            try await process(imageData: imageData, importID: importID, mode: mode)
+            try await process(imageData: imageData, importID: importID, mode: mode,
+                              allowsBackgroundFill: allowsBackgroundFill)
         }
         return try await withTaskCancellationHandler {
             let result = try await task.value
@@ -32,7 +34,8 @@ nonisolated enum OnDeviceRecognitionPipeline {
     }
 
     private static func process(imageData: Data, importID: String,
-                                mode: RecognitionMode) async throws -> RecognitionRun {
+                                mode: RecognitionMode,
+                                allowsBackgroundFill: Bool) async throws -> RecognitionRun {
         try Task.checkCancellation()
         let start = ProcessInfo.processInfo.systemUptime
         let metrics = RecognitionMetrics()
@@ -56,7 +59,8 @@ nonisolated enum OnDeviceRecognitionPipeline {
             try Task.checkCancellation()
             let crop = try images.crop(candidate)
             if let png = try await AutomaticGarmentCutout.png(
-                from: crop, reuseContext: mode != .baseline, metrics: metrics) {
+                from: crop, reuseContext: mode != .baseline,
+                allowsBackgroundFill: allowsBackgroundFill, metrics: metrics) {
                 cutouts[candidate.id] = png
             }
         }

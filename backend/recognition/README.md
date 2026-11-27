@@ -1,5 +1,43 @@
 # Garment recognition experiment
 
+## Apple Vision on the Mac (free, local)
+
+`python3 backend/recognition/local_service.py --apple-vision` compiles `apple_vision.swift` with the app's `GarmentPoseRegions.swift` and returns Top, Bottom and Shoes regions (plus Headwear when the classifier sees a hat or scarf) on `127.0.0.1:8765`. Debug simulator builds use it automatically for new imports, because the simulator cannot run the body-pose model. No cloud calls or credentials. Requires Xcode command line access (`DEVELOPER_DIR` may need to point at Xcode.app).
+
+## Clothes parsing (evaluation only)
+
+Garment parsing labels every pixel, so review gets the exact shape of tops, dresses, pants, skirts, shoes, hats, scarves, bags, belts and sunglasses. Without a model, the app uses body regions as before.
+
+**Do not ship or commit the model.** The weights ([mattmdjaga/segformer_b2_clothes](https://huggingface.co/mattmdjaga/segformer_b2_clothes), license "other") derive from NVIDIA SegFormer, whose [license](https://github.com/NVlabs/SegFormer/blob/master/LICENSE) allows research or evaluation use only, and were trained on the ATR dataset, whose repository publishes no license file. Choosing a shippable model is a lead decision.
+
+Convert (about 28 MB, int8; 99.8% or more of pixels matched PyTorch on four test photos):
+
+```sh
+uv venv --python 3.12 /private/tmp/dressed-ml/venv
+uv pip install --python /private/tmp/dressed-ml/venv/bin/python \
+  torch==2.5.1 transformers==4.46.3 coremltools==8.2 'numpy<2' pillow safetensors
+# Download config.json and model.safetensors (revision 584abc1) into /private/tmp/dressed-ml/model.
+/private/tmp/dressed-ml/venv/bin/python backend/recognition/convert_clothes_parser.py \
+  /private/tmp/dressed-ml/model /private/tmp/dressed-ml/ClothesParser.mlpackage
+```
+
+Use it in a Debug simulator build, either with the launch argument `-clothesModelPath /private/tmp/dressed-ml/ClothesParser.mlpackage`, or through the bridge with `local_service.py --apple-vision --clothes-model <path>`. For a local device evaluation, copy the package into `dressed/Camera/Models/` (git-ignored) so Xcode bundles it, and remove it before any release build.
+
+Score it on hand-annotated photos (`evaluate_parser.py --help` shows the manifest). Gate: each of top, dress, pants and skirt found in at least 90% of the photos that show it.
+
+November 27, 2026 run, 34 development photos (30 Livostyle product photos and 4 simulator samples), annotated by one agent before the run; not a consented user-photo set:
+
+| Piece | Found |
+| --- | --- |
+| Dress | 7 / 7 |
+| Top | 15 / 16 |
+| Pants | 15 / 17 (below the gate) |
+| Skirt | 2 / 6 (below the gate; mostly read as dress or top) |
+| Shoes | 13 / 14 |
+| Accessory | 6 / 6 |
+
+Extra pieces not annotated: 6 tops, 3 dresses, 1 skirt, 1 accessory. **The gate does not pass.** Outerwear has no separate label and appears as Top; shorts appear as Pants. One parse took about 1 s on the simulator CPU. iPhone speed and memory are unmeasured.
+
 ## Live development mode
 
 The separate Google Cloud project `dressed-511821` has billing linked and the Vision API enabled. A project-scoped **$5 monthly alert** exists, and the project's Object Localization and Product Search quotas are each one request per minute. These are not dollar caps: Google Vision is not covered by the current enforced spend-cap budget feature. Do not increase quotas or use non-development images without lead review.

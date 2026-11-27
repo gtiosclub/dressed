@@ -69,7 +69,7 @@ struct CatalogProductImage: View {
     let product: CatalogProduct
 
     var body: some View {
-        AsyncImage(url: product.imageURL, transaction: Transaction(animation: .easeOut(duration: 0.25))) { phase in
+        AsyncImage(url: product.displayImageURL, transaction: Transaction(animation: .easeOut(duration: 0.25))) { phase in
             if case .success(let image) = phase {
                 image.resizable().scaledToFill().transition(.opacity)
             } else {
