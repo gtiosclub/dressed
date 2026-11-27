@@ -19,41 +19,21 @@ nonisolated enum OnDeviceGarmentRegions {
                 throw error
             }
             try Task.checkCancellation()
-            guard let person = request.results?.first else { return [(String, NormalizedImageRegion)]() }
-
-            func point(_ joint: VNHumanBodyPoseObservation.JointName) -> CGPoint? {
-                guard let result = try? person.recognizedPoint(joint), result.confidence >= 0.35 else {
-                    return nil
-                }
-                return result.location
-            }
-
-            guard let leftShoulder = point(.leftShoulder), let rightShoulder = point(.rightShoulder),
-                  let leftHip = point(.leftHip), let rightHip = point(.rightHip) else {
-                return [(String, NormalizedImageRegion)]()
-            }
-
-            var found: [(String, NormalizedImageRegion)] = []
-            if let upper = region(points: [leftShoulder, rightShoulder, leftHip, rightHip],
-                                  horizontalMargin: 0.08, topMargin: 0.07, bottomMargin: 0.03) {
-                found.append(("upper", upper))
-            }
-            if let leftLeg = point(.leftAnkle) ?? point(.leftKnee),
-               let rightLeg = point(.rightAnkle) ?? point(.rightKnee),
-               let lower = region(points: [leftHip, rightHip, leftLeg, rightLeg],
-                                  horizontalMargin: 0.07, topMargin: 0.03, bottomMargin: 0.07) {
-                found.append(("lower", lower))
-            }
-            return found
+            return GarmentPoseRegions.regions(in: request.results?.first)
         }
 
         var candidates: [ImportCandidate] = []
         for (part, region) in regions {
             try Task.checkCancellation()
+            let defaults: (String, ClothingCategory) = switch part {
+            case "upper": ("Top", .tops)
+            case "shoes": ("Shoes", .shoes)
+            default: ("Bottom", .pants)
+            }
             let prototype = ImportCandidate(
                 id: SharedImportDraftStore.stableID(importID: importID, part: part),
-                name: part == "upper" ? "Top" : "Bottom",
-                category: part == "upper" ? .tops : .pants,
+                name: defaults.0,
+                category: defaults.1,
                 destination: .closet,
                 temporaryCutoutPath: nil,
                 region: region,
@@ -75,12 +55,31 @@ nonisolated enum OnDeviceGarmentRegions {
         return candidates
     }
 
-    nonisolated private static func region(points: [CGPoint], horizontalMargin: Double,
-                               topMargin: Double, bottomMargin: Double) -> NormalizedImageRegion? {
-        let left = max(0, Double(points.map(\.x).min() ?? 0) - horizontalMargin)
-        let right = min(1, Double(points.map(\.x).max() ?? 1) + horizontalMargin)
-        let top = max(0, 1 - Double(points.map(\.y).max() ?? 1) - topMargin)
-        let bottom = min(1, 1 - Double(points.map(\.y).min() ?? 0) + bottomMargin)
+    /// Bounds of Vision's foreground subjects, used to frame a single product photo.
+    /// Returns nil when Vision finds no subject or cannot run (for example on the simulator).
+    nonisolated static func foregroundBounds(imageData: Data) -> NormalizedImageRegion? {
+        guard let request = try? VisionRequestRunner.perform({ VNGenerateForegroundInstanceMaskRequest() }, on: imageData),
+              let observation = request.results?.first else { return nil }
+        let mask = observation.instanceMask
+        CVPixelBufferLockBaseAddress(mask, .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(mask, .readOnly) }
+        guard let base = CVPixelBufferGetBaseAddress(mask) else { return nil }
+        let width = CVPixelBufferGetWidth(mask), height = CVPixelBufferGetHeight(mask)
+        let stride = CVPixelBufferGetBytesPerRow(mask)
+        var minX = width, minY = height, maxX = -1, maxY = -1
+        for y in 0..<height {
+            let row = base.advanced(by: y * stride).assumingMemoryBound(to: UInt8.self)
+            for x in 0..<width where row[x] != 0 {
+                minX = min(minX, x); maxX = max(maxX, x)
+                minY = min(minY, y); maxY = max(maxY, y)
+            }
+        }
+        guard maxX >= minX, maxY >= minY else { return nil }
+        let pad = 0.03
+        let left = max(0, Double(minX) / Double(width) - pad)
+        let top = max(0, Double(minY) / Double(height) - pad)
+        let right = min(1, Double(maxX + 1) / Double(width) + pad)
+        let bottom = min(1, Double(maxY + 1) / Double(height) + pad)
         let result = NormalizedImageRegion(x: left, y: top, width: right - left, height: bottom - top)
         return result.isValid && result.width >= 0.08 && result.height >= 0.08 ? result : nil
     }

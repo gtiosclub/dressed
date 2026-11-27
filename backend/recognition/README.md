@@ -1,5 +1,9 @@
 # Garment recognition experiment
 
+## Apple Vision on the Mac (free, local)
+
+`python3 backend/recognition/local_service.py --apple-vision` compiles `apple_vision.swift` with the app's `GarmentPoseRegions.swift` and returns Top, Bottom and Shoes regions on `127.0.0.1:8765`. Debug simulator builds use it automatically for new imports, because the simulator cannot run the body-pose model. No cloud calls or credentials. Requires Xcode command line access (`DEVELOPER_DIR` may need to point at Xcode.app).
+
 ## Live development mode
 
 The separate Google Cloud project `dressed-511821` has billing linked and the Vision API enabled. A project-scoped **$5 monthly alert** exists, and the project's Object Localization and Product Search quotas are each one request per minute. These are not dollar caps: Google Vision is not covered by the current enforced spend-cap budget feature. Do not increase quotas or use non-development images without lead review.

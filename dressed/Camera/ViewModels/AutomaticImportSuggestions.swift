@@ -1,9 +1,35 @@
 import Foundation
+import UIKit
 
 struct OnDeviceImportRecognitionService: GarmentRecognitionService {
     func detect(imageData: Data, importID: String) async throws -> [ImportCandidate] {
-        try await AutomaticImportSuggestions.detect(imageData: imageData, importID: importID)
+        #if DEBUG && targetEnvironment(simulator)
+        // The simulator cannot run Apple's body-pose model. When the local Mac bridge is running
+        // (local_service.py --apple-vision), use its pieces. UI tests stay on the in-app pipeline.
+        if !ProcessInfo.processInfo.arguments.contains("-mockSignedIn"),
+           let found = try? await LocalGarmentRecognition()
+               .detect(imageData: Self.bridgeSized(imageData), importID: importID),
+           !found.isEmpty {
+            try Task.checkCancellation()
+            return await SharedImportDraftStore.addAutomaticCutouts(to: found, imageData: imageData)
+        }
+        #endif
+        return try await AutomaticImportSuggestions.detect(imageData: imageData, importID: importID)
     }
+
+    #if DEBUG && targetEnvironment(simulator)
+    /// The bridge accepts 5 MB. Regions are normalized, so a smaller copy gives the same boxes.
+    private static func bridgeSized(_ data: Data) -> Data {
+        guard data.count > 4_500_000, let image = UIImage(data: data) else { return data }
+        let scale = min(1, 2000 / max(image.size.width, image.size.height))
+        let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: size, format: format).jpegData(withCompressionQuality: 0.85) { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
+        }
+    }
+    #endif
 }
 
 #if DEBUG

@@ -1,14 +1,16 @@
 import SwiftUI
 import UIKit
 
-// Share-to-Dressed review. Two steps, both from the Figma frames:
-// 1. One detected piece at a time over the source photo (777:6352 browsing, 1012:282 selected).
+// Piece review for shared images, camera captures and single uploads. Two steps, both from the Figma frames:
+// 1. One detected piece at a time over the source photo (777:6352 browsing, 1012:282 selected),
+//    with up to three visually similar catalog products to choose from.
 // 2. A summary of the accepted pieces with the two import actions (1253:449).
 struct SharedImportReviewView: View {
     let image: ReviewImage
     let ownerId: String
     @ObservedObject var closet: PrototypeClosetStore
     let recognizer: any GarmentRecognitionService
+    let matcher: any ProductMatching
     let onLater: () -> Void
     let onDiscard: () -> Void
     let onSaved: () -> Void
@@ -21,18 +23,24 @@ struct SharedImportReviewView: View {
     @State private var detectionID = UUID()
     @State private var errorMessage: String?
     @State private var cropCandidateID: String?
-    @State private var detailsCandidateID: String?
-    @State private var chosenCandidateID: String?
+    @State private var searchCandidateID: String?
+    /// The option picked for the current piece: a product match ID, or `ownPhotoOption`.
+    @State private var chosenOption: String?
+    @State private var matches: [String: [ProductMatch]] = [:]
+    @State private var matchLoadingIDs: Set<String> = []
+    private let ownPhotoOption = "own-photo"
     @State private var confirmsDiscard = false
 
     init(image: ReviewImage, ownerId: String, closet: PrototypeClosetStore,
          recognizer: any GarmentRecognitionService = OnDeviceImportRecognitionService(),
+         matcher: (any ProductMatching)? = nil,
          onLater: @escaping () -> Void, onDiscard: @escaping () -> Void,
          onSaved: @escaping () -> Void) {
         self.image = image
         self.ownerId = ownerId
         self.closet = closet
         self.recognizer = recognizer
+        self.matcher = matcher ?? CatalogVisualMatcher.shared
         self.onLater = onLater
         self.onDiscard = onDiscard
         self.onSaved = onSaved
@@ -58,7 +66,7 @@ struct SharedImportReviewView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
+        ZStack(alignment: .topLeading) {
             DSColor.background.ignoresSafeArea()
             Group {
                 if let candidate = currentCandidate {
@@ -82,7 +90,7 @@ struct SharedImportReviewView: View {
             .disabled(isSaving)
             closeMenu
         }
-        .confirmationDialog("Discard this shared image?", isPresented: $confirmsDiscard) {
+        .confirmationDialog("Discard this image?", isPresented: $confirmsDiscard) {
             Button("Discard Image", role: .destructive) { detectionTask?.cancel(); onDiscard() }
         } message: {
             Text("The draft and its temporary image will be removed.")
@@ -103,10 +111,16 @@ struct SharedImportReviewView: View {
             }
         }
         .sheet(isPresented: Binding(
-            get: { detailsCandidateID != nil },
-            set: { if !$0 { detailsCandidateID = nil } }
+            get: { searchCandidateID != nil },
+            set: { if !$0 { searchCandidateID = nil } }
         )) {
-            if let id = detailsCandidateID { detailsSheet(id: id) }
+            if let id = searchCandidateID {
+                ProductSearchSheet(matcher: matcher, onClose: { searchCandidateID = nil }) { match in
+                    matches[id] = [match] + (matches[id] ?? []).filter { $0.id != match.id }.prefix(2)
+                    chosenOption = match.id
+                    searchCandidateID = nil
+                }
+            }
         }
         .interactiveDismissDisabled(isSaving)
         .task {
@@ -121,76 +135,143 @@ struct SharedImportReviewView: View {
 
     // MARK: - Step 1: one piece at a time
 
+    // Sizes from 1012:282 (402 x 874): a 385 pt square photo, 82 pt rows 4 pt apart, a 56 pt
+    // search row and a 50 pt footer. The photo gives up height first on smaller phones.
     private func pieceStep(_ candidate: ImportCandidate) -> some View {
-        let isChosen = chosenCandidateID == candidate.id
         let total = draft?.candidates.count ?? 0
-        return VStack(spacing: DSSpacing.sm) {
-            sourcePhoto(candidate: candidate, isChosen: isChosen,
+        let found = matches[candidate.id] ?? []
+        let isLoadingMatches = matchLoadingIDs.contains(candidate.id)
+        return VStack(spacing: 0) {
+            sourcePhoto(candidate: candidate, isChosen: chosenOption != nil,
                         badge: "\(reviewedCount + 1) of \(total)")
-            Button {
-                chosenCandidateID = isChosen ? nil : candidate.id
-            } label: {
-                DSCandidateRow(title: candidate.name.isEmpty ? "Add a name" : candidate.name,
-                               subtitle: candidate.category.rawValue.capitalized,
-                               isSelected: isChosen) {
-                    candidateImage(candidate).resizable().scaledToFit()
+            VStack(spacing: DSSpacing.xs) {
+                if isLoadingMatches && found.isEmpty {
+                    ForEach(0..<3, id: \.self) { _ in
+                        DSCandidateRow(title: "Finding similar pieces…", subtitle: " ") { ProgressView() }
+                    }
+                    .accessibilityIdentifier("sharedImport.matchesLoading")
                 }
-            }
-            .buttonStyle(.dsPress)
-            .accessibilityIdentifier("sharedImport.option")
-            .accessibilityAddTraits(isChosen ? .isSelected : [])
-            if isChosen {
-                Button("Edit name and category") { detailsCandidateID = candidate.id }
-                    .buttonStyle(.ds(.text))
-                    .accessibilityIdentifier("sharedImport.editDetails")
-            }
-            Button { cropCandidateID = candidate.id } label: {
-                HStack(spacing: DSSpacing.sm) {
-                    DSIcon("TablerSearch", size: 16)
-                    Text("None of these? Find it yourself.").font(DSFont.search)
+                ForEach(found) { match in
+                    let isChosen = chosenOption == match.id
+                    Button { chosenOption = isChosen ? nil : match.id } label: {
+                        DSCandidateRow(title: match.product.title,
+                                       subtitle: matchSubtitle(match.product),
+                                       isSelected: isChosen) {
+                            if let image = match.image {
+                                Image(uiImage: image).resizable().scaledToFit()
+                            } else {
+                                DSIcon("TablerPhoto", size: 20).foregroundStyle(DSColor.textPlaceholder)
+                            }
+                        }
+                    }
+                    .buttonStyle(.dsPress)
+                    .accessibilityIdentifier("sharedImport.match")
+                    .accessibilityAddTraits(isChosen ? .isSelected : [])
                 }
-                .foregroundStyle(DSColor.textMuted)
-                .frame(maxWidth: .infinity, minHeight: 43)
-                .background(RoundedRectangle(cornerRadius: DSRadius.md, style: .continuous).fill(DSColor.background))
-                .dsShadow(.card)
+                // With no catalog match, the piece can still be kept using its own photo.
+                if !isLoadingMatches && found.isEmpty {
+                    let isChosen = chosenOption == ownPhotoOption
+                    Button { chosenOption = isChosen ? nil : ownPhotoOption } label: {
+                        DSCandidateRow(title: candidate.name, subtitle: "Your photo",
+                                       isSelected: isChosen) {
+                            candidateImage(candidate).resizable().scaledToFit()
+                        }
+                    }
+                    .buttonStyle(.dsPress)
+                    .accessibilityIdentifier("sharedImport.option")
+                    .accessibilityAddTraits(isChosen ? .isSelected : [])
+                }
+                Button { searchCandidateID = candidate.id } label: {
+                    HStack(spacing: DSSpacing.xs) {
+                        DSIcon("TablerSearch", size: 18)
+                        Text("None of these? Find it yourself.").font(DSFont.bodyEmphasis)
+                    }
+                    .foregroundStyle(DSColor.textMuted)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(RoundedRectangle(cornerRadius: DSRadius.md, style: .continuous).fill(DSColor.background))
+                    .dsShadow(.card)
+                }
+                .buttonStyle(.dsPress)
+                .accessibilityIdentifier("sharedImport.findYourself")
             }
-            .buttonStyle(.dsPress)
-            .accessibilityIdentifier("sharedImport.adjustRegion")
+            .padding(.top, DSSpacing.sm)
+            Spacer(minLength: DSSpacing.sm)
             if let errorMessage {
                 Text(errorMessage).font(DSFont.search).foregroundStyle(.red)
             }
-            Spacer(minLength: 0)
-            pieceFooter(candidate, isChosen: isChosen)
+            pieceFooter(candidate)
+                .padding(.leading, DSSpacing.xs)
         }
-        .padding(.horizontal, DSSpacing.sm)
-        .padding(.bottom, DSSpacing.sm)
-        .background(DSColor.raised)
-        .onChange(of: candidate.id) { _, _ in chosenCandidateID = nil }
+        .padding(.horizontal, 9)
+        .padding(.bottom, 11)
+        .background(DSColor.background)
+        .onChange(of: candidate.id) { _, _ in chosenOption = nil }
+        .task(id: candidate.id) { await loadMatches(for: candidate) }
     }
 
-    private func pieceFooter(_ candidate: ImportCandidate, isChosen: Bool) -> some View {
+    private func matchSubtitle(_ product: CatalogProduct) -> String {
+        let seller = product.brand ?? product.sourceName
+        return "Similar · \(seller)"
+    }
+
+    private func pieceFooter(_ candidate: ImportCandidate) -> some View {
         HStack(spacing: DSSpacing.xs) {
             Button("Back") { mutateDraft { SharedImportReviewState.undoLast(in: &$0) } }
-                .buttonStyle(.ds(.secondary))
-                .frame(width: 81)
+                .buttonStyle(.ds(.secondary, width: 81))
                 .disabled(reviewedCount == 0)
                 .accessibilityIdentifier("sharedImport.back")
-            ForEach(selectedCandidates.filter { reviewedIDs.contains($0.id) }) { accepted in
-                DSThumbnailSlot { candidateImage(accepted).resizable().scaledToFit() }
+            // Small previews of the pieces accepted so far.
+            ScrollView(.horizontal) {
+                HStack(spacing: DSSpacing.xs) {
+                    ForEach(selectedCandidates.filter { reviewedIDs.contains($0.id) }) { accepted in
+                        DSThumbnailSlot { candidateImage(accepted).resizable().scaledToFit() }
+                            .accessibilityElement()
+                            .accessibilityLabel("Selected: \(accepted.name)")
+                            .accessibilityIdentifier("sharedImport.selectedPreview")
+                    }
+                }
             }
-            Spacer(minLength: 0)
-            if isChosen {
-                Button("Next") { review(candidate, selected: true) }
-                    .buttonStyle(.ds(.primary))
-                    .frame(width: 81)
-                    .disabled(candidate.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .scrollIndicators(.hidden)
+            if chosenOption != nil {
+                Button("Next") { accept(candidate) }
+                    .buttonStyle(.ds(.primary, width: 81))
                     .accessibilityIdentifier("sharedImport.approve")
             } else {
                 Button("Skip") { review(candidate, selected: false) }
-                    .buttonStyle(.ds(.secondary))
-                    .frame(width: 81)
+                    .buttonStyle(.ds(.secondary, width: 81))
                     .accessibilityIdentifier("sharedImport.skip")
             }
+        }
+        .frame(height: 50)
+    }
+
+    /// Accepts the piece. A chosen match fills in its name and category; the saved photo stays the person's own crop.
+    private func accept(_ candidate: ImportCandidate) {
+        if let option = chosenOption,
+           let match = matches[candidate.id]?.first(where: { $0.id == option }) {
+            guard mutateCandidate(id: candidate.id, {
+                $0.name = match.product.title
+                if match.product.category != .other { $0.category = match.product.category }
+                $0.suggestionSource = "Similar to \(match.product.title) (\(match.product.sourceName))"
+            }) else { return }
+        }
+        review(candidate, selected: true)
+    }
+
+    private func loadMatches(for candidate: ImportCandidate) async {
+        guard matches[candidate.id] == nil, !matchLoadingIDs.contains(candidate.id),
+              let crop = try? SharedImportDraftStore.imageData(for: candidate, in: image.data) else { return }
+        matchLoadingIDs.insert(candidate.id)
+        defer { matchLoadingIDs.remove(candidate.id) }
+        do {
+            matches[candidate.id] = try await matcher.matches(for: crop, category: candidate.category)
+        } catch is CancellationError {
+            return
+        } catch {
+            guard !Task.isCancelled else { return }
+            // Catalog unavailable: the piece's own photo stays available, so review can continue.
+            matches[candidate.id] = []
         }
     }
 
@@ -202,43 +283,62 @@ struct SharedImportReviewView: View {
                 .padding(.top, DSSpacing.lg)
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, DSSpacing.sm)
-        .background(DSColor.raised)
+        .padding(.horizontal, 9)
+        .background(DSColor.background)
     }
 
     /// The source photo with the detected region framed: white while browsing, purple once chosen.
     private func sourcePhoto(candidate: ImportCandidate?, isChosen: Bool, badge: String?) -> some View {
         let uiImage = UIImage(data: image.data)
-        return DSColor.textMuted
-            .frame(height: 330)
+        return DSColor.thumbnail
+            .aspectRatio(1, contentMode: .fit) // always square (385 x 385 on a 402 pt screen)
             .overlay {
                 GeometryReader { proxy in
                     if let uiImage {
-                        // Fill the width like the mockup, scrolled so the framed piece stays in view.
-                        let scale = max(proxy.size.width / uiImage.size.width, proxy.size.height / uiImage.size.height)
+                        // Fill the square like the mockup, scrolled so the framed piece stays in view.
+                        // A piece too large for that crop zooms out until its whole frame fits.
+                        let region = candidate?.region
+                        let fill = max(proxy.size.width / uiImage.size.width, proxy.size.height / uiImage.size.height)
+                        let fit = min(proxy.size.width / uiImage.size.width, proxy.size.height / uiImage.size.height)
+                        let whole = region.map {
+                            min(proxy.size.width * 0.86 / ($0.width * uiImage.size.width),
+                                proxy.size.height * 0.82 / ($0.height * uiImage.size.height))
+                        } ?? fill
+                        let scale = max(fit, min(fill, whole))
                         let display = CGSize(width: uiImage.size.width * scale, height: uiImage.size.height * scale)
-                        let focusY = (candidate?.region).map { ($0.y + $0.height / 2) * display.height } ?? display.height / 2
-                        let originY = min(0, max(proxy.size.height - display.height, proxy.size.height / 2 - focusY))
-                        let origin = CGPoint(x: (proxy.size.width - display.width) / 2, y: originY)
-                        Image(uiImage: uiImage).resizable()
+                        let focusY = region.map { ($0.y + $0.height / 2) * display.height } ?? display.height / 2
+                        let focusX = region.map { ($0.x + $0.width / 2) * display.width } ?? display.width / 2
+                        let origin = CGPoint(x: Self.offset(view: proxy.size.width, image: display.width, focus: focusX),
+                                             y: Self.offset(view: proxy.size.height, image: display.height, focus: focusY))
+                        let photo = Image(uiImage: uiImage).resizable()
                             .frame(width: display.width, height: display.height)
                             .position(x: origin.x + display.width / 2, y: origin.y + display.height / 2)
+                        // Visible part of the detected region.
+                        let frame = region.map {
+                            CGRect(x: origin.x + $0.x * display.width, y: origin.y + $0.y * display.height,
+                                   width: $0.width * display.width, height: $0.height * display.height)
+                                .intersection(CGRect(origin: .zero, size: proxy.size).insetBy(dx: 6, dy: 6))
+                        }
+                        // The photo is faded outside the framed piece.
+                        photo.opacity(frame == nil ? 1 : 0.6)
                             .accessibilityLabel("Shared image to review")
-                        if let region = candidate?.region {
-                            let frame = CGRect(x: origin.x + region.x * display.width,
-                                               y: origin.y + region.y * display.height,
-                                               width: region.width * display.width,
-                                               height: region.height * display.height)
+                        if let frame {
+                            photo.mask {
+                                RoundedRectangle(cornerRadius: DSRadius.xl, style: .continuous)
+                                    .frame(width: frame.width, height: frame.height)
+                                    .position(x: frame.midX, y: frame.midY)
+                            }
+                            .accessibilityHidden(true)
                             DSCropFrame(color: isChosen ? DSColor.brand : .white)
                                 .frame(width: frame.width, height: frame.height)
                                 .position(x: frame.midX, y: frame.midY)
-                            if let badge {
-                                DSBadge(text: badge, kind: isChosen ? .counterSelected : .counter)
-                                    .position(x: frame.midX, y: frame.maxY)
-                            }
-                        } else if let badge {
-                            DSBadge(text: badge, kind: .counter)
-                                .position(x: proxy.size.width / 2, y: proxy.size.height - 24)
+                        }
+                        if let badge {
+                            // 5 pt under the frame, kept inside the photo.
+                            let below = (frame?.maxY ?? proxy.size.height) + 19
+                            DSBadge(text: badge, kind: isChosen ? .counterSelected : .counter)
+                                .position(x: frame?.midX ?? proxy.size.width / 2,
+                                          y: min(below, proxy.size.height - 19))
                         }
                     }
                 }
@@ -246,78 +346,81 @@ struct SharedImportReviewView: View {
             .clipShape(RoundedRectangle(cornerRadius: DSRadius.md, style: .continuous))
     }
 
+    /// Centers on the piece without leaving a gap; centers the photo on an axis it does not fill.
+    private static func offset(view: CGFloat, image: CGFloat, focus: CGFloat) -> CGFloat {
+        image <= view ? (view - image) / 2 : min(0, max(view - image, view / 2 - focus))
+    }
+
     // MARK: - Step 2: summary and import
 
+    // Sizes from 1253:449: a 362 pt collage with 7 pt gaps, 64 pt rows 4 pt apart and
+    // the three actions pinned 14 pt above the bottom edge.
     private func summaryStep(_ draft: ImportDraft) -> some View {
         let selected = selectedCandidates
-        return ScrollView {
-            VStack(spacing: DSSpacing.md) {
-                if isProcessing {
-                    ProgressView("Finding possible pieces…")
-                        .font(DSFont.body).foregroundStyle(DSColor.textMuted)
-                }
-                DSOutfitCollage(count: min(4, selected.count), cornerRadius: DSRadius.md) { index in
-                    candidateImage(selected[index]).resizable().scaledToFit()
-                }
-                .accessibilityIdentifier("sharedImport.collage")
-                if selected.isEmpty {
-                    Text(draft.candidates.isEmpty
-                         ? "No pieces found. Use Find More to add one yourself, or try recognition again."
-                         : "No pieces selected. Use Back to review them again or Find More to add one.")
-                        .font(DSFont.body).foregroundStyle(DSColor.textMuted)
-                        .multilineTextAlignment(.center)
-                    if draft.candidates.isEmpty {
-                        Button("Try Recognition Again", action: processImage)
-                            .buttonStyle(.ds(.secondary))
-                            .disabled(isProcessing)
+        return VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 14) {
+                    if isProcessing {
+                        ProgressView("Finding possible pieces…")
+                            .font(DSFont.body).foregroundStyle(DSColor.textMuted)
                     }
-                } else {
-                    VStack(spacing: DSSpacing.xs) {
-                        ForEach(selected) { candidate in
-                            DSItemRow(title: candidate.name.isEmpty ? "Add a name" : candidate.name, trailing: {
-                                DSMoreMenu(accessibilityLabel: "More options for \(candidate.name)") {
-                                    Button("Edit name and category") { detailsCandidateID = candidate.id }
-                                    Button("Adjust image region") { cropCandidateID = candidate.id }
-                                    Button("Remove", role: .destructive) { remove(candidate) }
-                                }
-                            }) { candidateImage(candidate).resizable().scaledToFit() }
+                    DSOutfitCollage(count: min(4, selected.count), cornerRadius: DSRadius.md, gap: 7) { index in
+                        candidateImage(selected[index]).resizable().scaledToFit()
+                    }
+                    .accessibilityIdentifier("sharedImport.collage")
+                    if selected.isEmpty {
+                        Text(draft.candidates.isEmpty
+                             ? "No pieces found. Use Find More to add one yourself, or try recognition again."
+                             : "No pieces selected. Use Back to review them again or Find More to add one.")
+                            .font(DSFont.body).foregroundStyle(DSColor.textMuted)
+                            .multilineTextAlignment(.center)
+                        if draft.candidates.isEmpty {
+                            Button("Try Recognition Again", action: processImage)
+                                .buttonStyle(.ds(.secondary))
+                                .disabled(isProcessing)
+                        }
+                    } else {
+                        VStack(spacing: DSSpacing.xs) {
+                            ForEach(selected) { candidate in
+                                DSItemRow(title: candidate.name, trailing: {
+                                    DSMoreMenu(accessibilityLabel: "More options for \(candidate.name)") {
+                                        Button("Remove", role: .destructive) { remove(candidate) }
+                                    }
+                                }) { candidateImage(candidate).resizable().scaledToFit() }
+                            }
                         }
                     }
-                    DSLabeledField(label: "Outfit Name", prompt: "Shared outfit", text: Binding(
-                        get: { self.draft?.outfitName ?? "Shared outfit" },
-                        set: { name in mutateDraft { $0.outfitName = name } }
-                    ))
-                    .accessibilityIdentifier("sharedImport.outfitName")
-                }
-                if let errorMessage {
-                    Text(errorMessage).font(DSFont.search).foregroundStyle(.red)
-                }
-                VStack(spacing: DSSpacing.xs) {
-                    Button { confirm(.outfit) } label: {
-                        Text(isSaving ? "Saving…" : "Import as Outfit").frame(maxWidth: .infinity)
+                    if let errorMessage {
+                        Text(errorMessage).font(DSFont.search).foregroundStyle(.red)
                     }
-                    .buttonStyle(.ds(.primary))
-                    .disabled(!canSave(.outfit))
-                    .accessibilityIdentifier("sharedImport.confirm")
-                    Button { confirm(.individualPieces) } label: {
-                        Text("Import as Individual Pieces").frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.ds(.secondary))
-                    .disabled(!canSave(.individualPieces))
-                    .accessibilityIdentifier("sharedImport.confirmIndividual")
-                    Button { addManualCandidate() } label: {
-                        Text("Find More").frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.ds(.text))
-                    .disabled(isProcessing)
-                    .accessibilityIdentifier("sharedImport.findMore")
                 }
-                .padding(.top, DSSpacing.sm)
             }
-            .padding(.horizontal, DSSpacing.sm)
-            .padding(.top, 56)
-            .padding(.bottom, DSSpacing.lg)
+            .scrollIndicators(.hidden)
+            VStack(spacing: DSSpacing.xs) {
+                Button { confirm(.outfit) } label: {
+                    Text(isSaving ? "Saving…" : "Import as Outfit").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.ds(.primary))
+                .disabled(!canSave(.outfit))
+                .accessibilityIdentifier("sharedImport.confirm")
+                Button { confirm(.individualPieces) } label: {
+                    Text("Import as Individual Pieces").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.ds(.secondary))
+                .disabled(!canSave(.individualPieces))
+                .accessibilityIdentifier("sharedImport.confirmIndividual")
+                Button { addManualCandidate() } label: {
+                    Text("Find More").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.ds(.text))
+                .disabled(isProcessing)
+                .accessibilityIdentifier("sharedImport.findMore")
+            }
+            .padding(.top, DSSpacing.sm)
+            .padding(.bottom, 14)
         }
+        .padding(.horizontal, DSSpacing.lg)
+        .ignoresSafeArea(.container, edges: .bottom)
         .background(DSColor.background)
     }
 
@@ -326,43 +429,18 @@ struct SharedImportReviewView: View {
             Button("Later") { detectionTask?.cancel(); onLater() }
             Button("Discard", role: .destructive) { confirmsDiscard = true }
         } label: {
-            DSIcon("TablerX", size: 24)
+            // The review frames have no close control, so keep it small enough to clear the piece frame.
+            DSIcon("TablerX", size: 16)
                 .foregroundStyle(DSColor.textPrimary)
+                .frame(width: 30, height: 30)
+                .background(RoundedRectangle(cornerRadius: DSRadius.sm, style: .continuous).fill(DSColor.glass))
                 .frame(width: 43, height: 43)
-                .background(Circle().fill(DSColor.glass))
         }
         .disabled(isSaving)
-        .padding(DSSpacing.md)
+        .padding(.leading, DSSpacing.md)
+        .padding(.top, DSSpacing.xxs)
         .accessibilityLabel("Close")
         .accessibilityIdentifier("sharedImport.close")
-    }
-
-    private func detailsSheet(id: String) -> some View {
-        NavigationStack {
-            Form {
-                TextField("Piece name", text: Binding(
-                    get: { draft?.candidates.first(where: { $0.id == id })?.name ?? "" },
-                    set: { name in mutateCandidate(id: id) { $0.name = name } }
-                ))
-                Picker("Category", selection: Binding(
-                    get: { draft?.candidates.first(where: { $0.id == id })?.category ?? .other },
-                    set: { category in mutateCandidate(id: id) { $0.category = category } }
-                )) {
-                    ForEach(ClothingCategory.allCases, id: \.self) { category in
-                        Text(category.rawValue.capitalized).tag(category)
-                    }
-                }
-                if let source = draft?.candidates.first(where: { $0.id == id })?.suggestionSource {
-                    Text(source).font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            .navigationTitle("Piece details")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Done") { detailsCandidateID = nil } }
-            }
-        }
-        .presentationDetents([.medium])
     }
 
     // MARK: - Draft changes
@@ -412,8 +490,27 @@ struct SharedImportReviewView: View {
                     return
                 }
                 let removed = Set(draft?.removedCandidateIDs ?? [])
-                let usable = found.filter {
-                    !removed.contains($0.id) && $0.suggestionSource != "Review this photo"
+                // The framed whole-photo fallback only stands in when there is nothing else to review:
+                // no detected pieces and no pieces the user already added.
+                let hasOtherPieces = !(draft?.candidates.isEmpty ?? true)
+                    || found.contains { $0.suggestionSource != "Review this photo" }
+                var usable = found.filter {
+                    !removed.contains($0.id) && !(hasOtherPieces && $0.suggestionSource == "Review this photo")
+                }
+                // Frame the whole-photo piece around the foreground subject (else the whole photo), so every
+                // piece has a box in review. Done here, not in recognition, so speed tests measure recognition only.
+                if usable.contains(where: { $0.region == nil }) {
+                    let data = image.data
+                    let frame = await Task.detached(priority: .userInitiated) {
+                        OnDeviceGarmentRegions.foregroundBounds(imageData: data)
+                    }.value ?? NormalizedImageRegion(x: 0, y: 0, width: 1, height: 1)
+                    guard !Task.isCancelled else {
+                        SharedImportDraftStore.removeAutomaticCutouts(for: found)
+                        return
+                    }
+                    for index in usable.indices where usable[index].region == nil {
+                        usable[index].region = frame
+                    }
                 }
                 let usableIDs = Set(usable.map(\.id))
                 SharedImportDraftStore.removeAutomaticCutouts(for: found.filter { !usableIDs.contains($0.id) })
@@ -431,10 +528,10 @@ struct SharedImportReviewView: View {
     }
 
     /// Adds a piece the recognizer missed. It is already reviewed and selected so it shows in the summary;
-    /// the region editor opens right away and the name is filled in from the piece's row menu.
+    /// the region editor opens right away.
     private func addManualCandidate() {
         guard draft != nil else { return }
-        let candidate = ImportCandidate(id: UUID().uuidString, name: "", category: .other,
+        let candidate = ImportCandidate(id: UUID().uuidString, name: "Piece", category: .other,
                                         destination: .closet, temporaryCutoutPath: nil,
                                         region: nil, suggestionSource: nil, selected: true,
                                         tags: [], suggestedTags: [])
@@ -487,6 +584,64 @@ struct SharedImportReviewView: View {
             guard mutateDraft({ $0.status = .saved }) else { return }
             onSaved()
         } catch { errorMessage = error.localizedDescription }
+    }
+}
+
+/// "None of these? Find it yourself.": search the catalog and pick a product for the piece.
+private struct ProductSearchSheet: View {
+    let matcher: any ProductMatching
+    let onClose: () -> Void
+    let onPick: (ProductMatch) -> Void
+    @State private var query = ""
+    @State private var results: [ProductMatch]?
+    @State private var failed = false
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                LazyVStack(spacing: DSSpacing.xs) {
+                    DSLabeledField(label: "Search", prompt: "Search products", text: $query)
+                        .accessibilityIdentifier("sharedImport.search")
+                    if failed {
+                        Text("The catalog is unavailable. Try again later.")
+                            .font(DSFont.body).foregroundStyle(DSColor.textMuted)
+                    } else if results == nil {
+                        ProgressView()
+                    } else if results?.isEmpty == true {
+                        Text("No products found.").font(DSFont.body).foregroundStyle(DSColor.textMuted)
+                    }
+                    ForEach(results ?? []) { match in
+                        Button { onPick(match) } label: {
+                            DSCandidateRow(title: match.product.title,
+                                           subtitle: match.product.brand ?? match.product.sourceName) {
+                                if let image = match.image {
+                                    Image(uiImage: image).resizable().scaledToFit()
+                                } else {
+                                    DSIcon("TablerPhoto", size: 20).foregroundStyle(DSColor.textPlaceholder)
+                                }
+                            }
+                        }
+                        .buttonStyle(.dsPress)
+                        .accessibilityIdentifier("sharedImport.searchResult")
+                    }
+                }
+                .padding(DSSpacing.md)
+            }
+            .navigationTitle("Find it yourself")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel", action: onClose) } }
+            .task(id: query) {
+                try? await Task.sleep(for: .milliseconds(300))
+                guard !Task.isCancelled else { return }
+                do {
+                    results = try await matcher.search(query)
+                    failed = false
+                } catch {
+                    guard !Task.isCancelled else { return }
+                    failed = true
+                }
+            }
+        }
     }
 }
 

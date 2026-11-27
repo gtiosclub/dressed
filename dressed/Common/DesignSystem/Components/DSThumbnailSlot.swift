@@ -25,7 +25,7 @@ struct DSCropFrame: View {
 
 #Preview("Thumbnail slots") {
     HStack(spacing: DSSpacing.xs) {
-        Button("Back") {}.buttonStyle(.ds(.secondary)).frame(width: 81)
+        Button("Back") {}.buttonStyle(.ds(.secondary, width: 81))
         DSThumbnailSlot {
             Image("PreviewJeans").resizable().scaledToFit()
         }

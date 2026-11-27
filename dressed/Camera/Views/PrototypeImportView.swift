@@ -9,6 +9,9 @@ struct PrototypeImportView: View {
     let onClose: () -> Void
     /// Set while a shared item is deferred; shows a Review Share button over the camera.
     var onReviewShare: (() -> Void)?
+    /// Presents the piece review for a queued camera capture or single upload.
+    /// Without it, the older single-photo form below is used.
+    var onReviewImage: ((ReviewImage) -> Void)?
 
     @State private var selectedPhotos: [PhotosPickerItem] = []
     @State private var multiPhotoReview: MultiPhotoReviewSession?
@@ -28,7 +31,7 @@ struct PrototypeImportView: View {
             onClose: onClose,
             onUpload: { showsUploadChoices = true },
             onPhoto: { data in
-                review = ReviewImage(id: UUID().uuidString, data: data, source: "Camera", isShared: false)
+                startReview(ReviewImage(id: UUID().uuidString, data: data, source: "Camera", isShared: false))
             },
             onReviewShare: onReviewShare
         )
@@ -111,6 +114,16 @@ struct PrototypeImportView: View {
         }
     }
 
+    /// Camera captures and single uploads use the same piece review as shared images.
+    private func startReview(_ image: ReviewImage) {
+        guard let onReviewImage else { review = image; return }
+        do {
+            onReviewImage(try SharedImageInbox.enqueue(imageData: image.data, ownerId: ownerId, source: image.source))
+        } catch {
+            importError = error.localizedDescription
+        }
+    }
+
     /// Loads the picked photos, then goes straight to review: one photo to the single-photo review,
     /// several to the multi-photo review in the mode chosen in the Upload sheet.
     private func loadSelectedPhotos(_ photos: [PhotosPickerItem]) async {
@@ -151,7 +164,7 @@ struct PrototypeImportView: View {
 
         if loaded.count == 1, let image = loaded.first {
             selectedPhotos = []
-            review = image
+            startReview(image)
         } else if loaded.count > 1 {
             let selectionKey = ([importMode.rawValue] + loaded.map(\.id).sorted()).joined(separator: ":")
             multiPhotoReview = MultiPhotoReviewSession(

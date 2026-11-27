@@ -135,7 +135,7 @@ below it compile but were not compared to their frames.
 
 ## Open items
 
-- Closet screens are migrated except `PrototypeItemDetailView` (Form layout) and the Wishlist list. Import review still uses its own styling.
+- Closet screens are migrated except `PrototypeItemDetailView` (Form layout) and the Wishlist list. Camera and shared-image review follow `777:6352`, `1012:282` and `1253:449`; the multi-photo import review still uses its own styling. Deviations: those frames have no close control, so review keeps a 30 pt close button over the top-left corner; the outfit name field was dropped to match the import frame (outfits save as "Shared outfit"); a piece with no catalog match shows one "Your photo" row.
 - Create Outfit drops the old drag-and-resize arranger: pieces are placed automatically. The Figma filter row starts with "Outfits"; this uses "All" instead because there is nothing to pick from an outfit. Outfit detail keeps a "Try On Outfit" button that is not in the frame. The camera screen uses `DSCameraControls`.
 - The camera needs a real device to show a live preview; the simulator shows the "unavailable" message.
   Capture, flip and the live preview were not exercised.

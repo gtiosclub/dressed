@@ -189,7 +189,12 @@ private struct AppTabs: View {
                             deferredSharedId = nil
                             deferredSharedLinkId = nil
                             presentNextShare()
-                        } : nil
+                        } : nil,
+                        onReviewImage: { image in
+                            guard pendingSharedImage == nil, pendingSharedLink == nil else { return }
+                            presentedSharedId = image.id
+                            pendingSharedImage = image
+                        }
                     )
                 }
                 .toolbar(.hidden, for: .tabBar)
@@ -311,7 +316,7 @@ private struct AppTabs: View {
 
         // MARK: - Shared Image Review
 
-        .sheet(
+        .fullScreenCover(
             item: $pendingSharedImage,
             onDismiss: {
                 if let presentedSharedId {
@@ -327,6 +332,7 @@ private struct AppTabs: View {
                 ownerId: userId,
                 closet: closet,
                 recognizer: sharedRecognitionService,
+                matcher: productMatcher,
                 onLater: {
                     deferredSharedId = image.id
                     pendingSharedImage = nil
@@ -427,6 +433,17 @@ private struct AppTabs: View {
         return OnDeviceImportRecognitionService()
     }
 
+
+    private var productMatcher: any ProductMatching {
+        #if DEBUG
+        // Fixture-backed import tests isolate review behavior from catalog matches unless they opt in.
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-mockSignedIn") && !arguments.contains("-demoMatches") {
+            return NoProductMatches()
+        }
+        #endif
+        return CatalogVisualMatcher.shared
+    }
 
     private func signOut() {
         do {

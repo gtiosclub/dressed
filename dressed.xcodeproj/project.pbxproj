@@ -27,6 +27,7 @@
 		E20A00000000000000000209 /* AutomaticGarmentCutout.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000109 /* AutomaticGarmentCutout.swift */; };
 		E20A00000000000000000203 /* PrototypeImportStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000103 /* PrototypeImportStore.swift */; };
 		E20A00000000000000000208 /* OnDeviceGarmentRegions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000108 /* OnDeviceGarmentRegions.swift */; };
+		E20A00000000000000000219 /* GarmentPoseRegions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000119 /* GarmentPoseRegions.swift */; };
 		E20A00000000000000000202 /* ImportSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000102 /* ImportSchema.swift */; };
 		E20A00000000000000000207 /* PrototypeGarmentRecognition.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000107 /* PrototypeGarmentRecognition.swift */; };
 		E20A00000000000000000201 /* ClothingSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000101 /* ClothingSchema.swift */; };
@@ -117,6 +118,7 @@
 		E20A00000000000000000109 /* AutomaticGarmentCutout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "dressed/Camera/ViewModels/AutomaticGarmentCutout.swift"; sourceTree = SOURCE_ROOT; };
 		E20A00000000000000000103 /* PrototypeImportStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "dressed/Camera/ViewModels/PrototypeImportStore.swift"; sourceTree = SOURCE_ROOT; };
 		E20A00000000000000000108 /* OnDeviceGarmentRegions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "dressed/Camera/ViewModels/OnDeviceGarmentRegions.swift"; sourceTree = SOURCE_ROOT; };
+		E20A00000000000000000119 /* GarmentPoseRegions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "dressed/Camera/ViewModels/GarmentPoseRegions.swift"; sourceTree = SOURCE_ROOT; };
 		E20A00000000000000000102 /* ImportSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "dressed/Common/Models/ImportSchema.swift"; sourceTree = SOURCE_ROOT; };
 		E20A0000000000000000010D /* VisionRequestRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "dressed/Camera/ViewModels/VisionRequestRunner.swift"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -263,6 +265,7 @@
 				E20A00000000000000000106 /* RecognitionImageSession.swift */,
 				E20A00000000000000000107 /* PrototypeGarmentRecognition.swift */,
 				E20A00000000000000000108 /* OnDeviceGarmentRegions.swift */,
+				E20A00000000000000000119 /* GarmentPoseRegions.swift */,
 				E20A00000000000000000109 /* AutomaticGarmentCutout.swift */,
 				E20A0000000000000000010A /* OnDeviceRecognitionPipeline.swift */,
 				E20A0000000000000000010B /* RecognitionBenchmarkModel.swift */,
@@ -551,6 +554,7 @@
 				E20A00000000000000000206 /* RecognitionImageSession.swift in Sources */,
 				E20A00000000000000000207 /* PrototypeGarmentRecognition.swift in Sources */,
 				E20A00000000000000000208 /* OnDeviceGarmentRegions.swift in Sources */,
+				E20A00000000000000000219 /* GarmentPoseRegions.swift in Sources */,
 				E20A00000000000000000209 /* AutomaticGarmentCutout.swift in Sources */,
 				E20A0000000000000000020A /* OnDeviceRecognitionPipeline.swift in Sources */,
 				E20A0000000000000000020B /* RecognitionBenchmarkModel.swift in Sources */,

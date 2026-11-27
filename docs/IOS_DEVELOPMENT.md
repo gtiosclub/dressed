@@ -40,9 +40,16 @@ for the isolated diagnostic. See [the #208 demo guide](recognition-speed-demo.md
 for Release comparisons, exported timings, regression tests and remaining phone checks.
 
 The Python fixture service and Google response adapters remain separate developer
-tools; starting that service no longer changes the app's recognition results.
+tools. Only its `--apple-vision` mode, described below, feeds the app (Debug
+simulator builds); the Google and fixture modes do not change imports.
 See [the recognition prototype guide](../backend/recognition/README.md) for those
 legacy experiments. Historical observations below are dated explicitly.
+
+**Pieces in the simulator:** the simulator cannot run Apple's body-pose model, so a worn outfit comes back as one whole-photo piece. To split it into Top, Bottom and Shoes, run the same Apple Vision step on your Mac while testing (local only, no cloud calls). A Debug simulator build uses it automatically for new imports; physical devices run the model themselves.
+
+```sh
+python3 backend/recognition/local_service.py --apple-vision
+```
 
 For a shared image, return to Dressed after finishing the iOS share sheet. The extension cannot force the app to open; Dressed presents the queued review when it becomes active. Recognition begins automatically. The app tries Apple's foreground-instance mask on each suggested crop, then a local edge flood fill for plain product-photo backgrounds. A mask can include skin, miss fabric or retain a shadow, so inspect it before selecting. **Add Piece Manually** opens the region editor. Choose **Draw Outline**, trace with a finger or tap several points and **Close Outline**, then **Use Outline** to replace an inaccurate cutout. A transparent cutout saves as PNG; a rectangle keeps JPEG. Both build configurations use only on-device suggestions.
 

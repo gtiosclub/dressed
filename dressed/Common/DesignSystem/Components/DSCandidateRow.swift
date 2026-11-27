@@ -12,7 +12,7 @@ struct DSCandidateRow<Thumbnail: View>: View {
         HStack(spacing: DSSpacing.lg) {
             thumbnail()
                 .padding(DSSpacing.xs)
-                .frame(width: 128, height: 92)
+                .frame(width: 128, height: 82)
                 .background(DSColor.thumbnail)
 
             VStack(alignment: .leading, spacing: 0) {
@@ -27,7 +27,7 @@ struct DSCandidateRow<Thumbnail: View>: View {
 
             Spacer(minLength: 0)
         }
-        .frame(height: 92)
+        .frame(height: 82)
         .background(DSColor.background)
         .clipShape(RoundedRectangle(cornerRadius: DSRadius.md, style: .continuous))
         .overlay {
