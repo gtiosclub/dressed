@@ -16,12 +16,15 @@ Known mappings:
 - Search on mockup screens is a bottom `DSFloatingSearchButton` ("Search Styles", "Search Your Closet") above the tab bar, not a field at the top. Tapping it opens search mode, which shows the text field and suggestions; add `DSFloatingSearchButton.height` plus spacing to the scroll content's bottom padding.
 - Header circle buttons are `DSCircleButton`; their icons are `DSColor.iconMuted` (`#6D6D6D`), not black.
 - Closet frames are migrated (see README): `915:526` (Pieces), `973:5888` (Outfits: 2 x 2 `DSOutfitCollage` tiles, `DSFloatingActionButton` beside the search pill), `976:162` (`DSSearchSheet`), `1280:421` (outfit detail: `DSBackHeader`, `DSOutfitCollage`, `DSItemRow`), `1273:173` (Create Outfit: `DSChip(style: .flat)`, `DSTile(isChecked:)`, `DSLabeledField`, full-width `.ds(.primary)` button). The newest piece is `DSTile(isHighlighted: true)` plus a `DSBadge("New")`.
-- Camera `1012:388` is migrated: `CameraCaptureView` hosts the live preview, `DSCameraControls` and the close button; `PrototypeImportView` handles Upload and review. `DSCameraControls`; the close button is `.buttonStyle(.ds(.glass))` with `TablerX`.
+- Camera `1012:388` is migrated: `CameraCaptureView` hosts the live preview, `DSCameraControls` and the close button; `PrototypeImportView` handles Upload and review. The close button is `DSCloseButton`, which piece review and its search sheet share.
+- Product decisions that override the frames: the crop frame radius is `DSRadius.crop` (12 pt); match rows show only the seller; closing a piece review discards it immediately; outfit detail has a ••• menu with Delete Outfit.
 - Share to Dressed: `777:6352` is the browsing state (white `DSCropFrame`, black `DSBadge` counter, Back / Skip); `1012:282` is the selected state (`DSCropFrame(color: DSColor.brand)`, `.counterSelected`, `DSCandidateRow(isSelected: true)`, Next as `.ds(.primary)`). Import `1253:449`: Import as Outfit `.primary`, Import as Individual Pieces `.secondary`, Find More `.text`.
 
 ## Rules for feature views
 
 - **Tokens, not literals.** Use `DSColor`, `DSSpacing`, `DSRadius`, `DSFont` and `DSShadow` (`.dsShadow(_:)`). Do not add hex values, `Color(red:green:blue:)`, one-off paddings, corner radii or font sizes in feature code. The README's literal-to-token table covers common replacements.
+- **Keep depth effects.** Inner shadows are part of the design: selected raised-style `DSChip`s and the `DSSegmentedControl` track use `DSShadow.pressedInner`, recessed slots use `DSShadow.recessedInner`, and unselected chips and the segment thumb use `.dsShadow(.raised)` with its 2 pt downward offset (`915:526`, `915:933`). Never replace these with a flat fill or a centered shadow to "fix" alignment.
+- **Check shared changes against Figma.** Editing anything in `Tokens/` or `Components/` changes many screens. Re-read the frames that use it, screenshot those screens before and after, and mention the visual change in the commit message even when it is incidental to the task. Do not bundle restyling into an unrelated commit.
 - **Reuse components before writing markup.** A category pill is `DSChip`, a two-way switch is `DSSegmentedControl`, grid squares are `DSTile`, rounded-square buttons use `.buttonStyle(.ds(.primary / .secondary / .glass / .text))`; selection is `DSTile(isChecked:)` / `DSSelectionMark`, badges are `DSBadge`, and so on. Compose them; do not restyle copies.
 - **Components stay presentational.** Pass data, bindings and closures in. Loading, persistence and services stay in the feature view model, as `AGENTS.md` requires.
 - **One tab bar.** `ContentView` hides the system tab bar and shows `DSTabBar` below the `TabView`. Do not add `.tabItem` or a second bar. New top-level screens go through `DSTabBar`'s items; tab buttons are found in UI tests by `tab.<name>` identifiers, not `app.tabBars`.
@@ -45,7 +48,7 @@ Known mappings:
 
 ## Figma
 
-The source file is `dpFDiOAb0ytgiTf9blwa3d` (dressed-design). It has no published variables, so map each value in `get_design_context` output to the nearest token instead of copying raw values. The mockup icons are Tabler icons; identify each by name and add it as above instead of using the Figma SVG. Figma blur values are halved for SwiftUI shadow radii; Figma spread has no SwiftUI equivalent.
+The source file is `dpFDiOAb0ytgiTf9blwa3d` (dressed-design). It has no published variables, so map each value in `get_design_context` output to the nearest token instead of copying raw values. The mockup icons are Tabler icons; identify each by name and add it as above instead of using the Figma SVG. Figma blur values are halved for SwiftUI shadow radii; Figma spread has no SwiftUI equivalent. `inset` shadows in the design context map to `ShapeStyle.shadow(_:)` with a `DSShadow` inner style, not to `.dsShadow(_:)`.
 
 ## Images
 

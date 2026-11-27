@@ -13,9 +13,20 @@ The Figma file has no published variables, so token values were read from the fr
 | --- | --- |
 | `DSColor` | Brand purple `#9D83EB`, `brandLight` `#A98BFF` (selected outlines), `destructive` `#D93025` (validation/errors), scrim, camera bar, text, `iconMuted` `#6D6D6D` (inactive tabs, circle-button icons), surface and stroke colors |
 | `DSSpacing` | 2, 4, 8, 12, 20 pt |
-| `DSRadius` | 5, 8, 16, 26, 30 pt |
-| `DSFont` | 16 regular/medium, 14 medium button, 13 medium search, 20 nav title, 11 badge, 10 tab and field label, plus the compact-control optical baseline offset |
-| `DSShadow` | raised, centered control glass, floating, card, brand glow, selected tile glow, selected row, and inner shadows |
+| `DSRadius` | 5, 8, 12 (crop frame), 16, 26 pt |
+| `DSFont` | 16 regular/medium, 14 medium button, 13 medium search, 20 nav title, 11 badge, 10 tab and field label |
+| `DSShadow` | raised, floating, card, brand glow, selected tile glow, selected row, and inner shadows (`pressedInner`, `recessedInner`) |
+
+### Raised and pressed controls
+
+Chips and the segmented control have depth in the mockups (`915:526`, `915:933`). Keep both halves:
+
+| State | Surface | Shadow |
+| --- | --- | --- |
+| Raised: unselected `DSChip`, segment thumb | `DSColor.raised` | `.dsShadow(.raised)`: 25% black, 2 pt downward |
+| Pressed: selected `DSChip`, segment track | `DSColor.pressed` with a `pressedBorder` stroke | `.fill(DSColor.pressed.shadow(DSShadow.pressedInner))`: 40% black inner shadow from the top |
+
+The downward offset is intentional; do not center it. The segment thumb fills its 93 x 34 pt segment and labels sit at the capsule's center, with no optical offset.
 
 ### Replacing literals
 
@@ -138,7 +149,8 @@ below it compile but were not compared to their frames.
 
 ## Open items
 
-- Closet screens are migrated except `PrototypeItemDetailView` (Form layout) and the Wishlist list. Camera and shared-image review follow `777:6352`, `1012:282` and `1253:449`; the multi-photo import review still uses its own styling. Deviations: those frames have no close control, so review keeps a 30 pt close button over the top-left corner; the outfit name field was dropped to match the import frame (outfits save as "Shared outfit"); a piece with no catalog match shows one "Your photo" row.
+- Raised chips and the segment thumb have a thin white edge (and a faint inner highlight) in `915:526` and `915:933` that the app does not draw.
+- Closet screens are migrated except `PrototypeItemDetailView` (Form layout) and the Wishlist list. Camera and shared-image review follow `777:6352`, `1012:282` and `1253:449`; the multi-photo import review still uses its own styling. Deviations: those frames have no close control, so review places the camera's `DSCloseButton` over the top-left corner (it discards the photo); the outfit name field was dropped to match the import frame (outfits save as "Shared outfit"); a piece with no catalog match shows one "Your photo" row.
 - Create Outfit drops the old drag-and-resize arranger: pieces are placed automatically. The Figma filter row starts with "Outfits"; this uses "All" instead because there is nothing to pick from an outfit. Outfit detail keeps a "Try On Outfit" button that is not in the frame. The camera screen uses `DSCameraControls`.
 - The camera needs a real device to show a live preview; the simulator shows the "unavailable" message.
   Capture, flip and the live preview were not exercised.

@@ -9,8 +9,6 @@ struct DSShadow {
 
     static let none = DSShadow(color: .clear, radius: 0, x: 0, y: 0)
     static let raised = DSShadow(color: .black.opacity(0.25), radius: 5, x: 0, y: 2)       // chips, segment thumb
-    // Compact glass controls need a centered halo; a vertical offset makes their capsule look displaced.
-    static let controlRaised = DSShadow(color: .black.opacity(0.25), radius: 5, x: 0, y: 0)
     static let floating = DSShadow(color: .black.opacity(0.25), radius: 25, x: 0, y: 4)    // search bar
     static let card = DSShadow(color: .black.opacity(0.1), radius: 5, x: 1, y: 1)          // list rows
     static let brandGlow = DSShadow(color: DSColor.brand.opacity(0.25), radius: 5, x: 0, y: 4) // post card
