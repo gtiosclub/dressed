@@ -50,9 +50,7 @@ struct FirebasePostFunctions: PostFunctions {
             .limit(to: pageSize)
             .getDocuments()
 
-        return try snapshot.documents.map { document in
-            try document.data(as: Post.self)
-        }
+        return snapshot.documents.compactMap { try? $0.data(as: Post.self) }
     }
 
     func fetchPostPage(after cursor: PostPageCursor?) async throws -> PostPage {
@@ -67,9 +65,14 @@ struct FirebasePostFunctions: PostFunctions {
 
         let snapshot = try await query.getDocuments()
         let posts = snapshot.documents.compactMap { try? $0.data(as: Post.self) }
-        let nextCursor = snapshot.documents.count == pageSize ? posts.last.map {
-            PostPageCursor(createdAt: $0.createdAt, id: $0.id)
-        } : nil
+        let nextCursor: PostPageCursor? = snapshot.documents.count == pageSize
+            ? snapshot.documents.reversed().lazy.compactMap { document -> PostPageCursor? in
+                guard let createdAt = (document.data()["createdAt"] as? Timestamp)?.dateValue() else {
+                    return nil
+                }
+                return PostPageCursor(createdAt: createdAt, id: document.documentID)
+            }.first
+            : nil
         return PostPage(posts: posts, nextCursor: nextCursor)
     }
 

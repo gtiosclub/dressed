@@ -59,6 +59,15 @@ final class PostLikesViewModel: ObservableObject {
             states[post.id] = state
         } catch {
             guard generation == requestGeneration else { return }
+            if error is CancellationError || Task.isCancelled {
+                if !state.isLoaded {
+                    states.removeValue(forKey: post.id)
+                } else {
+                    state.isPending = false
+                    states[post.id] = state
+                }
+                return
+            }
             state.isPending = false
             state.errorMessage = "Couldn't load like. Pull to refresh."
             states[post.id] = state

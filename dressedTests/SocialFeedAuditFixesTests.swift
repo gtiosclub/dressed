@@ -14,12 +14,16 @@ final class SocialFeedAuditFixesTests: XCTestCase {
     private final class MockPostLikeService: PostLikeFunctions {
         var fetchResults: [Result<PostLikeSnapshot, Error>] = []
         var setResults: [Result<PostLikeSnapshot, Error>] = []
+        var fetchOverride: ((String, String, Int) async throws -> PostLikeSnapshot)?
         private(set) var fetchCount = 0
         private(set) var setCount = 0
         private(set) var lastSetDesiredState: Bool?
 
         func fetch(postId: String, ownerId: String, knownCount: Int) async throws -> PostLikeSnapshot {
             fetchCount += 1
+            if let fetchOverride {
+                return try await fetchOverride(postId, ownerId, knownCount)
+            }
             if !fetchResults.isEmpty {
                 return try fetchResults.removeFirst().get()
             }
@@ -191,6 +195,42 @@ final class SocialFeedAuditFixesTests: XCTestCase {
         XCTAssertTrue(refreshed.isLoaded)
         XCTAssertTrue(refreshed.isLiked)
         XCTAssertEqual(refreshed.likeCount, 11)
+        XCTAssertEqual(service.fetchCount, 2)
+    }
+
+    func testPostLikesLoadCancellationClearsPendingWithoutErrorAndAllowsReload() async {
+        let service = MockPostLikeService()
+        service.fetchOverride = { postId, _, _ in
+            if service.fetchCount == 1 {
+                try await Task.sleep(for: .seconds(10))
+            }
+            return PostLikeSnapshot(postId: postId, isLiked: true, likeCount: 6)
+        }
+        let viewModel = PostLikesViewModel(ownerId: "user_1", service: service)
+        let post = makePost(id: "p_cancel", likeCount: 5)
+
+        let loadTask = Task {
+            await viewModel.loadIfNeeded(post: post)
+        }
+        await waitUntil { service.fetchCount == 1 }
+        XCTAssertTrue(viewModel.state(for: post).isPending)
+
+        loadTask.cancel()
+        await loadTask.value
+
+        let cancelledState = viewModel.state(for: post)
+        XCTAssertNil(cancelledState.errorMessage)
+        XCTAssertFalse(cancelledState.isPending)
+        XCTAssertFalse(cancelledState.isLoaded)
+
+        await viewModel.loadIfNeeded(post: post)
+
+        let reloadedState = viewModel.state(for: post)
+        XCTAssertTrue(reloadedState.isLoaded)
+        XCTAssertFalse(reloadedState.isPending)
+        XCTAssertTrue(reloadedState.isLiked)
+        XCTAssertEqual(reloadedState.likeCount, 6)
+        XCTAssertNil(reloadedState.errorMessage)
         XCTAssertEqual(service.fetchCount, 2)
     }
 
