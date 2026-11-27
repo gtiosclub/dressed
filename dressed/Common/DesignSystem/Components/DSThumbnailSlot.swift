@@ -18,7 +18,7 @@ struct DSCropFrame: View {
     var color: Color = .white
 
     var body: some View {
-        RoundedRectangle(cornerRadius: DSRadius.xl, style: .continuous)
+        RoundedRectangle(cornerRadius: DSRadius.crop, style: .continuous)
             .strokeBorder(color, lineWidth: 5)
     }
 }

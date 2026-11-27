@@ -28,6 +28,7 @@ nonisolated enum OnDeviceGarmentRegions {
             let defaults: (String, ClothingCategory) = switch part {
             case "upper": ("Top", .tops)
             case "shoes": ("Shoes", .shoes)
+            case "head": ("Headwear", .accessories)
             default: ("Bottom", .pants)
             }
             let prototype = ImportCandidate(
@@ -45,6 +46,8 @@ nonisolated enum OnDeviceGarmentRegions {
             let crop = try images?.crop(prototype) ?? SharedImportDraftStore.imageData(for: prototype, in: imageData)
             let suggestion = try? await PrototypeGarmentRecognition.analyze(crop, metrics: metrics)
             try Task.checkCancellation()
+            // A head alone is not a piece.
+            if part == "head" && suggestion?.category != .accessories { continue }
             var candidate = prototype
             if let suggestion {
                 candidate.name = suggestion.name

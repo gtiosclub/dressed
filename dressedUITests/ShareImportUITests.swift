@@ -240,6 +240,89 @@ final class ShareImportUITests: XCTestCase {
         summary.name = "Summary after match"; summary.lifetime = .keepAlways; add(summary)
     }
 
+    func testReviewCloseAndSearchCloseControls() {
+        let app = launchSharedFixture()
+        let close = app.buttons["sharedImport.close"]
+        // The same 50 pt control as the camera.
+        XCTAssertEqual(close.frame.width, 50, accuracy: 1)
+        XCTAssertEqual(close.frame.height, 50, accuracy: 1)
+        XCTAssertEqual(close.frame.minX, 9, accuracy: 1)
+        let piece = XCTAttachment(screenshot: app.screenshot())
+        piece.name = "Piece close control"; piece.lifetime = .keepAlways; add(piece)
+
+        app.buttons["sharedImport.findYourself"].tap()
+        let searchClose = app.buttons["sharedImport.searchClose"]
+        XCTAssertTrue(searchClose.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.textFields["sharedImport.search"].exists)
+        XCTAssertFalse(app.buttons["Cancel"].exists)
+        let search = XCTAttachment(screenshot: app.screenshot())
+        search.name = "Search sheet"; search.lifetime = .keepAlways; add(search)
+        searchClose.tap()
+        XCTAssertTrue(app.staticTexts["1 of 3"].waitForExistence(timeout: 5))
+
+        reviewNextPiece(in: app, approve: true)
+        reviewNextPiece(in: app, approve: true)
+        reviewNextPiece(in: app, approve: false)
+        XCTAssertTrue(app.buttons["sharedImport.confirm"].waitForExistence(timeout: 5))
+        let summary = XCTAttachment(screenshot: app.screenshot())
+        summary.name = "Summary close control"; summary.lifetime = .keepAlways; add(summary)
+        // One tap discards: no menu or confirmation, and nothing comes back after a relaunch.
+        close.tap()
+        XCTAssertTrue(close.waitForNonExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Later"].exists)
+        XCTAssertFalse(app.buttons["Discard Image"].exists)
+        app.terminate()
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showCamera"]
+        app.launch()
+        XCTAssertTrue(app.buttons["camera.close"].waitForExistence(timeout: 10))
+        XCTAssertFalse(close.waitForExistence(timeout: 3))
+    }
+
+    /// Real photo through the real parsing model. Set TEST_RUNNER_CLOTHES_MODEL_PATH and
+    /// TEST_RUNNER_CLOTHES_PHOTO_PATH; TEST_RUNNER_CATALOG_PACK_PATH also shows catalog matches.
+    func testParsedPhotoPiecesImportAsCutouts() throws {
+        let environment = ProcessInfo.processInfo.environment
+        guard let model = environment["CLOTHES_MODEL_PATH"], let photo = environment["CLOTHES_PHOTO_PATH"] else {
+            throw XCTSkip("No parsing model configured")
+        }
+        let app = XCUIApplication()
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showCamera",
+                               "-clothesModelPath", model, "-importPhoto", photo]
+        if let pack = environment["CATALOG_PACK_PATH"] {
+            app.launchArguments += ["-demoMatches", "-catalogPackPath", pack]
+        }
+        app.launch()
+        XCTAssertTrue(app.buttons["sharedImport.close"].waitForExistence(timeout: 10))
+        let skip = app.buttons["sharedImport.skip"]
+        XCTAssertTrue(skip.waitForExistence(timeout: 90))
+        var reviewed = 0
+        while skip.waitForExistence(timeout: 5), reviewed < 8 {
+            reviewed += 1
+            let match = app.buttons["sharedImport.match"].firstMatch
+            let own = app.buttons["sharedImport.option"]
+            if environment["CATALOG_PACK_PATH"] != nil {
+                XCTAssertTrue(match.waitForExistence(timeout: 90))
+            } else {
+                XCTAssertTrue(own.waitForExistence(timeout: 10))
+            }
+            let browsing = XCTAttachment(screenshot: app.screenshot())
+            browsing.name = "Parsed piece \(reviewed)"; browsing.lifetime = .keepAlways; add(browsing)
+            (match.exists ? match : own).tap()
+            let next = app.buttons["sharedImport.approve"]
+            XCTAssertTrue(next.waitForExistence(timeout: 5))
+            next.tap()
+        }
+        XCTAssertGreaterThanOrEqual(reviewed, 2)
+        let confirm = app.buttons["sharedImport.confirmIndividual"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        let summary = XCTAttachment(screenshot: app.screenshot())
+        summary.name = "Parsed summary"; summary.lifetime = .keepAlways; add(summary)
+        confirm.tap()
+        openCloset(in: app)
+        let closet = XCTAttachment(screenshot: app.screenshot())
+        closet.name = "Parsed closet"; closet.lifetime = .keepAlways; add(closet)
+    }
+
     func testInterruptedSharedDraftRestartsAndKeepsManualSelectionAfterRelaunch() {
         let app = XCUIApplication()
         let suffix = String(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(12))
@@ -270,8 +353,6 @@ final class ShareImportUITests: XCTestCase {
         XCTAssertTrue(app.buttons["sharedImport.findMore"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Manual scarf"].exists)
         app.buttons["sharedImport.close"].tap()
-        app.buttons["Discard"].tap()
-        app.buttons["Discard Image"].tap()
     }
 
     func testOnDeviceBenchmarkCompletesAndShowsMeasuredResults() {
@@ -439,12 +520,10 @@ final class ShareImportUITests: XCTestCase {
         XCTAssertTrue(outfit.waitForExistence(timeout: 5))
     }
 
-    func testLaterRestoresProgressAndIndividualImport() {
+    func testRelaunchRestoresProgressAndIndividualImport() {
         let app = launchSharedFixture()
         reviewNextPiece(in: app, approve: true)
         XCTAssertTrue(app.descendants(matching: .any)["sharedImport.selectedPreview"].waitForExistence(timeout: 3))
-        app.buttons["sharedImport.close"].tap()
-        app.buttons["Later"].tap()
         app.terminate()
         app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showCamera"]
         app.launch()

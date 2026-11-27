@@ -7,8 +7,8 @@ nonisolated enum GarmentPoseRegions {
     static func regions(in person: VNHumanBodyPoseObservation?) -> [(String, NormalizedImageRegion)] {
         guard let person else { return [(String, NormalizedImageRegion)]() }
 
-        func point(_ joint: VNHumanBodyPoseObservation.JointName) -> CGPoint? {
-            guard let result = try? person.recognizedPoint(joint), result.confidence >= 0.35 else {
+        func point(_ joint: VNHumanBodyPoseObservation.JointName, minimum: Float = 0.35) -> CGPoint? {
+            guard let result = try? person.recognizedPoint(joint), result.confidence >= minimum else {
                 return nil
             }
             return result.location
@@ -24,8 +24,9 @@ nonisolated enum GarmentPoseRegions {
                               horizontalMargin: 0.08, topMargin: 0.07, bottomMargin: 0.03) {
             found.append(("upper", upper))
         }
-        if let leftLeg = point(.leftAnkle) ?? point(.leftKnee),
-           let rightLeg = point(.rightAnkle) ?? point(.rightKnee),
+        // Shorts and skirts often hide or crop the ankles, so a less certain knee is enough.
+        if let leftLeg = point(.leftAnkle) ?? point(.leftKnee, minimum: 0.25),
+           let rightLeg = point(.rightAnkle) ?? point(.rightKnee, minimum: 0.25),
            let lower = region(points: [leftHip, rightHip, leftLeg, rightLeg],
                               horizontalMargin: 0.07, topMargin: 0.03, bottomMargin: 0.07) {
             found.append(("lower", lower))
@@ -38,6 +39,13 @@ nonisolated enum GarmentPoseRegions {
                                        CGPoint(x: rightAnkle.x, y: max(0, rightAnkle.y - 0.06))],
                               horizontalMargin: 0.07, topMargin: 0.02, bottomMargin: 0.02) {
             found.append(("shoes", shoes))
+        }
+        // A possible hat or scarf. Callers keep it only when the classifier sees one there.
+        let face = [point(.nose), point(.leftEye), point(.rightEye),
+                    point(.leftEar), point(.rightEar)].compactMap { $0 }
+        if face.count >= 2,
+           let head = region(points: face, horizontalMargin: 0.06, topMargin: 0.09, bottomMargin: 0.02) {
+            found.append(("head", head))
         }
         return found
     }

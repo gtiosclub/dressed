@@ -23,7 +23,7 @@ enum DiscoveryRetailPhotos {
     static func featured(_ products: [CatalogProduct]) -> [CatalogProduct] {
         var retailers: Set<String> = []
         return ClothingCategory.allCases.compactMap { category in
-            let matches = products.filter { $0.category == category && $0.imageURL != nil }
+            let matches = products.filter { $0.category == category && $0.displayImageURL != nil }
             let selected = matches.first { !retailers.contains($0.sourceId) } ?? matches.first
             if let selected { retailers.insert(selected.sourceId) }
             return selected

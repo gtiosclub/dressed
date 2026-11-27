@@ -165,12 +165,16 @@ struct PrototypeOutfitDetailView: View {
     let onTryOutfit: (Outfit) -> Void
     let onTryOn: (ClothingItem) -> Void
     @ObservedObject var closet: PrototypeClosetStore
+    let outfits: PrototypeOutfitStore
     @Environment(\.dismiss) private var dismiss
+    @State private var confirmsDelete = false
+    @State private var deleteError: String?
 
-    init(outfit: Outfit, closet: PrototypeClosetStore,
+    init(outfit: Outfit, closet: PrototypeClosetStore, outfits: PrototypeOutfitStore,
          onTryOutfit: @escaping (Outfit) -> Void, onTryOn: @escaping (ClothingItem) -> Void = { _ in }) {
         self.outfit = outfit
         self.closet = closet
+        self.outfits = outfits
         self.onTryOutfit = onTryOutfit
         self.onTryOn = onTryOn
     }
@@ -180,7 +184,14 @@ struct PrototypeOutfitDetailView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DSSpacing.md) {
-            DSBackHeader(title: outfit.name ?? "Outfit", onBack: { dismiss() })
+            DSBackHeader(title: outfit.name ?? "Outfit", onBack: { dismiss() }) {
+                DSMoreMenu(accessibilityLabel: "Outfit options") {
+                    Button(role: .destructive) { confirmsDelete = true } label: {
+                        // A plain image: `DSIcon` hides itself from VoiceOver, which hides the whole menu item.
+                        Label { Text("Delete Outfit") } icon: { Image("TablerTrash") }
+                    }
+                }
+            }
                 .padding(.horizontal, DSSpacing.lg)
                 .padding(.top, DSSpacing.sm)
 
@@ -224,6 +235,29 @@ struct PrototypeOutfitDetailView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(DSColor.background)
         .toolbar(.hidden, for: .navigationBar)
+        .alert("Delete this outfit?", isPresented: $confirmsDelete) {
+            Button("Delete", role: .destructive, action: delete)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Its pieces stay in your closet.")
+        }
+        .alert("Could not delete outfit", isPresented: Binding(
+            get: { deleteError != nil },
+            set: { if !$0 { deleteError = nil } }
+        )) {
+            Button("OK", role: .cancel) { deleteError = nil }
+        } message: {
+            Text(deleteError ?? "Please try again.")
+        }
+    }
+
+    private func delete() {
+        do {
+            try outfits.delete(id: outfit.id)
+            dismiss()
+        } catch {
+            deleteError = error.localizedDescription
+        }
     }
 
     @ViewBuilder

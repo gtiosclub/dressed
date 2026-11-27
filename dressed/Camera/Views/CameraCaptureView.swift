@@ -142,11 +142,7 @@ struct CameraCaptureView: View {
 
             VStack {
                 HStack {
-                    Button(action: onClose) {
-                        DSIcon("TablerX", size: 24).foregroundStyle(DSColor.iconMuted)
-                    }
-                    .buttonStyle(.ds(.glass))
-                    .accessibilityLabel("Close camera")
+                    DSCloseButton(accessibilityLabel: "Close camera", action: onClose)
                     .accessibilityIdentifier("camera.close")
                     Spacer()
                     if let onReviewShare {

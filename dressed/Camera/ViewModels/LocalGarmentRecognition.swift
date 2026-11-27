@@ -57,6 +57,8 @@ struct LocalGarmentRecognition: GarmentRecognitionService {
         let boundingBox: NormalizedImageRegion
         let suggestedName: String
         let suggestedCategory: String
+        /// Base64 grayscale PNG over the whole photo, sent when the Mac bridge runs the parsing model.
+        let mask: Data?
     }
 
     func detect(imageData: Data, importID: String) async throws -> [ImportCandidate] {
@@ -88,10 +90,13 @@ struct LocalGarmentRecognition: GarmentRecognitionService {
         let candidates = result.candidates.compactMap { value -> ImportCandidate? in
             guard value.boundingBox.isValid,
                   let category = ClothingCategory(rawValue: value.suggestedCategory) else { return nil }
+            let id = SharedImportDraftStore.stableID(importID: importID, part: "google-\(value.id)")
+            let cutout = value.mask.flatMap(GarmentMask.init(pngData:)).flatMap { mask in
+                GarmentImage.upright(imageData).flatMap { GarmentImage.cutout(of: $0, mask: mask) }
+            }
             return ImportCandidate(
-                id: SharedImportDraftStore.stableID(importID: importID, part: "google-\(value.id)"),
-                name: value.suggestedName, category: category, destination: .closet,
-                temporaryCutoutPath: nil, region: value.boundingBox,
+                id: id, name: value.suggestedName, category: category, destination: .closet,
+                temporaryCutoutPath: cutout.flatMap { SharedImportDraftStore.writeCutout($0, for: id) }, region: value.boundingBox,
                 suggestionSource: "Automatic suggestion", selected: false,
                 tags: [], suggestedTags: []
             )

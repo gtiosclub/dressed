@@ -13,15 +13,13 @@ struct PrototypeImportView: View {
     /// Without it, the older single-photo form below is used.
     var onReviewImage: ((ReviewImage) -> Void)?
 
-    @State private var selectedPhotos: [PhotosPickerItem] = []
-    @State private var multiPhotoReview: MultiPhotoReviewSession?
+    @State private var selectedPhoto: PhotosPickerItem?
     @State private var photoLoadingTask: Task<Void, Never>?
     @State private var review: ReviewImage?
     @State private var showsUploadChoices = false
     @State private var showsPhotoPicker = false
-    @State private var importMode: ImportMode = .oneItem
     @State private var showsLinkPrompt = false
-    @State private var isLoadingSelectedPhotos = false
+    @State private var isLoadingSelectedPhoto = false
     @State private var importError: String?
     @State private var productURLText = ""
     @State private var productLink: ReviewProductLink?
@@ -36,22 +34,15 @@ struct PrototypeImportView: View {
             onReviewShare: onReviewShare
         )
         .overlay {
-            if isLoadingSelectedPhotos { ProgressView("Loading photos…").tint(.white).foregroundStyle(.white) }
+            if isLoadingSelectedPhoto { ProgressView("Loading photo…").tint(.white).foregroundStyle(.white) }
         }
         .toolbar(.hidden, for: .navigationBar)
         .confirmationDialog("Upload", isPresented: $showsUploadChoices) {
-            Button("Photos of One Item") {
-                importMode = .oneItem
-                showsPhotoPicker = true
-            }
-            Button("Photos of a Full Outfit") {
-                importMode = .oneOutfit
-                showsPhotoPicker = true
-            }
+            Button("Photo") { showsPhotoPicker = true }
             Button("Product Link") { showsLinkPrompt = true }
             Button("Cancel", role: .cancel) {}
         }
-        .photosPicker(isPresented: $showsPhotoPicker, selection: $selectedPhotos, maxSelectionCount: 8, matching: .images)
+        .photosPicker(isPresented: $showsPhotoPicker, selection: $selectedPhoto, matching: .images)
         .alert("Add a product link", isPresented: $showsLinkPrompt) {
             TextField("https://store.example/product", text: $productURLText)
                 .textContentType(.URL)
@@ -70,9 +61,9 @@ struct PrototypeImportView: View {
         } message: {
             Text("Product links go to Wishlist after review; they do not become owned closet pieces.")
         }
-        .onChange(of: selectedPhotos) { _, photos in
+        .onChange(of: selectedPhoto) { _, photo in
             photoLoadingTask?.cancel()
-            photoLoadingTask = Task { await loadSelectedPhotos(photos) }
+            photoLoadingTask = Task { await load(photo) }
         }
         .sheet(item: $review) { image in
             ImportReviewView(
@@ -81,19 +72,6 @@ struct PrototypeImportView: View {
                 onCancel: { review = nil },
                 onSaved: { review = nil },
                 onAnotherPhoto: { newImage in review = newImage }
-            )
-        }
-        .sheet(item: $multiPhotoReview) { session in
-            MultiPhotoImportReviewView(
-                mode: session.mode,
-                importID: session.id,
-                photos: session.photos,
-                closet: closet,
-                onCancel: { multiPhotoReview = nil },
-                onSaved: {
-                    multiPhotoReview = nil
-                    selectedPhotos = []
-                }
             )
         }
         .sheet(item: $productLink) { link in
@@ -124,62 +102,27 @@ struct PrototypeImportView: View {
         }
     }
 
-    /// Loads the picked photos, then goes straight to review: one photo to the single-photo review,
-    /// several to the multi-photo review in the mode chosen in the Upload sheet.
-    private func loadSelectedPhotos(_ photos: [PhotosPickerItem]) async {
-        guard !photos.isEmpty else {
-            isLoadingSelectedPhotos = false
+    /// Loads the picked photo, then goes straight to review.
+    private func load(_ photo: PhotosPickerItem?) async {
+        guard let photo else {
+            isLoadingSelectedPhoto = false
             return
         }
 
-        isLoadingSelectedPhotos = true
-        var loaded: [ReviewImage] = []
-        var failedCount = 0
-
-        for photo in photos {
-            guard !Task.isCancelled else { return }
-            do {
-                guard let data = try await photo.loadTransferable(type: Data.self),
-                      UIImage(data: data) != nil else {
-                    throw PrototypeImportError.invalidImage
-                }
-                let id = ImportPhotoID.make(for: data)
-                guard !loaded.contains(where: { $0.id == id }) else { continue }
-                loaded.append(ReviewImage(id: id, data: data, source: "Photo Library", isShared: false))
-            } catch {
-                failedCount += 1
-            }
-        }
-
+        isLoadingSelectedPhoto = true
+        let data = try? await photo.loadTransferable(type: Data.self)
         guard !Task.isCancelled else { return }
-        isLoadingSelectedPhotos = false
+        isLoadingSelectedPhoto = false
+        // Cleared so the same photo can be picked again.
+        selectedPhoto = nil
 
-        if failedCount > 0 {
-            selectedPhotos = []
-            importError = failedCount == 1
-                ? "One selected photo could not be loaded. Choose it again."
-                : "Some selected photos could not be loaded. Choose them again."
+        guard let data, UIImage(data: data) != nil else {
+            importError = "The selected photo could not be loaded. Choose it again."
             return
         }
-
-        if loaded.count == 1, let image = loaded.first {
-            selectedPhotos = []
-            startReview(image)
-        } else if loaded.count > 1 {
-            let selectionKey = ([importMode.rawValue] + loaded.map(\.id).sorted()).joined(separator: ":")
-            multiPhotoReview = MultiPhotoReviewSession(
-                id: SharedImportDraftStore.stableID(importID: selectionKey, part: "multi-photo-import"),
-                mode: importMode,
-                photos: loaded
-            )
-        }
+        startReview(ReviewImage(id: ImportPhotoID.make(for: data), data: data,
+                                source: "Photo Library", isShared: false))
     }
-}
-
-private struct MultiPhotoReviewSession: Identifiable {
-    let id: String
-    let mode: ImportMode
-    let photos: [ReviewImage]
 }
 
 struct ImportReviewView: View {

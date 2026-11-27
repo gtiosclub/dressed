@@ -333,10 +333,6 @@ private struct AppTabs: View {
                 closet: closet,
                 recognizer: sharedRecognitionService,
                 matcher: productMatcher,
-                onLater: {
-                    deferredSharedId = image.id
-                    pendingSharedImage = nil
-                },
                 onDiscard: {
                     SharedImageInbox.remove(id: image.id)
                     presentedSharedId = nil
@@ -394,6 +390,17 @@ private struct AppTabs: View {
                 catch { sharedImageError = error.localizedDescription }
             }
 
+            // Reviews a photo from this Mac, for simulator checks with real images.
+            if let marker = arguments.firstIndex(of: "-importPhoto"),
+               arguments.indices.contains(marker + 1) {
+                do {
+                    let data = try Data(contentsOf: URL(fileURLWithPath: arguments[marker + 1]))
+                    _ = try SharedImageInbox.enqueue(imageData: data, ownerId: userId, source: "Debug photo")
+                } catch {
+                    sharedImageError = error.localizedDescription
+                }
+            }
+
             if let marker = arguments.firstIndex(
                 of: "-seedShareFixture"
             ),
@@ -442,6 +449,7 @@ private struct AppTabs: View {
             return NoProductMatches()
         }
         #endif
+        if let indexed = CatalogIndexMatcher.configured { return indexed }
         return CatalogVisualMatcher.shared
     }
 

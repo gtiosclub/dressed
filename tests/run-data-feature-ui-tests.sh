@@ -70,13 +70,12 @@ xcodebuild \
   -derivedDataPath "$derived_data_path" \
   -resultBundlePath "$run_dir/Test.xcresult" \
   -parallel-testing-enabled NO \
-  -only-testing:dressedUITests/NavigationUITests/testPhotoLibraryImportModeAndPickerEntry \
-  -only-testing:dressedUITests/NavigationUITests/testSelectingMultiplePhotosOpensCombinedReview \
-  -only-testing:dressedUITests/NavigationUITests/testFullOutfitMultiPhotoReviewStartsUnselected \
+  -only-testing:dressedUITests/NavigationUITests/testUploadOffersPhotoAndLinkAndPickerOpens \
+  -only-testing:dressedUITests/NavigationUITests/testPickedPhotoOpensPieceReviewAndCloseDiscards \
   -only-testing:dressedUITests/ShareImportUITests/testManualPieceWhenNoSuggestions \
-  -only-testing:dressedUITests/ShareImportUITests/testApproveSkipThenChangeSelection \
+  -only-testing:dressedUITests/ShareImportUITests/testApproveSkipShowsOnlyApprovedPiecesAndBackRevisits \
   -only-testing:dressedUITests/ShareImportUITests/testReviewSelectTwoSkipOneSaveOutfitAndReopen \
-  -only-testing:dressedUITests/ShareImportUITests/testLaterRestoresProgressAndIndividualImport \
+  -only-testing:dressedUITests/ShareImportUITests/testRelaunchRestoresProgressAndIndividualImport \
   -only-testing:dressedUITests/ShareImportUITests/testReviewProductURLAndKeepWishlistAfterRelaunch \
   test
 test_status=$?

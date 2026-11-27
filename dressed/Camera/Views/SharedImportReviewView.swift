@@ -11,7 +11,6 @@ struct SharedImportReviewView: View {
     @ObservedObject var closet: PrototypeClosetStore
     let recognizer: any GarmentRecognitionService
     let matcher: any ProductMatching
-    let onLater: () -> Void
     let onDiscard: () -> Void
     let onSaved: () -> Void
 
@@ -29,19 +28,17 @@ struct SharedImportReviewView: View {
     @State private var matches: [String: [ProductMatch]] = [:]
     @State private var matchLoadingIDs: Set<String> = []
     private let ownPhotoOption = "own-photo"
-    @State private var confirmsDiscard = false
 
     init(image: ReviewImage, ownerId: String, closet: PrototypeClosetStore,
          recognizer: any GarmentRecognitionService = OnDeviceImportRecognitionService(),
          matcher: (any ProductMatching)? = nil,
-         onLater: @escaping () -> Void, onDiscard: @escaping () -> Void,
+         onDiscard: @escaping () -> Void,
          onSaved: @escaping () -> Void) {
         self.image = image
         self.ownerId = ownerId
         self.closet = closet
         self.recognizer = recognizer
         self.matcher = matcher ?? CatalogVisualMatcher.shared
-        self.onLater = onLater
         self.onDiscard = onDiscard
         self.onSaved = onSaved
         _outfits = StateObject(wrappedValue: PrototypeOutfitStore(ownerId: ownerId))
@@ -88,12 +85,7 @@ struct SharedImportReviewView: View {
                 }
             }
             .disabled(isSaving)
-            closeMenu
-        }
-        .confirmationDialog("Discard this image?", isPresented: $confirmsDiscard) {
-            Button("Discard Image", role: .destructive) { detectionTask?.cancel(); onDiscard() }
-        } message: {
-            Text("The draft and its temporary image will be removed.")
+            closeButton
         }
         .sheet(isPresented: Binding(
             get: { cropCandidateID != nil },
@@ -155,7 +147,7 @@ struct SharedImportReviewView: View {
                     let isChosen = chosenOption == match.id
                     Button { chosenOption = isChosen ? nil : match.id } label: {
                         DSCandidateRow(title: match.product.title,
-                                       subtitle: matchSubtitle(match.product),
+                                       subtitle: match.product.brand ?? match.product.sourceName,
                                        isSelected: isChosen) {
                             if let image = match.image {
                                 Image(uiImage: image).resizable().scaledToFit()
@@ -208,11 +200,6 @@ struct SharedImportReviewView: View {
         .background(DSColor.background)
         .onChange(of: candidate.id) { _, _ in chosenOption = nil }
         .task(id: candidate.id) { await loadMatches(for: candidate) }
-    }
-
-    private func matchSubtitle(_ product: CatalogProduct) -> String {
-        let seller = product.brand ?? product.sourceName
-        return "Similar · \(seller)"
     }
 
     private func pieceFooter(_ candidate: ImportCandidate) -> some View {
@@ -324,7 +311,7 @@ struct SharedImportReviewView: View {
                             .accessibilityLabel("Shared image to review")
                         if let frame {
                             photo.mask {
-                                RoundedRectangle(cornerRadius: DSRadius.xl, style: .continuous)
+                                RoundedRectangle(cornerRadius: DSRadius.crop, style: .continuous)
                                     .frame(width: frame.width, height: frame.height)
                                     .position(x: frame.midX, y: frame.midY)
                             }
@@ -396,6 +383,8 @@ struct SharedImportReviewView: View {
                 }
             }
             .scrollIndicators(.hidden)
+            // Keeps the close control above the collage instead of over a piece.
+            .padding(.top, 50 + DSSpacing.md)
             VStack(spacing: DSSpacing.xs) {
                 Button { confirm(.outfit) } label: {
                     Text(isSaving ? "Saving…" : "Import as Outfit").frame(maxWidth: .infinity)
@@ -424,22 +413,16 @@ struct SharedImportReviewView: View {
         .background(DSColor.background)
     }
 
-    private var closeMenu: some View {
-        Menu {
-            Button("Later") { detectionTask?.cancel(); onLater() }
-            Button("Discard", role: .destructive) { confirmsDiscard = true }
-        } label: {
-            // The review frames have no close control, so keep it small enough to clear the piece frame.
-            DSIcon("TablerX", size: 16)
-                .foregroundStyle(DSColor.textPrimary)
-                .frame(width: 30, height: 30)
-                .background(RoundedRectangle(cornerRadius: DSRadius.sm, style: .continuous).fill(DSColor.glass))
-                .frame(width: 43, height: 43)
+    /// Closing discards the photo and its draft at once.
+    private var closeButton: some View {
+        DSCloseButton {
+            detectionTask?.cancel()
+            onDiscard()
         }
         .disabled(isSaving)
-        .padding(.leading, DSSpacing.md)
-        .padding(.top, DSSpacing.xxs)
-        .accessibilityLabel("Close")
+        // 9 pt from the left edge, over the photo's top-left corner as on the camera.
+        .padding(.leading, 9)
+        .padding(.top, DSSpacing.sm)
         .accessibilityIdentifier("sharedImport.close")
     }
 
@@ -595,13 +578,20 @@ private struct ProductSearchSheet: View {
     @State private var query = ""
     @State private var results: [ProductMatch]?
     @State private var failed = false
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            HStack(spacing: DSSpacing.md) {
+                DSCloseButton(accessibilityLabel: "Close search", action: onClose)
+                    .accessibilityIdentifier("sharedImport.searchClose")
+                Text("Find it yourself").font(DSFont.bodyEmphasis).foregroundStyle(DSColor.textPrimary)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 9)
+            .padding(.top, DSSpacing.md)
             ScrollView {
                 LazyVStack(spacing: DSSpacing.xs) {
-                    DSLabeledField(label: "Search", prompt: "Search products", text: $query)
-                        .accessibilityIdentifier("sharedImport.search")
                     if failed {
                         Text("The catalog is unavailable. Try again later.")
                             .font(DSFont.body).foregroundStyle(DSColor.textMuted)
@@ -625,21 +615,27 @@ private struct ProductSearchSheet: View {
                         .accessibilityIdentifier("sharedImport.searchResult")
                     }
                 }
-                .padding(DSSpacing.md)
+                .padding(.horizontal, 9)
+                .padding(.vertical, DSSpacing.md)
             }
-            .navigationTitle("Find it yourself")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel", action: onClose) } }
-            .task(id: query) {
-                try? await Task.sleep(for: .milliseconds(300))
+            .scrollDismissesKeyboard(.immediately)
+            DSSearchField(prompt: "Search products", query: $query)
+                .focused($searchFocused)
+                .accessibilityIdentifier("sharedImport.search")
+                .padding(.horizontal, 9)
+                .padding(.bottom, DSSpacing.sm)
+        }
+        .background(DSColor.background)
+        .onAppear { searchFocused = true }
+        .task(id: query) {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            do {
+                results = try await matcher.search(query)
+                failed = false
+            } catch {
                 guard !Task.isCancelled else { return }
-                do {
-                    results = try await matcher.search(query)
-                    failed = false
-                } catch {
-                    guard !Task.isCancelled else { return }
-                    failed = true
-                }
+                failed = true
             }
         }
     }

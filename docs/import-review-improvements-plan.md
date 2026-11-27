@@ -1,6 +1,16 @@
 # Import review improvements and catalog seeding plan
 
-Status: proposal, November 27, 2026. Nothing here is implemented yet. It follows the
+Status, November 27, 2026: Plan 1 and a local version of Plan 2 are implemented for
+evaluation. Neither is ready to ship:
+
+- 1a and 1c are done. 1b works, but its gate fails (skirts 2/6, pants 15/17) and the model
+  license allows research or evaluation only. See `backend/recognition/README.md`.
+- 2a-2c work from a local, uncommitted catalog pack (907 Livostyle products). Coverage
+  targets are missed and matching accuracy is not yet validly measured. See
+  `backend/catalog/README.md`. Nothing was uploaded to Firebase or Cloud Storage.
+- Not done: iPhone speed, memory and quality checks.
+
+The text below is the original proposal. It follows the
 camera/upload piece review on `feature/camera-upload-piece-review` (Figma `777:6352`,
 `1012:282`, `1253:449`).
 

@@ -17,6 +17,10 @@ struct CatalogProduct: Codable, Identifiable {
     let status: String
     let lastCheckedAt: String
     var retailProduct: RetailProduct? = nil
+    /// The product alone on a transparent background, when ingest made one. Preferred for display.
+    var cutoutImageURL: URL? = nil
+
+    var displayImageURL: URL? { cutoutImageURL ?? imageURL }
 }
 
 struct CatalogSearchResponse: Decodable {

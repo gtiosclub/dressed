@@ -10,8 +10,8 @@ final class OutfitUndoRedoUITests: XCTestCase {
         app = XCUIApplication()
         app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-seedClosetFixture"]
         app.launch()
-        if app.buttons["Later"].waitForExistence(timeout: 2) {
-            app.buttons["Later"].tap()
+        if app.buttons["sharedImport.close"].waitForExistence(timeout: 2) {
+            app.buttons["sharedImport.close"].tap()
         }
         app.buttons["tab.avatar"].tap()
         XCTAssertTrue(app.navigationBars["Avatar Studio"].waitForExistence(timeout: 10))

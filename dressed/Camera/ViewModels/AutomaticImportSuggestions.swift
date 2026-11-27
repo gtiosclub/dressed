@@ -7,6 +7,7 @@ struct OnDeviceImportRecognitionService: GarmentRecognitionService {
         // The simulator cannot run Apple's body-pose model. When the local Mac bridge is running
         // (local_service.py --apple-vision), use its pieces. UI tests stay on the in-app pipeline.
         if !ProcessInfo.processInfo.arguments.contains("-mockSignedIn"),
+           ClothesParsingSuggestions.modelURL == nil,
            let found = try? await LocalGarmentRecognition()
                .detect(imageData: Self.bridgeSized(imageData), importID: importID),
            !found.isEmpty {
@@ -65,11 +66,16 @@ enum AutomaticImportSuggestions {
     }
 
     static func detect(imageData: Data, importID: String) async throws -> [ImportCandidate] {
+        // Garment outlines when a parsing model is available; otherwise body regions.
+        if let parsed = try await ClothesParsingSuggestions.detect(imageData: imageData, importID: importID) {
+            return parsed
+        }
         // The default recognition pipeline stays on-device.
         // Keep the original processing path as the default until the phone quality/speed gate passes.
         let mode: RecognitionMode = UserDefaults.standard.bool(forKey: "recognition.nativeProcessing")
             ? .nativePixels : .baseline
-        let run = try await OnDeviceRecognitionPipeline.run(imageData: imageData, importID: importID, mode: mode)
+        let run = try await OnDeviceRecognitionPipeline.run(imageData: imageData, importID: importID, mode: mode,
+                                                            allowsBackgroundFill: false)
         var candidates = run.candidates
         guard let root = FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: SharedImageInbox.groupId) else { return candidates }

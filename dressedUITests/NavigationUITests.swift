@@ -7,7 +7,7 @@ final class NavigationUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-mockSignedIn", "-showDiscovery"]
         app.launch()
-        if app.buttons["Later"].waitForExistence(timeout: 2) { app.buttons["Later"].tap() }
+        if app.buttons["sharedImport.close"].waitForExistence(timeout: 2) { app.buttons["sharedImport.close"].tap() }
         XCTAssertTrue(app.buttons["infinite.post.infinite_0"].waitForExistence(timeout: 15))
         let create = app.buttons["ootd.createPost"]
         XCTAssertTrue(create.waitForExistence(timeout: 5))
@@ -53,8 +53,8 @@ final class NavigationUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-mockSignedIn", "-skipDemoCloset"]
         app.launch()
-        if app.buttons["Later"].waitForExistence(timeout: 2) {
-            app.buttons["Later"].tap()
+        if app.buttons["sharedImport.close"].waitForExistence(timeout: 2) {
+            app.buttons["sharedImport.close"].tap()
         }
         // DSTabBar replaces the system tab bar, so tabs are found by identifier.
         XCTAssertTrue(app.buttons["tab.closet"].waitForExistence(timeout: 10))
@@ -110,7 +110,7 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(app.buttons["tab.avatar"].isSelected)
     }
 
-    func testUploadOffersPhotosAndLinkAndPickerOpens() {
+    func testUploadOffersPhotoAndLinkAndPickerOpens() {
         let app = XCUIApplication()
         app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showCamera"]
         allowCameraAccess()
@@ -119,57 +119,82 @@ final class NavigationUITests: XCTestCase {
         let upload = app.buttons["Upload"]
         XCTAssertTrue(upload.waitForExistence(timeout: 10))
         upload.tap()
-        XCTAssertTrue(app.buttons["Photos of a Full Outfit"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Photo"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["Product Link"].exists)
-        app.buttons["Photos of One Item"].tap()
+        XCTAssertFalse(app.buttons["Photos of One Item"].exists)
+        XCTAssertFalse(app.buttons["Photos of a Full Outfit"].exists)
+        let choices = XCTAttachment(screenshot: app.screenshot())
+        choices.name = "Upload choices"; choices.lifetime = .keepAlways; add(choices)
+        app.buttons["Photo"].tap()
         let cancelPicker = app.buttons["Cancel"]
         XCTAssertTrue(cancelPicker.waitForExistence(timeout: 5))
         cancelPicker.tap()
         XCTAssertTrue(upload.waitForExistence(timeout: 5))
     }
 
-    func testSelectingMultiplePhotosOpensCombinedReview() {
+    /// One tap on a library photo picks it; there is no multi-selection step.
+    func testPickedPhotoOpensPieceReviewAndCloseDiscards() {
         let app = XCUIApplication()
         app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showCamera"]
         allowCameraAccess()
         app.launch()
 
-        selectTwoSimulatorPhotos(in: app, choice: "Photos of One Item")
+        let upload = app.buttons["Upload"]
+        XCTAssertTrue(upload.waitForExistence(timeout: 10))
+        upload.tap()
+        app.buttons["Photo"].tap()
+        let photo = app.images.matching(NSPredicate(format: "label BEGINSWITH %@", "Photo,")).firstMatch
+        XCTAssertTrue(photo.waitForExistence(timeout: 10), "Seed a synthetic photo in this test simulator first.")
+        // The picker is hosted out of process and reports its photos as not hittable, so tap by coordinate.
+        photo.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
 
-        XCTAssertTrue(app.navigationBars["Review Item"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["Seen in 2 photos"].waitForExistence(timeout: 30))
-        XCTAssertTrue(app.buttons["Cancel"].exists)
-        let screenshot = XCTAttachment(screenshot: app.screenshot())
-        screenshot.name = "Multi-photo item review"
-        screenshot.lifetime = .keepAlways
-        add(screenshot)
+        let close = app.buttons["sharedImport.close"]
+        XCTAssertTrue(close.waitForExistence(timeout: 15))
+        close.tap()
+        XCTAssertTrue(upload.waitForExistence(timeout: 5))
+        XCTAssertFalse(close.exists)
     }
 
-    func testFullOutfitMultiPhotoReviewStartsUnselected() {
+    /// Uses the Debug demo closet, which seeds two outfits into a fresh install.
+    func testDeleteOutfitFromDetailKeepsItsPieces() {
+        continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-showCamera"]
-        allowCameraAccess()
+        app.launchArguments = ["-mockSignedIn"]
         app.launch()
+        XCTAssertTrue(app.buttons["closet.filter.Outfits"].waitForExistence(timeout: 10))
+        app.buttons["closet.filter.Outfits"].tap()
+        let outfit = app.buttons["Cozy Weekend"]
+        XCTAssertTrue(outfit.waitForExistence(timeout: 5), "Run on a fresh install so the demo outfit exists.")
+        outfit.tap()
 
-        selectTwoSimulatorPhotos(in: app, choice: "Photos of a Full Outfit")
+        let options = app.buttons["Outfit options"]
+        XCTAssertTrue(options.waitForExistence(timeout: 5))
+        options.tap()
+        let deleteItem = app.buttons["Delete Outfit"]
+        XCTAssertTrue(deleteItem.waitForExistence(timeout: 5))
+        deleteItem.tap()
+        let alert = app.alerts["Delete this outfit?"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        alert.buttons["Cancel"].tap()
+        XCTAssertTrue(options.waitForExistence(timeout: 5), "Cancel keeps the outfit open")
 
-        XCTAssertTrue(app.navigationBars["Review Outfit"].waitForExistence(timeout: 10))
-        let selections = app.switches.matching(identifier: "Select this piece")
-        XCTAssertTrue(selections.firstMatch.waitForExistence(timeout: 30))
-        for index in 0..<selections.count {
-            XCTAssertEqual(selections.element(boundBy: index).value as? String, "0")
-        }
+        options.tap()
+        XCTAssertTrue(deleteItem.waitForExistence(timeout: 5))
+        let menu = XCTAttachment(screenshot: app.screenshot())
+        menu.name = "Outfit menu"; menu.lifetime = .keepAlways; add(menu)
+        deleteItem.tap()
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        alert.buttons["Delete"].tap()
+        XCTAssertTrue(app.buttons["Easy Denim"].waitForExistence(timeout: 5))
+        XCTAssertFalse(outfit.exists)
+        app.buttons["closet.filter.All"].tap()
+        XCTAssertTrue(app.buttons["Brown Wool Sweater"].waitForExistence(timeout: 5))
 
-        let saveSelectedPieces = app.buttons["Save Selected Pieces"]
-        for _ in 0..<5 where !saveSelectedPieces.exists {
-            app.swipeUp()
-        }
-        XCTAssertTrue(saveSelectedPieces.exists, app.debugDescription)
-        XCTAssertFalse(saveSelectedPieces.isEnabled)
-        let screenshot = XCTAttachment(screenshot: app.screenshot())
-        screenshot.name = "Full-outfit review starts unselected"
-        screenshot.lifetime = .keepAlways
-        add(screenshot)
+        app.terminate()
+        app.launch()
+        app.buttons["closet.filter.Outfits"].tap()
+        XCTAssertTrue(app.buttons["Easy Denim"].waitForExistence(timeout: 5))
+        XCTAssertFalse(outfit.exists)
     }
 
     /// Dismisses the system camera permission prompt the first time the camera opens.
@@ -181,20 +206,6 @@ final class NavigationUITests: XCTestCase {
             }
             return false
         }
-    }
-
-    private func selectTwoSimulatorPhotos(in app: XCUIApplication, choice: String) {
-        let upload = app.buttons["Upload"]
-        XCTAssertTrue(upload.waitForExistence(timeout: 10))
-        upload.tap()
-        app.buttons[choice].tap()
-        let photoImages = app.images.matching(NSPredicate(format: "label BEGINSWITH %@", "Photo,"))
-        XCTAssertTrue(photoImages.element(boundBy: 1).waitForExistence(timeout: 10), app.debugDescription)
-        // The picker is hosted out of process and reports its photos as not hittable, so tap by coordinate.
-        for index in 0..<2 {
-            photoImages.element(boundBy: index).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        }
-        app.buttons["Add"].tap()
     }
 }
 

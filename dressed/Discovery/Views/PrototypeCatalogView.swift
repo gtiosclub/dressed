@@ -72,7 +72,7 @@ struct PrototypeCatalogView: View {
     private func productRow(_ product: CatalogProduct) -> some View {
         Link(destination: product.productURL) {
             HStack(alignment: .top, spacing: 12) {
-                AsyncImage(url: product.imageURL) { image in
+                AsyncImage(url: product.displayImageURL) { image in
                     image.resizable().scaledToFill()
                 } placeholder: {
                     DSIcon("TablerTag", size: 24)

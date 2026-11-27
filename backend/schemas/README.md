@@ -28,6 +28,10 @@ Storage paths: private item photos under `users/{uid}/items/{id}/`; published co
 
 Templates cover the currently named entities, including deferred follows, preferences, avatars and engagement. Persistent comments now have an implemented client and locally tested rules; see [comments](comments.md) for their contract and pending deployment verification. Optional future features such as persistent likes, AR or body scans still need approved contracts before implementation. No functioning feature or server is implied by a schema file.
 
+## Catalog cutouts
+
+A catalog record (`RetailCatalogRecord`) may carry `cutoutImageURL`: the product alone on a transparent background. Hosted records use an `https` URL, which the app shows instead of `imageURL`. Local catalog packs use `cutouts/<id>.png`, resolved only by the pack loader. Older records without the field are unchanged.
+
 ## Validate the JSON contracts locally
 
 From the repository root, using the installed Xcode Swift toolchain:
