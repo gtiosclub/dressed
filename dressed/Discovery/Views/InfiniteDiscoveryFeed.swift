@@ -26,7 +26,8 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     @State private var commentService: any CommentService
     @State private var commentCounts: [String: Int] = [:]
     @State private var previewPosts: [Post] = []
-    @State private var deletedPostIds: Set<String> = []
+    @State private var localDeletedPostIds: Set<String> = []
+    private let externalDeletedPostIds: Binding<Set<String>>?
     @State private var refreshGeneration = 0
     @State private var exposureTracker = FeedExposureTracker()
     @State private var appliedPostExposureCounts: [String: Int] = [:]
@@ -79,6 +80,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         moderation: ModerationViewModel? = nil,
         postService: (any PostFunctions)? = nil,
         closetCategories: [ClothingCategory] = [],
+        externalDeletedPostIds: Binding<Set<String>>? = nil,
         onOpenProfile: ((String) -> Void)? = nil,
         @ViewBuilder artwork: @escaping (Post) -> Artwork
     ) {
@@ -102,18 +104,25 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         self.moderation = moderation ?? ModerationViewModel(ownerId: authorId ?? "preview_user", service: DemoModerationFunctions())
         self.postService = postService
         self.closetCategories = closetCategories
+        self.externalDeletedPostIds = externalDeletedPostIds
         self.onOpenProfile = onOpenProfile
     }
 
+    private var allDeletedPostIds: Set<String> {
+        localDeletedPostIds.union(externalDeletedPostIds?.wrappedValue ?? [])
+    }
+
     private var visiblePreviewPosts: [Post] {
-        previewPosts.filter { !deletedPostIds.contains($0.id) && !(moderationEnabled && moderation.isBlocked($0.authorId)) }
+        let deleted = allDeletedPostIds
+        return previewPosts.filter { !deleted.contains($0.id) && !(moderationEnabled && moderation.isBlocked($0.authorId)) }
     }
 
     private var remainingPosts: [Post] {
         let insertedIds = Set(previewPosts.map(\.id))
+        let deleted = allDeletedPostIds
         return model.posts.filter {
             !insertedIds.contains($0.id)
-                && !deletedPostIds.contains($0.id)
+                && !deleted.contains($0.id)
                 && !(moderationEnabled && moderation.isBlocked($0.authorId))
         }
     }
@@ -495,7 +504,8 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
             if let postService {
                 try await postService.deletePost(id: post.id)
             }
-            deletedPostIds.insert(post.id)
+            localDeletedPostIds.insert(post.id)
+            externalDeletedPostIds?.wrappedValue.insert(post.id)
             previewPosts.removeAll { $0.id == post.id }
             if selectedPost?.id == post.id {
                 selectedPost = nil
@@ -523,6 +533,9 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     private func block(userId targetUserId: String) async {
         guard moderationEnabled else { return }
         await moderation.block(userId: targetUserId)
+        if moderation.isBlocked(targetUserId), hasFollowsFilter, follows.isFollowing(targetUserId) {
+            await follows.toggleFollow(targetUserId: targetUserId)
+        }
         if selectedPost?.authorId == targetUserId {
             selectedPost = nil
         }
@@ -636,6 +649,7 @@ extension InfiniteDiscoveryFeed where Artwork == DemoOutfitPhoto {
         follows: FollowViewModel? = nil,
         moderation: ModerationViewModel? = nil,
         closetCategories: [ClothingCategory] = [],
+        deletedPostIds: Binding<Set<String>>? = nil,
         onOpenProfile: ((String) -> Void)? = nil
     ) -> Self {
         let fixtures = InfiniteFeedFixtures(failSecondPage: failSecondPage)
@@ -653,6 +667,7 @@ extension InfiniteDiscoveryFeed where Artwork == DemoOutfitPhoto {
             follows: follows,
             moderation: moderation,
             closetCategories: closetCategories,
+            externalDeletedPostIds: deletedPostIds,
             onOpenProfile: onOpenProfile
         ) { post in
             DemoOutfitPhoto(post: post)
@@ -674,6 +689,7 @@ extension InfiniteDiscoveryFeed where Artwork == PostArtwork {
         follows: FollowViewModel? = nil,
         moderation: ModerationViewModel? = nil,
         closetCategories: [ClothingCategory] = [],
+        deletedPostIds: Binding<Set<String>>? = nil,
         onOpenProfile: ((String) -> Void)? = nil
     ) -> Self {
         Self(
@@ -694,6 +710,7 @@ extension InfiniteDiscoveryFeed where Artwork == PostArtwork {
             moderation: moderation,
             postService: service,
             closetCategories: closetCategories,
+            externalDeletedPostIds: deletedPostIds,
             onOpenProfile: onOpenProfile
         ) { post in
             PostArtwork(post: post)

@@ -250,10 +250,11 @@ private struct ObservedFollowStats: View {
     }
 }
 
-private struct ProfileStatsRow: View {
+struct ProfileStatsRow: View {
     let postCount: Int?
     let followerCount: Int?
     let followingCount: Int?
+    var idPrefix = "profile"
 
     var body: some View {
         HStack(spacing: 0) {
@@ -279,7 +280,7 @@ private struct ProfileStatsRow: View {
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(value.map { "\($0) \(label)" } ?? "\(label), not available yet")
-        .accessibilityIdentifier("profile.stat.\(id)")
+        .accessibilityIdentifier("\(idPrefix).stat.\(id)")
     }
 }
 

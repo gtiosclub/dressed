@@ -113,6 +113,7 @@ struct AuthorProfileView: View {
     @State private var postsState: PostsState = .loading
     @State private var isReportingUser = false
     @State private var confirmingBlock = false
+    @State private var selectedPost: Post?
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: DSSpacing.xxs), count: 3)
 
@@ -163,7 +164,12 @@ struct AuthorProfileView: View {
                     .padding(.horizontal, DSSpacing.lg)
                     .accessibilityIdentifier("authorProfile.header")
 
-                    statsRow
+                    ProfileStatsRow(
+                        postCount: postCount,
+                        followerCount: follows.followerCounts[authorId],
+                        followingCount: follows.followingCounts[authorId],
+                        idPrefix: "authorProfile"
+                    )
 
                     if !isOwnProfile, !isBlocked {
                         let isFollowing = follows.isFollowing(authorId)
@@ -197,7 +203,12 @@ struct AuthorProfileView: View {
             titleVisibility: .visible
         ) {
             Button("Block user", role: .destructive) {
-                Task { await moderation.block(userId: authorId) }
+                Task {
+                    await moderation.block(userId: authorId)
+                    if moderation.isBlocked(authorId), follows.isFollowing(authorId) {
+                        await follows.toggleFollow(targetUserId: authorId)
+                    }
+                }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
@@ -209,6 +220,9 @@ struct AuthorProfileView: View {
                 displayName: userProfiles.displayName(for: authorId),
                 moderation: moderation
             )
+        }
+        .sheet(item: $selectedPost) { post in
+            AuthorPostPreviewSheet(post: post)
         }
     }
 
@@ -230,33 +244,6 @@ struct AuthorProfileView: View {
         } catch {
             postsState = .failed("Posts couldn't load. Check your connection and try again.")
         }
-    }
-
-    private var statsRow: some View {
-        HStack(spacing: 0) {
-            stat(value: postCount.map(String.init), label: "Posts", id: "posts")
-            stat(value: follows.followerCounts[authorId].map(String.init), label: "Followers", id: "followers")
-            stat(value: follows.followingCounts[authorId].map(String.init), label: "Following", id: "following")
-        }
-        .padding(.vertical, DSSpacing.md)
-        .overlay(alignment: .top) { Rectangle().fill(DSColor.divider).frame(height: 1) }
-        .overlay(alignment: .bottom) { Rectangle().fill(DSColor.divider).frame(height: 1) }
-    }
-
-    private func stat(value: String?, label: String, id: String) -> some View {
-        VStack(spacing: DSSpacing.xxs) {
-            Text(value ?? "–")
-                .font(DSFont.bodyEmphasis)
-                .monospacedDigit()
-                .foregroundStyle(value == nil ? DSColor.textPlaceholder : DSColor.textPrimary)
-            Text(label)
-                .font(DSFont.search)
-                .foregroundStyle(DSColor.textMuted)
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(value.map { "\($0) \(label)" } ?? "\(label), not available yet")
-        .accessibilityIdentifier("authorProfile.stat.\(id)")
     }
 
     @ViewBuilder private var postsSection: some View {
@@ -298,7 +285,11 @@ struct AuthorProfileView: View {
                 LazyVGrid(columns: columns, spacing: DSSpacing.xxs) {
                     ForEach(posts) { post in
                         Button {
-                            onSelectPost?(post)
+                            if let onSelectPost {
+                                onSelectPost(post)
+                            } else {
+                                selectedPost = post
+                            }
                         } label: {
                             Color.clear
                                 .aspectRatio(1, contentMode: .fit)
@@ -314,6 +305,41 @@ struct AuthorProfileView: View {
                 .padding(.horizontal, DSSpacing.xxs)
             }
         }
+    }
+}
+
+private struct AuthorPostPreviewSheet: View {
+    let post: Post
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            DSBackHeader(title: "Post") { dismiss() }
+                .padding(.horizontal, DSSpacing.lg)
+                .padding(.top, DSSpacing.lg)
+                .padding(.bottom, DSSpacing.md)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: DSSpacing.md) {
+                    Color.clear
+                        .aspectRatio(3 / 4, contentMode: .fit)
+                        .overlay { PostArtwork(post: post, cornerRadius: DSRadius.lg) }
+                        .clipShape(RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous))
+
+                    if !post.caption.isEmpty {
+                        Text(post.caption)
+                            .font(DSFont.body)
+                            .foregroundStyle(DSColor.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(.horizontal, DSSpacing.lg)
+                .padding(.bottom, DSSpacing.lg)
+            }
+        }
+        .background(DSColor.background)
+        .foregroundStyle(DSColor.textPrimary)
     }
 }
 

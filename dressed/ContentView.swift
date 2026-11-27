@@ -45,6 +45,7 @@ private struct AppTabs: View {
     @State private var isSearchingDiscovery = false
     @State private var isShowingProfile = false
     @State private var selectedAuthorId: String?
+    @State private var deletedPostIds: Set<String> = []
     @State private var isSearchingCloset = false
     @State private var closetSearchText = ""
     @State private var discoverySearchQuery: String?
@@ -117,6 +118,7 @@ private struct AppTabs: View {
                 follows: follows,
                 moderation: moderation,
                 closetCategories: categories,
+                deletedPostIds: $deletedPostIds,
                 onOpenProfile: openProfile
             )
         } else {
@@ -131,6 +133,7 @@ private struct AppTabs: View {
                 follows: follows,
                 moderation: moderation,
                 closetCategories: categories,
+                deletedPostIds: $deletedPostIds,
                 onOpenProfile: openProfile
             )
         }
@@ -146,6 +149,7 @@ private struct AppTabs: View {
             follows: follows,
             moderation: moderation,
             closetCategories: categories,
+            deletedPostIds: $deletedPostIds,
             onOpenProfile: openProfile
         )
         #endif
@@ -216,6 +220,7 @@ private struct AppTabs: View {
                             follows: follows,
                             onDeletePost: { post in
                                 try await DiscoveryPostSource.current.deletePost(id: post.id)
+                                deletedPostIds.insert(post.id)
                             }
                         )
                     }
