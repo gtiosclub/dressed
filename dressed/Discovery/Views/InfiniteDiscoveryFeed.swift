@@ -15,6 +15,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     @State private var commentService: any CommentService
     @State private var commentCounts: [String: Int] = [:]
     @State private var previewPosts: [Post] = []
+    @State private var refreshGeneration = 0
     @Binding private var showingCreate: Bool
     /// Set when the floating Search Styles button is tapped; the app shell presents the search sheet.
     @Binding private var isSearching: Bool
@@ -116,7 +117,11 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
             }
             .refreshable {
                 // Await a separately owned task, as in the working manual preview.
-                let refreshTask = Task { @MainActor in await model.refresh() }
+                let refreshTask = Task { @MainActor in
+                    postLikes.reset()
+                    refreshGeneration += 1
+                    await model.refresh()
+                }
                 await refreshTask.value
             }
         }
@@ -262,7 +267,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
             commentCountText: commentCount >= 50 ? "50+" : nil,
             likeCount: like.likeCount,
             isLiked: like.isLiked,
-            isLikeEnabled: like.isLoaded && !like.isPending,
+            isLikeEnabled: like.isLoaded && !like.isPending && !like.isRemoved,
             likeLabel: like.isLiked ? "Unlike outfit" : "Like outfit",
             shopID: "infinite.items.\(post.id)",
             commentID: "infinite.comments.\(post.id)",
@@ -274,14 +279,14 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                 if inPreview { previewCommentsPost = post } else { commentsPost = post }
             },
             onLike: { postLikes.toggle(post: post) },
-            onRetryLike: { Task { await postLikes.loadIfNeeded(post: post) } }
+            onRetryLike: like.isRemoved ? nil : { postLikes.retry(post: post) }
         ) {
             artwork(post)
         }
         .task(id: post.id) { await refreshCommentCount(post.id) }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("infinite.card.\(post.id)")
-        .task { await postLikes.loadIfNeeded(post: post) }
+        .task(id: "\(post.id)|\(refreshGeneration)") { await postLikes.loadIfNeeded(post: post) }
     }
 
     private static func dateLabel(_ date: Date) -> String {
