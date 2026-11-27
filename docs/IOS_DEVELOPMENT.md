@@ -66,7 +66,7 @@ On October 16, a real public shoe photo selected from Photos on the iOS 27 simul
 
 1. Connect the iPhone to the Mac, unlock it, tap **Trust** if prompted, and enable **Developer Mode** in iPhone Settings if Xcode asks. Confirm it appears as a *physical* device with `xcrun devicectl list devices`.
 2. In Xcode, open **Xcode → Settings… → Apple Accounts**. Sign in again if the account shows **Authentication Expired**. Complete the password and two-factor prompts yourself. Open `dressed.xcodeproj` and select the connected iPhone as the run destination.
-3. Under **Signing & Capabilities**, keep **Automatically manage signing**. For the checked-in app IDs and Share Extension, use an Apple team that owns `gtiosclub.dressed`, `gtiosclub.dressed.share`, and the `group.gtiosclub.dressed` App Group. The checked-in team ID `WDRKBQFYRJ` came from the project's initial Xcode configuration; it is not necessarily the current app owner's Apple team. Ask the owner of those Apple identifiers for signing access only if you want to install that exact configuration.
+3. Under **Signing & Capabilities**, keep **Automatically manage signing**. Use an Apple team that owns the selected app and Share Extension identifiers and the checked-in `group.com.jdayal.dresseddev` App Group. The checked-in team IDs came from the project's Xcode configuration; they are not necessarily the current app owner's Apple team. Ask the owner of an identifier for signing access only if you want to install that exact configuration.
 4. Build and run from Xcode once. For a command-line build after signing works, substitute the phone's device ID:
 
    ```sh

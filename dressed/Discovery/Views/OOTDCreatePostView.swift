@@ -35,7 +35,7 @@ struct OOTDCreatePostView: View {
                         .accessibilityIdentifier("ootd.newPostCaption")
                     Text("\(model.caption.count)/500 characters")
                         .font(DSFont.search)
-                        .foregroundStyle(DSColor.textMuted)
+                        .foregroundStyle(model.caption.count > 500 ? DSColor.destructive : DSColor.textMuted)
                     Button { showingItems = true } label: {
                         HStack(spacing: DSSpacing.sm) {
                             DSIcon("TablerHanger2", size: 24)
@@ -61,7 +61,7 @@ struct OOTDCreatePostView: View {
                         .font(DSFont.search)
                         .foregroundStyle(DSColor.textMuted)
                     if let error = model.error {
-                        Text(error).font(DSFont.body).foregroundStyle(DSColor.textPrimary)
+                        Text(error).font(DSFont.body).foregroundStyle(DSColor.destructive)
                             .accessibilityIdentifier("ootd.shareError")
                     }
                 }
@@ -116,51 +116,93 @@ struct OOTDCreatePostView: View {
 
     private var itemPicker: some View {
         NavigationStack {
-            List {
-                if !model.outfits.isEmpty {
-                    Section("Saved outfits") {
-                        ForEach(model.outfits) { outfit in
-                            Button {
-                                model.select(outfit)
-                            } label: {
-                                HStack {
-                                    Text(outfit.name ?? "Outfit")
-                                    Spacer()
-                                    Text("\(outfit.placements.count) items").foregroundStyle(DSColor.textMuted)
+            ScrollView {
+                VStack(alignment: .leading, spacing: DSSpacing.lg) {
+                    if !model.outfits.isEmpty {
+                        VStack(alignment: .leading, spacing: DSSpacing.sm) {
+                            Text("Saved outfits")
+                                .font(DSFont.bodyEmphasis)
+                                .foregroundStyle(DSColor.textMuted)
+                            VStack(spacing: DSSpacing.sm) {
+                                ForEach(model.outfits) { outfit in
+                                    Button {
+                                        model.select(outfit)
+                                    } label: {
+                                        HStack {
+                                            Text(outfit.name ?? "Outfit")
+                                                .font(DSFont.bodyEmphasis)
+                                                .foregroundStyle(DSColor.textPrimary)
+                                            Spacer()
+                                            Text("\(outfit.placements.count) items")
+                                                .font(DSFont.search)
+                                                .foregroundStyle(DSColor.textMuted)
+                                        }
+                                        .padding(DSSpacing.md)
+                                        .background(DSColor.tile, in: RoundedRectangle(cornerRadius: DSRadius.md, style: .continuous))
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityIdentifier("ootd.outfit.\(outfit.id)")
                                 }
                             }
-                            .accessibilityIdentifier("ootd.outfit.\(outfit.id)")
                         }
                     }
-                }
-                Section("My Closet · choose up to 10 pieces") {
-                    if model.items.isEmpty {
-                        Text("Add pieces to My Closet before tagging an outfit.")
-                    }
-                    ForEach(model.items) { item in
-                        Button { model.toggle(item) } label: {
-                            HStack(spacing: DSSpacing.md) {
-                                thumbnail(item).frame(width: 48, height: 48)
-                                VStack(alignment: .leading) {
-                                    Text(item.name)
-                                    Text(item.category.rawValue.capitalized).font(DSFont.search).foregroundStyle(DSColor.textMuted)
+
+                    VStack(alignment: .leading, spacing: DSSpacing.sm) {
+                        Text("My Closet · choose up to 10 pieces")
+                            .font(DSFont.bodyEmphasis)
+                            .foregroundStyle(DSColor.textMuted)
+                        if model.items.isEmpty {
+                            DSEmptyState(
+                                icon: "TablerHanger2",
+                                title: "No pieces in closet",
+                                message: "Add pieces to My Closet before tagging an outfit."
+                            )
+                        } else {
+                            LazyVStack(spacing: DSSpacing.sm) {
+                                ForEach(model.items) { item in
+                                    let isSelected = model.selectedIds.contains(item.id)
+                                    Button { model.toggle(item) } label: {
+                                        HStack(spacing: DSSpacing.md) {
+                                            thumbnail(item)
+                                                .frame(width: 48, height: 48)
+                                                .background(DSColor.thumbnail, in: RoundedRectangle(cornerRadius: DSRadius.sm, style: .continuous))
+                                            VStack(alignment: .leading, spacing: DSSpacing.xxs) {
+                                                Text(item.name)
+                                                    .font(DSFont.bodyEmphasis)
+                                                    .foregroundStyle(DSColor.textPrimary)
+                                                Text(item.category.rawValue.capitalized)
+                                                    .font(DSFont.search)
+                                                    .foregroundStyle(DSColor.textMuted)
+                                            }
+                                            Spacer()
+                                            DSSelectionMark(isChecked: isSelected)
+                                        }
+                                        .padding(DSSpacing.sm)
+                                        .background(DSColor.tile, in: RoundedRectangle(cornerRadius: DSRadius.md, style: .continuous))
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityIdentifier("ootd.tag.\(item.id)")
+                                    .accessibilityAddTraits(isSelected ? .isSelected : [])
                                 }
-                                Spacer()
-                                DSSelectionMark(isChecked: model.selectedIds.contains(item.id))
                             }
                         }
-                        .accessibilityIdentifier("ootd.tag.\(item.id)")
-                        .accessibilityAddTraits(model.selectedIds.contains(item.id) ? .isSelected : [])
+                    }
+
+                    if let error = model.error {
+                        Text(error)
+                            .font(DSFont.search)
+                            .foregroundStyle(DSColor.destructive)
                     }
                 }
-                if let error = model.error { Text(error) }
+                .padding(DSSpacing.lg)
             }
-            .font(DSFont.body)
+            .background(DSColor.background)
             .foregroundStyle(DSColor.textPrimary)
             .navigationTitle("Outfit details")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showingItems = false } } }
         }
+        .tint(DSColor.brand)
     }
 
     @ViewBuilder private func thumbnail(_ item: ClothingItem) -> some View {

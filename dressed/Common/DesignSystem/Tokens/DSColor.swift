@@ -29,6 +29,9 @@ enum DSColor {
     static let pressedBorder = Color(hex: 0xDDDDDD)
     static let fieldBorder = Color(hex: 0xE0E0E0)
     static let divider = Color(hex: 0xEBEBEB)
+
+    // Semantic
+    static let destructive = Color(hex: 0xD93025) // validation and error states
 }
 
 extension Color {

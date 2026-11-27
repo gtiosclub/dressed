@@ -1,0 +1,26 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "100D8234-E78B-47D8-B247-A587997356A0",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "F3769247-C338-4E4F-91AD-501BEC1F6F2E.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Saved Posts contains post_0_A1F37059-67CE-4B02-A895-17D3C6826755.png",
+        "timestamp" : 1795574909.314
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "100D8234-E78B-47D8-B247-A587997356A0",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "1A02F457-5179-4D56-A285-4CF8B6BE1757.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Friends post saved_0_D7DCC143-D8CA-4399-A547-53BCAE6DE919.png",
+        "timestamp" : 1795574906.187
+      }
+    ],
+    "testIdentifier" : "DiscoverySearchUITests/testFriendsPostCanBeSavedAndOpenedFromSavedPosts()",
+    "testIdentifierURL" : "test://com.apple.xcode/dressed/dressedUITests/DiscoverySearchUITests/testFriendsPostCanBeSavedAndOpenedFromSavedPosts"
+  }
+]

@@ -19,7 +19,7 @@ Use three top-level tabs, in this order. Names below are proposed UI copy.
 | Tab | Primary job | Child flows |
 | --- | --- | --- |
 | My Closet | Browse owned items and saved outfits | Category filters, item detail/edit, create outfit, wishlist, future try-on |
-| Discovery | Browse individual clothing ideas and reach OOTD posts | Item search, OOTD feed, in-feed post controls, clothing breakdown, saved posts, profiles, future similar items |
+| Discovery | Browse individual clothing ideas and reach OOTD posts | Item search, OOTD feed, comments, likes, clothing breakdown, profiles, future similar items |
 | Camera | Capture or import clothing | Camera, photo library, incoming share draft, extraction, review, destination selection |
 
 Discovery uses a Discovery / OOTD switch inside the tab. Discovery shows individual public clothing ideas; OOTD shows user-published outfit posts. Profile and settings are child destinations, not extra tabs. Camera must offer a photo-library fallback if permission is denied or the device lacks a camera. Authentication gates the app shell; signing out clears user-specific state.
@@ -41,7 +41,7 @@ live Storage setup and deployment are still unverified. See the
 
 The current feed has a persistent-comment client and emulator-tested access rules published to `out-fitted` on November 17, 2026. Real-account save/relaunch and cross-account verification remain pending. See [comment contract](../backend/schemas/comments.md).
 
-The earlier catalog/OOTD prototype opened to a two-column grid of individual catalog ideas with search and suggested styles. OOTD contains the outfit post feed. Post cards do not navigate; garment pins, Find items, comments and likes act on the feed, and Find items opens a sheet of published pieces. The plus button opens a new-post screen; Share inserts a local preview only for Debug demo posts. Likes and comments are local UI state, not backend records. Synthetic items and posts support the Debug UI walkthrough while live catalog sourcing, publication, public media loading, and saved-post access remain lead work. This does not add another top-level tab. See the [implementation plan](discovery-ootd-implementation-plan.md).
+The earlier catalog/OOTD prototype opened to a two-column grid of individual catalog ideas with search and suggested styles. OOTD contains the outfit post feed. Post cards do not navigate; garment pins, Find items, comments and likes act on the feed, and Find items opens a sheet of published pieces. The plus button opens a new-post screen; Share inserts a local preview only for Debug demo posts. Likes and comments are local UI state, not backend records. Synthetic items and posts support the Debug UI walkthrough while live catalog sourcing, publication, public media loading, and saved-post access remain lead work. This does not add another top-level tab. See the [implementation plan](discovery-ootd-implementation-plan.md). Note: Saved Posts and the Friends-card save control were removed from the active Discovery UI to match the approved Figma design.
 
 ## First release: capture, closet, outfits, OOTD
 
@@ -56,7 +56,7 @@ Included:
 - Closet grid, item detail, category filtering and item deletion.
 - Categories: Tops, Pants, Skirts, Dresses, Shoes, Outerwear, Accessories, Other. Pants and Skirts stay separate, matching the team's notes.
 - Saved outfits using selected closet items and a simple 2D arrangement.
-- OOTD publishing from a saved outfit, caption, OOTD feed, clothing breakdown and save/unsave.
+- OOTD publishing from a saved outfit, caption, OOTD feed and clothing breakdown.
 - Loading, empty, failed, permission-denied and retry states for each asynchronous flow.
 - Ownership rules and failure cleanup for private items/media before backend integration is considered complete.
 

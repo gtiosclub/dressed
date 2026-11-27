@@ -190,7 +190,7 @@ struct SharedImageEnvelope: Codable {
 }
 
 enum SharedImageInbox {
-    nonisolated static let groupId = "group.gtiosclub.dressed"
+    nonisolated static let groupId = "group.com.jdayal.dresseddev"
     private static let ownerKey = "activeOwnerId"
     private static let draftLifetime: TimeInterval = 24 * 60 * 60
 

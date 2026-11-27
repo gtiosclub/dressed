@@ -13,4 +13,6 @@ enum DSFont {
     static let navTitle = Font.system(size: 20)               // Outfit Name, Select Items
 
     static let lineHeight: CGFloat = 22
+    // System-font glyphs sit slightly below the optical center of compact capsules.
+    static let controlLabelOpticalOffset: CGFloat = -1
 }

@@ -29,9 +29,11 @@ private struct AppTabs: View {
     let userId: String
 
     @StateObject private var closet: PrototypeClosetStore
-    @StateObject private var savedPosts: SavedPostsViewModel
     @StateObject private var postLikes: PostLikesViewModel
     @StateObject private var profile: MyProfileModel
+    @StateObject private var userProfiles: UserProfileStore
+    @StateObject private var follows: FollowViewModel
+    @StateObject private var moderation: ModerationViewModel
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -42,6 +44,8 @@ private struct AppTabs: View {
     @State private var discoverySection = 0
     @State private var isSearchingDiscovery = false
     @State private var isShowingProfile = false
+    @State private var selectedAuthorId: String?
+    @State private var deletedPostIds: Set<String> = []
     @State private var isSearchingCloset = false
     @State private var closetSearchText = ""
     @State private var discoverySearchQuery: String?
@@ -67,16 +71,14 @@ private struct AppTabs: View {
         _closet = StateObject(
             wrappedValue: PrototypeClosetStore(ownerId: userId)
         )
-        _savedPosts = StateObject(wrappedValue: SavedPostsViewModel(
-            ownerId: userId,
-            saves: DiscoveryPostSource.currentSavedPosts,
-            posts: DiscoveryPostSource.current
-        ))
         _postLikes = StateObject(wrappedValue: PostLikesViewModel(
             ownerId: userId,
             service: DiscoveryPostSource.currentPostLikes
         ))
         _profile = StateObject(wrappedValue: MyProfileModel(ownerId: userId, service: DiscoveryPostSource.current))
+        _userProfiles = StateObject(wrappedValue: UserProfileStore(service: DiscoveryPostSource.currentUserProfiles))
+        _follows = StateObject(wrappedValue: FollowViewModel(ownerId: userId, service: DiscoveryPostSource.currentFollows))
+        _moderation = StateObject(wrappedValue: ModerationViewModel(ownerId: userId, service: DiscoveryPostSource.currentModeration))
 
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
@@ -93,22 +95,63 @@ private struct AppTabs: View {
     }
 
     @ViewBuilder private var ootdFeed: some View {
+        let categories = closet.items.map(\.category)
+        let openProfile: (String) -> Void = { authorId in
+            if authorId == userId {
+                isShowingProfile = true
+            } else {
+                selectedAuthorId = authorId
+            }
+        }
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         if DiscoveryPostSource.isDemo {
             InfiniteDiscoveryFeed.demo(
                 failSecondPage: arguments.contains("-failDiscoveryPage"),
+                authorId: userId,
                 section: $discoverySection,
-                showingCreate: $isCreatingPost, isSearching: $isSearchingDiscovery,
-                savedPosts: savedPosts, compositionSource: postCompositionSource, postLikes: postLikes
+                showingCreate: $isCreatingPost,
+                isSearching: $isSearchingDiscovery,
+                compositionSource: postCompositionSource,
+                postLikes: postLikes,
+                userProfiles: userProfiles,
+                follows: follows,
+                moderation: moderation,
+                closetCategories: categories,
+                deletedPostIds: $deletedPostIds,
+                onOpenProfile: openProfile
             )
         } else {
-            InfiniteDiscoveryFeed.live(authorId: userId, section: $discoverySection, showingCreate: $isCreatingPost,
-                                       isSearching: $isSearchingDiscovery, savedPosts: savedPosts, compositionSource: postCompositionSource, postLikes: postLikes)
+            InfiniteDiscoveryFeed.live(
+                authorId: userId,
+                section: $discoverySection,
+                showingCreate: $isCreatingPost,
+                isSearching: $isSearchingDiscovery,
+                compositionSource: postCompositionSource,
+                postLikes: postLikes,
+                userProfiles: userProfiles,
+                follows: follows,
+                moderation: moderation,
+                closetCategories: categories,
+                deletedPostIds: $deletedPostIds,
+                onOpenProfile: openProfile
+            )
         }
         #else
-        InfiniteDiscoveryFeed.live(authorId: userId, section: $discoverySection, showingCreate: $isCreatingPost,
-                                   isSearching: $isSearchingDiscovery, savedPosts: savedPosts, compositionSource: postCompositionSource, postLikes: postLikes)
+        InfiniteDiscoveryFeed.live(
+            authorId: userId,
+            section: $discoverySection,
+            showingCreate: $isCreatingPost,
+            isSearching: $isSearchingDiscovery,
+            compositionSource: postCompositionSource,
+            postLikes: postLikes,
+            userProfiles: userProfiles,
+            follows: follows,
+            moderation: moderation,
+            closetCategories: categories,
+            deletedPostIds: $deletedPostIds,
+            onOpenProfile: openProfile
+        )
         #endif
     }
 
@@ -149,7 +192,7 @@ private struct AppTabs: View {
                     VStack(spacing: 0) {
                         DiscoveryHeader(
                             section: $discoverySection,
-                            profileInitial: profileInitial(session.accountName),
+                            profileInitial: profileInitial(userProfiles.profile(for: userId)?.displayName ?? session.accountName),
                             onProfile: { isShowingProfile = true },
                             onCreatePost: {
                                 discoverySection = 1
@@ -171,7 +214,23 @@ private struct AppTabs: View {
                             pieceCount: closet.items.count,
                             outfitCount: outfits.outfits.count,
                             model: profile,
-                            onSignOut: signOut
+                            onSignOut: signOut,
+                            ownerId: userId,
+                            userProfiles: userProfiles,
+                            follows: follows,
+                            onDeletePost: { post in
+                                try await DiscoveryPostSource.current.deletePost(id: post.id)
+                                deletedPostIds.insert(post.id)
+                            }
+                        )
+                    }
+                    .navigationDestination(item: $selectedAuthorId) { authorId in
+                        AuthorProfileView(
+                            authorId: authorId,
+                            currentUserId: userId,
+                            userProfiles: userProfiles,
+                            follows: follows,
+                            moderation: moderation
                         )
                     }
                 }
@@ -263,6 +322,11 @@ private struct AppTabs: View {
         #if DEBUG
         .task { DemoClosetSeeder.seedIfNeeded(closet: closet, outfits: outfits) }
         #endif
+        .task {
+            await userProfiles.ensureOwnProfile(userId: userId, accountName: session.accountName)
+            await follows.loadFollowing()
+            await moderation.loadBlockedUsers()
+        }
         .onChange(of: selectedTab) { old, new in
             if new == 2 && old != 2 { tabBeforeCamera = old }
         }

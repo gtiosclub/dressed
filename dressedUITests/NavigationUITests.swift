@@ -219,9 +219,6 @@ final class DiscoverySearchUITests: XCTestCase {
 
         let search = app.buttons["discovery.searchButton"]
         XCTAssertTrue(search.waitForExistence(timeout: 10))
-        // Posts are photos only: no Save pill and no Saved Posts bookmark.
-        XCTAssertFalse(app.buttons["ootd.savedPosts"].exists)
-        XCTAssertFalse(app.buttons["savePostToggle.button"].exists)
         search.tap()
 
         XCTAssertTrue(app.buttons["Close search"].waitForExistence(timeout: 5))
@@ -234,6 +231,7 @@ final class DiscoverySearchUITests: XCTestCase {
         app.buttons["Close search"].tap()
         XCTAssertTrue(search.waitForExistence(timeout: 5))
     }
+
 }
 
 // Wait for a hittable element to keep the same frame across consecutive samples.
