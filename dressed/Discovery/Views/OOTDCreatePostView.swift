@@ -158,7 +158,7 @@ struct OOTDCreatePostView: View {
                                 message: "Add pieces to My Closet before tagging an outfit."
                             )
                         } else {
-                            VStack(spacing: DSSpacing.sm) {
+                            LazyVStack(spacing: DSSpacing.sm) {
                                 ForEach(model.items) { item in
                                     let isSelected = model.selectedIds.contains(item.id)
                                     Button { model.toggle(item) } label: {

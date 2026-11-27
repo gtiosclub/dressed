@@ -119,6 +119,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
                 // Await a separately owned task, as in the working manual preview.
                 let refreshTask = Task { @MainActor in
                     postLikes.reset()
+                    commentCounts = [:]
                     refreshGeneration += 1
                     await model.refresh()
                 }
@@ -248,7 +249,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
     private func refreshDismissedCommentCount() {
         guard let postId = lastCommentsPostId else { return }
         lastCommentsPostId = nil
-        Task { await refreshCommentCount(postId) }
+        Task { await refreshCommentCount(postId, force: true) }
     }
 
     private func loadNextPageIfNeeded() {
@@ -283,7 +284,7 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         ) {
             artwork(post)
         }
-        .task(id: post.id) { await refreshCommentCount(post.id) }
+        .task(id: "\(post.id)|\(refreshGeneration)") { await refreshCommentCount(post.id) }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("infinite.card.\(post.id)")
         .task(id: "\(post.id)|\(refreshGeneration)") { await postLikes.loadIfNeeded(post: post) }
@@ -294,7 +295,9 @@ struct InfiniteDiscoveryFeed<Artwork: View>: View {
         return String(format: "%02d.%02d.%02d", c.month ?? 0, c.day ?? 0, (c.year ?? 0) % 100)
     }
 
-    private func refreshCommentCount(_ postId: String) async {
+    // shortcut: counts via bounded fetch(postId:); upgrade to count() or denormalized commentCount when feed grows.
+    private func refreshCommentCount(_ postId: String, force: Bool = false) async {
+        guard force || commentCounts[postId] == nil else { return }
         if let fetched = try? await commentService.fetch(postId: postId) { commentCounts[postId] = fetched.count }
     }
 }
