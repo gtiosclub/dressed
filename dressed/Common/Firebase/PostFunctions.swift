@@ -66,8 +66,8 @@ struct FirebasePostFunctions: PostFunctions {
         }
 
         let snapshot = try await query.getDocuments()
-        let posts = try snapshot.documents.map { try $0.data(as: Post.self) }
-        let nextCursor = posts.count == pageSize ? posts.last.map {
+        let posts = snapshot.documents.compactMap { try? $0.data(as: Post.self) }
+        let nextCursor = snapshot.documents.count == pageSize ? posts.last.map {
             PostPageCursor(createdAt: $0.createdAt, id: $0.id)
         } : nil
         return PostPage(posts: posts, nextCursor: nextCursor)
