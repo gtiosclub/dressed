@@ -199,6 +199,31 @@ final class SocialFullFeaturesTests: XCTestCase {
         XCTAssertEqual(store.handle(for: "u1"), "@jane_99.ok")
     }
 
+    func testUserProfileStoreSaveOwnProfilePreservesStoredCreatedAtWhenCacheEmpty() async throws {
+        let service = MockUserProfileService()
+        let originalCreatedAt = Date(timeIntervalSince1970: 1_780_000_000)
+        service.stored["u1"] = UserProfile(
+            id: "u1",
+            schemaVersion: 1,
+            username: "old.name",
+            displayName: "Old Name",
+            avatarPath: "users/u1/avatar.jpg",
+            createdAt: originalCreatedAt,
+            updatedAt: originalCreatedAt
+        )
+        let store = UserProfileStore(service: service)
+        XCTAssertNil(store.profile(for: "u1"))
+
+        try await store.saveOwnProfile(userId: "u1", username: "new.name", displayName: "New Name")
+
+        let saved = try XCTUnwrap(service.upsertedProfiles.last)
+        XCTAssertEqual(saved.createdAt, originalCreatedAt)
+        XCTAssertEqual(saved.avatarPath, "users/u1/avatar.jpg")
+        XCTAssertEqual(saved.username, "new.name")
+        XCTAssertEqual(saved.displayName, "New Name")
+        XCTAssertEqual(store.profile(for: "u1")?.createdAt, originalCreatedAt)
+    }
+
     func testDemoUserProfileFunctionsSeedsAndPersistsEdits() async throws {
         let suiteName = "SocialFullFeaturesTests.UserProfile.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))

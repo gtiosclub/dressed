@@ -233,8 +233,14 @@ final class UserProfileStore: ObservableObject {
             throw UserProfileError.invalidDisplayName
         }
 
+        let existing: UserProfile?
+        if let cached = profiles[userId] {
+            existing = cached
+        } else {
+            let fetched = try? await service.fetch(userId: userId)
+            existing = fetched ?? profiles[userId]
+        }
         let now = Date()
-        let existing = profiles[userId]
         let updated = UserProfile(
             id: userId,
             schemaVersion: 1,

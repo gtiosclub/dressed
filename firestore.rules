@@ -171,22 +171,19 @@ service cloud.firestore {
 
     match /users/{uid}/following/{targetUid} {
       allow get, list: if request.auth != null;
-      allow create: if owns(uid) && validFollow(uid, targetUid, targetUid);
-      allow update: if false;
+      allow create, update: if owns(uid) && validFollow(uid, targetUid, targetUid);
       allow delete: if owns(uid);
     }
 
     match /users/{uid}/followers/{followerUid} {
       allow get, list: if request.auth != null;
-      allow create: if owns(followerUid) && validFollow(followerUid, uid, followerUid);
-      allow update: if false;
+      allow create, update: if owns(followerUid) && validFollow(followerUid, uid, followerUid);
       allow delete: if owns(followerUid);
     }
 
     match /users/{uid}/blockedUsers/{targetUid} {
       allow get, list: if owns(uid);
-      allow create: if owns(uid) && validBlockedUser(uid, targetUid);
-      allow update: if false;
+      allow create, update: if owns(uid) && validBlockedUser(uid, targetUid);
       allow delete: if owns(uid);
     }
 
