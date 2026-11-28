@@ -8,12 +8,15 @@ struct OOTDFeedView: View {
     @State private var commentsPost: Post?
     @State private var itemsPost: Post?
     @State private var showingCreate = false
+    @State private var showingSaved = false
     @State private var previewPosts: [Post] = []
     private let demo: Bool
+    private let savedPosts: SavedPostsViewModel
 
-    init(service: any PostFunctions = DiscoveryPostSource.current) {
+    init(service: any PostFunctions = DiscoveryPostSource.current, savedPosts: SavedPostsViewModel) {
         _model = StateObject(wrappedValue: DiscoveryFeedViewModel(service: service))
         demo = service is DemoPostFunctions
+        self.savedPosts = savedPosts
     }
 
     var body: some View {
@@ -31,6 +34,9 @@ struct OOTDFeedView: View {
                                          likes: demoLikes(post) + (liked.contains(post.id) ? 1 : 0),
                                          isLiked: liked.contains(post.id),
                                          commentCount: postComments(post).count,
+                                         // A local preview isn't published yet, so there's nothing to save.
+                                         saveControl: index < previewPosts.count ? nil :
+                                            SavedPostControl(postId: post.id, post: post, model: savedPosts),
                                          onItems: { itemsPost = post },
                                          onComments: { commentsPost = post },
                                          onLike: {
@@ -46,6 +52,7 @@ struct OOTDFeedView: View {
             }
         }
         .task { model.load() }
+        .task { await savedPosts.loadIfNeeded() }
         .onDisappear { model.cancel() }
         .sheet(item: $commentsPost) { post in
             OOTDCommentsSheet(comments: postComments(post)) { text in
@@ -61,13 +68,17 @@ struct OOTDFeedView: View {
                 .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: $showingCreate) {
-            OOTDCreatePostView(canSharePreview: demo) { caption in
+            OOTDCreatePostView(canShare: demo, isDemo: true) { draft in
+                let caption = draft.caption
                 previewPosts.insert(Post(id: "demo_post_\(UUID().uuidString)", schemaVersion: 1,
                                          authorId: "you", caption: caption.isEmpty ? "caption (optional)" : caption,
                                          outfitSnapshot: PublishedOutfitSnapshot(name: nil, items: []),
                                          mediaPath: "", createdAt: .now), at: 0)
                 showingCreate = false
             }
+        }
+        .navigationDestination(isPresented: $showingSaved) {
+            SavedPostsView(model: savedPosts)
         }
     }
 
@@ -90,7 +101,16 @@ struct OOTDFeedView: View {
                 .frame(height: 34)
                 .background(Color.black.opacity(0.08), in: Capsule())
             Spacer()
-            Color.clear.frame(width: 44, height: 44)
+            Button { showingSaved = true } label: {
+                Image("TablerBookmark")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 22, height: 22)
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Saved Posts")
+            .accessibilityIdentifier("ootd.savedPosts")
         }
         .padding(.horizontal, 16)
         .padding(.top, 14)
@@ -122,6 +142,7 @@ private struct OOTDPostCard: View {
     let likes: Int
     let isLiked: Bool
     let commentCount: Int
+    let saveControl: SavedPostControl?
     let onItems: () -> Void
     let onComments: () -> Void
     let onLike: () -> Void
@@ -130,6 +151,11 @@ private struct OOTDPostCard: View {
     private var dateLabel: String {
         let date = Calendar.current.dateComponents([.month, .day, .year], from: post.createdAt)
         return "\(date.month ?? 0).\(date.day ?? 0).\(String(format: "%02d", (date.year ?? 0) % 100))"
+    }
+
+    private var captionCanExpand: Bool {
+        let explicitLineCount = post.caption.split(separator: "\n", omittingEmptySubsequences: false).count
+        return explicitLineCount > 3 || post.caption.count > 90
     }
 
     var body: some View {
@@ -194,7 +220,10 @@ private struct OOTDPostCard: View {
 
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(post.caption).font(.system(size: 13.5))
+                    ExpandablePostCaption(
+                        caption: post.caption,
+                        canExpand: captionCanExpand
+                    )
                     Text("song....").font(.system(size: 11.5)).foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -209,6 +238,11 @@ private struct OOTDPostCard: View {
                 }
             }
             .padding(.top, 10)
+
+            if let saveControl {
+                saveControl
+                    .padding(.top, 6)
+            }
         }
     }
 
@@ -338,7 +372,7 @@ private struct OOTDCommentsSheet: View {
     }
 }
 
-private struct OOTDItemsSheet: View {
+struct OOTDItemsSheet: View {
     let post: Post
     @State private var category: String?
     @State private var sort: OOTDItemSort = .bestMatch
@@ -382,7 +416,7 @@ private struct OOTDItemsSheet: View {
                 } label: {
                     HStack(spacing: 4) {
                         Text("Sort by: \(sort.title)")
-                        Image(systemName: "chevron.down")
+                        Image("TablerChevronDown")
                             .resizable()
                             .scaledToFit()
                             .frame(width: 16, height: 16)
@@ -411,7 +445,7 @@ private struct OOTDItemsSheet: View {
 
             ScrollView {
                 if visible.isEmpty {
-                    ContentUnavailableView("No pieces in this post", systemImage: "hanger",
+                    ContentUnavailableView("No pieces in this post", tabler: "TablerHanger2",
                                            description: Text("The author did not include a clothing breakdown."))
                 } else {
                     LazyVStack(spacing: 10) {
@@ -464,7 +498,7 @@ private struct OOTDItemsSheet: View {
                     .padding(.top, item.brand == nil ? 0 : 2)
                 if let rating = item.rating, let reviews = item.reviews {
                     HStack(spacing: 4) {
-                        Image(systemName: "star")
+                        Image("TablerStar")
                             .resizable()
                             .scaledToFit()
                             .frame(width: 13, height: 13)
@@ -480,7 +514,7 @@ private struct OOTDItemsSheet: View {
                         Text(price.formatted(.currency(code: "USD").precision(.fractionLength(0))))
                             .font(.system(size: 17, weight: .semibold))
                         if item.verified {
-                            Label("Verified by creator", systemImage: "checkmark.seal")
+                            Label("Verified by creator", tabler: "TablerRosetteDiscountCheck")
                                 .font(.system(size: 13))
                                 .foregroundStyle(.black.opacity(0.55))
                                 .lineLimit(1)
@@ -499,7 +533,7 @@ private struct OOTDItemsSheet: View {
             Button {
                 if !savedItemIDs.insert(item.id).inserted { savedItemIDs.remove(item.id) }
             } label: {
-                Image(systemName: savedItemIDs.contains(item.id) ? "bookmark.fill" : "bookmark")
+                Image(savedItemIDs.contains(item.id) ? "TablerBookmarkFilled" : "TablerBookmark")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 22, height: 22)
@@ -586,140 +620,50 @@ private struct OOTDShopItem: Identifiable {
     ]
 }
 
-private struct OOTDCreatePostView: View {
-    let canSharePreview: Bool
-    let onShare: (String) -> Void
-    @Environment(\.dismiss) private var dismiss
-    @State private var caption = ""
-    @State private var songIndex = 0
-    @State private var detailsOpen = false
-    private let songs = ["song here", "autumn breeze", "midnight walk", "street symphony"]
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                Button { dismiss() } label: {
-                    Image("TablerChevronLeft")
-                        .renderingMode(.template)
-                        .resizable()
-                        .frame(width: 24, height: 24)
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Back")
-                Text("New post").font(.system(size: 17, weight: .semibold))
-                Spacer()
-            }
-            .padding(.top, 12)
-            .padding(.bottom, 6)
-
-            // TODO: Replace the prototype outfit artwork with a selected, publishable outfit snapshot.
-            Image("OutfitPostPlaceholder")
-                .resizable()
-                .scaledToFit()
-                .padding(.all, 28)
-                .frame(maxWidth: .infinity)
-                .aspectRatio(5 / 4, contentMode: .fit)
-                .background(Color(red: 222 / 255, green: 222 / 255, blue: 222 / 255),
-                            in: RoundedRectangle(cornerRadius: 16))
-                .shadow(color: .black.opacity(0.05), radius: 4, y: 1)
-                .accessibilityLabel("Outfit preview image")
-
-            TextField("Write a caption…", text: $caption, axis: .vertical)
-                .lineLimit(2...4)
-                .font(.body)
-                .frame(minHeight: 48, alignment: .topLeading)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Color.black.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
-                .padding(.top, 16)
-                .accessibilityIdentifier("ootd.newPostCaption")
-
-            row("Audio", icon: "music.note", value: songs[songIndex]) {
-                songIndex = (songIndex + 1) % songs.count
-            }
-            .padding(.top, 8)
-            row("Outfit details", icon: "hanger", value: detailsOpen ? "3 items tagged" : "Tag items") {
-                detailsOpen.toggle()
-            }
-            .padding(.top, 8)
-            Spacer()
-            Button("Share") { onShare(caption.trimmingCharacters(in: .whitespacesAndNewlines)) }
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .background(.black, in: RoundedRectangle(cornerRadius: 12))
-                .disabled(!canSharePreview)
-                .accessibilityIdentifier("ootd.sharePreview")
-        }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 16)
-        .background(.white)
-        .toolbar(.hidden, for: .navigationBar)
-    }
-
-    private func row(_ title: String, icon: String, value: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                HStack(spacing: 10) {
-                    Image(systemName: icon)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 22, height: 22)
-                    Text(title)
-                }
-                Spacer()
-                Text(value)
-                    .foregroundStyle(.black.opacity(0.55))
-                    .lineLimit(1)
-                Image(systemName: "chevron.right")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 16, height: 16)
-                    .frame(width: 20, height: 20)
-                    .foregroundStyle(.black.opacity(0.55))
-            }
-            .font(.body)
-            .padding(.leading, 16)
-            .padding(.trailing, 12)
-            .frame(height: 52)
-            .background(Color.black.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("ootd.newPost.\(title)")
-    }
-}
-
-/// Published media is not connected yet. Demo posts show garment artwork; live posts show a clear fallback.
+/// Uses bundled images only for explicitly identified sample posts; real posts load published media.
 struct PostArtwork: View {
     let post: Post
-    var cornerRadius: CGFloat = 12
+    var cornerRadius: CGFloat = DSRadius.lg
+    @StateObject private var model = PublishedPostImageModel()
 
     var body: some View {
-        ZStack {
-            Color(red: 0.85, green: 0.85, blue: 0.85)
-            if !post.id.hasPrefix("demo_post_") {
-                VStack(spacing: 8) {
-                    Image("TablerPhoto")
-                        .renderingMode(.template)
+        GeometryReader { geometry in
+            ZStack {
+                DSColor.tile
+                if let image = model.image {
+                    Image(uiImage: image)
                         .resizable()
-                        .frame(width: 32, height: 32)
-                    Text("Post image unavailable").font(.caption)
+                        .scaledToFill()
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipped()
+                } else if model.isLoading {
+                    ProgressView("Loading outfit…")
+                } else {
+                    VStack(spacing: DSSpacing.sm) {
+                        DSIcon("TablerPhoto", size: 24)
+                        Text("Post image unavailable").font(DSFont.search)
+                    }
+                    .foregroundStyle(DSColor.textMuted)
                 }
-                .foregroundStyle(.secondary)
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(post.id.hasPrefix("demo_post_") ? "Illustrated outfit" : "Post image unavailable")
+        .accessibilityLabel(model.image == nil ? "Post image unavailable" : "Outfit photo")
+        .task(id: post.id + "|" + post.mediaPath) { await model.load(post) }
     }
 }
 
 #Preview {
-    NavigationStack { OOTDFeedView(service: DemoPostFunctions()) }
+    NavigationStack {
+        OOTDFeedView(service: DemoPostFunctions(), savedPosts: SavedPostsViewModel(
+            ownerId: "preview_user",
+            saves: DemoSavedPostFunctions(arguments: ["-seedSavedPosts"]),
+            posts: DemoPostFunctions()
+        ))
+    }
 }
 
 #Preview("New post") {
-    NavigationStack { OOTDCreatePostView(canSharePreview: true) { _ in } }
+    NavigationStack { OOTDCreatePostView(canShare: true, isDemo: true) { _ in } }
 }

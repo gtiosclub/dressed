@@ -17,7 +17,7 @@ struct ClothingItemsList: View {
     let items: [ClothingItem]
     let outfits: [SavedOutfit]
     var look: [AvatarPart: Int] = [:]
-    
+
     let image: (ClothingItem) -> Image
     let uiImage: ((ClothingItem) -> UIImage?)?
     let onSelect: (String) -> Void
@@ -33,7 +33,7 @@ struct ClothingItemsList: View {
         items: [ClothingItem],
         outfits: [SavedOutfit] = [],
         look: [AvatarPart: Int] = [:],
-        image: @escaping (ClothingItem) -> Image = { _ in Image(systemName: "photo") },
+        image: @escaping (ClothingItem) -> Image = { _ in Image("TablerPhoto") },
         uiImage: ((ClothingItem) -> UIImage?)? = nil,
         onSelect: @escaping (String) -> Void,
         onSelectOutfit: @escaping (UUID) -> Void = { _ in }

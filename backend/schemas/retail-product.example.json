@@ -1,0 +1,103 @@
+{
+  "id": "352d6b1f5e6041d8cfe6009d",
+  "schemaVersion": 1,
+  "sourceURL": "https://shop.example/jeans",
+  "productURL": "https://shop.example/jeans",
+  "title": "Synthetic denim jeans",
+  "brand": "Fixture Brand",
+  "description": "Synthetic cotton denim product for contract verification.",
+  "sourceCategory": null,
+  "identifiers": {
+    "sku": "FIXTURE-JEANS"
+  },
+  "attributes": {
+    "material": "Cotton"
+  },
+  "photos": [
+    {
+      "url": "https://images.example/front.jpg",
+      "sourceURL": "https://shop.example/jeans",
+      "role": "primary",
+      "reuseStatus": "unreviewed"
+    },
+    {
+      "url": "https://images.example/back.jpg",
+      "sourceURL": "https://shop.example/jeans",
+      "role": "gallery",
+      "reuseStatus": "unreviewed"
+    }
+  ],
+  "variants": [
+    {
+      "sourceId": "FIXTURE-BLUE-M",
+      "title": null,
+      "productURL": "https://shop.example/jeans?size=M",
+      "attributes": {
+        "color": "Blue",
+        "size": "M"
+      },
+      "imageURLs": [],
+      "selected": false
+    }
+  ],
+  "offers": [
+    {
+      "merchant": null,
+      "productURL": null,
+      "redirectURL": null,
+      "priceText": null,
+      "amount": null,
+      "lowPrice": "40",
+      "highPrice": "60",
+      "currency": "USD",
+      "availability": "unknown",
+      "condition": null,
+      "observedAt": "2026-11-17T00:00:00Z",
+      "variantVerified": false
+    }
+  ],
+  "evidence": {
+    "title": {
+      "method": "json_ld.Product.name",
+      "sourceURL": "https://shop.example/jeans"
+    },
+    "description": {
+      "method": "json_ld.Product.description",
+      "sourceURL": "https://shop.example/jeans"
+    },
+    "identifiers": {
+      "method": "json_ld.Product.identifiers",
+      "sourceURL": "https://shop.example/jeans"
+    },
+    "attributes": {
+      "method": "json_ld.Product.attributes",
+      "sourceURL": "https://shop.example/jeans"
+    },
+    "brand": {
+      "method": "json_ld.Product.brand",
+      "sourceURL": "https://shop.example/jeans"
+    },
+    "imageURL": {
+      "method": "json_ld.Product.image",
+      "sourceURL": "https://shop.example/jeans"
+    },
+    "imageURLs": {
+      "method": "json_ld.Product.image",
+      "sourceURL": "https://shop.example/jeans"
+    },
+    "variants": {
+      "method": "json_ld.ProductGroup.hasVariant",
+      "sourceURL": "https://shop.example/jeans"
+    },
+    "offers": {
+      "method": "json_ld.Product.offers",
+      "sourceURL": "https://shop.example/jeans"
+    }
+  },
+  "warnings": [
+    "variant_selection_required"
+  ],
+  "observedAt": "2026-11-17T00:00:00Z",
+  "requiresReview": true,
+  "variantOptions": {}
+}

@@ -11,9 +11,12 @@ import {
   limit,
   orderBy,
   query,
+  runTransaction,
   setDoc,
+  updateDoc,
+  serverTimestamp,
 } from 'firebase/firestore';
-import { deleteObject, getMetadata, ref, uploadBytes } from 'firebase/storage';
+import { deleteObject, getBytes, getMetadata, ref, uploadBytes } from 'firebase/storage';
 
 const env = await initializeTestEnvironment({
   projectId: 'demo-dressed',
@@ -36,9 +39,33 @@ const outfit = {
   id: 'outfit_001', schemaVersion: 1, ownerId: 'alice', name: 'Monday',
   placementSchemaVersion: 1, placements: [], createdAt, updatedAt: createdAt,
 };
+const publicPost = {
+  id: 'post_002', schemaVersion: 1, authorId: 'alice', caption: 'Soft layers',
+  outfitSnapshot: { name: 'Soft layers', items: [{ sourceItemId: 'item_001', name: 'Blue shirt', category: 'tops',
+    mediaPath: 'posts/alice/post_002/items/item_001.jpg' }] },
+  mediaPath: 'posts/alice/post_002/composite.jpg', createdAt, likeCount: 0,
+};
 const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
 
 try {
+  await test('catalog allows bounded signed-in reads but no client writes', async () => {
+    await env.clearFirestore();
+    const path = 'catalogProducts/catalog_test';
+    await env.withSecurityRulesDisabled(async context => {
+      await setDoc(doc(context.firestore(), path), { title: 'Test retailer product' });
+    });
+    await assertSucceeds(getDoc(doc(alice.firestore(), path)));
+    await assertSucceeds(getDocs(query(collection(alice.firestore(), 'catalogProducts'), limit(200))));
+    await assertFails(getDoc(doc(guest.firestore(), path)));
+    await assertFails(getDocs(query(collection(guest.firestore(), 'catalogProducts'), limit(200))));
+    await assertFails(getDocs(collection(alice.firestore(), 'catalogProducts')));
+    await assertFails(getDocs(query(collection(alice.firestore(), 'catalogProducts'), limit(201))));
+    await assertFails(setDoc(doc(alice.firestore(), 'catalogProducts/new'), { title: 'Fake' }));
+    await assertFails(updateDoc(doc(alice.firestore(), path), { title: 'Changed' }));
+    await assertFails(deleteDoc(doc(alice.firestore(), path)));
+    await assertFails(setDoc(doc(guest.firestore(), 'catalogProducts/new'), { title: 'Fake' }));
+  });
+
   await test('an owner can save, read, update, list, and delete a clothing item', async () => {
     await env.clearFirestore();
     const own = doc(alice.firestore(), itemPath);
@@ -81,7 +108,37 @@ try {
     await assertFails(setDoc(doc(alice.firestore(), path), { ...outfit, ownerId: 'bob' }));
   });
 
-  await test('only signed-in users read posts; publication and legacy paths stay closed', async () => {
+  await test('clothing detail updates preserve identity and reject other users', async () => {
+    await env.clearFirestore();
+    const own = doc(alice.firestore(), itemPath);
+    await assertSucceeds(setDoc(own, item));
+    await assertSucceeds(updateDoc(own, { name: 'Navy shirt', category: 'outerwear' }));
+    const saved = (await getDoc(own)).data();
+    assert.equal(saved.name, 'Navy shirt');
+    assert.equal(saved.category, 'outerwear');
+    assert.equal(saved.imagePath, item.imagePath);
+    assert.equal(saved.createdAt.toMillis(), createdAt.getTime());
+    await assertFails(updateDoc(doc(bob.firestore(), itemPath), { name: 'Wrong owner' }));
+    await assertFails(updateDoc(doc(guest.firestore(), itemPath), { name: 'Guest' }));
+  });
+
+  await test('outfit deletion is repeatable, scoped, and owner-only', async () => {
+    await env.clearFirestore();
+    const path = 'users/alice/outfits/outfit_001';
+    const other = 'users/alice/outfits/outfit_002';
+    await assertSucceeds(setDoc(doc(alice.firestore(), path), outfit));
+    await assertSucceeds(setDoc(doc(alice.firestore(), other), { ...outfit, id: 'outfit_002' }));
+    await assertSucceeds(setDoc(doc(alice.firestore(), itemPath), item));
+    await assertFails(deleteDoc(doc(bob.firestore(), path)));
+    await assertFails(deleteDoc(doc(guest.firestore(), path)));
+    await assertSucceeds(deleteDoc(doc(alice.firestore(), path)));
+    await assertSucceeds(deleteDoc(doc(alice.firestore(), path)));
+    assert.equal((await getDoc(doc(alice.firestore(), path))).exists(), false);
+    assert.equal((await getDoc(doc(alice.firestore(), other))).exists(), true);
+    assert.equal((await getDoc(doc(alice.firestore(), itemPath))).exists(), true);
+  });
+
+  await test('an authenticated author can publish and signed-in users can read the post', async () => {
     await env.clearFirestore();
     await env.withSecurityRulesDisabled(async (admin) => {
       await setDoc(doc(admin.firestore(), 'posts/post_001'), { authorId: 'alice' });
@@ -89,8 +146,89 @@ try {
     });
     await assertSucceeds(getDoc(doc(bob.firestore(), 'posts/post_001')));
     await assertFails(getDoc(doc(guest.firestore(), 'posts/post_001')));
-    await assertFails(setDoc(doc(alice.firestore(), 'posts/post_002'), { authorId: 'alice' }));
+    await assertSucceeds(setDoc(doc(alice.firestore(), 'posts/post_002'), publicPost));
+    assert.equal((await assertSucceeds(getDoc(doc(bob.firestore(), 'posts/post_002')))).data().caption, 'Soft layers');
+    await assertFails(setDoc(doc(guest.firestore(), 'posts/post_003'), {
+      ...publicPost, id: 'post_003', authorId: 'guest',
+    }));
     await assertFails(getDoc(doc(alice.firestore(), 'CLOTHING/legacy_001')));
+  });
+
+  await test('post publication rejects impersonation, private media, unsafe fields, and initial likes', async () => {
+    await env.clearFirestore();
+    const target = doc(alice.firestore(), 'posts/post_002');
+    await assertFails(setDoc(target, { ...publicPost, authorId: 'bob' }));
+    await assertFails(setDoc(target, { ...publicPost, id: 'different' }));
+    await assertFails(setDoc(target, { ...publicPost, mediaPath: 'users/alice/items/item_001/original.jpg' }));
+    await assertFails(setDoc(target, { ...publicPost, outfitSnapshot: { items: [{ sourceItemId: 'private' }] } }));
+    await assertFails(setDoc(target, { ...publicPost, likeCount: 1 }));
+    await assertFails(setDoc(target, { ...publicPost, unexpected: true }));
+    await assertFails(setDoc(target, { ...publicPost, caption: 'x'.repeat(501) }));
+  });
+
+  await test('published snapshots validate every item and stay immutable', async () => {
+    await env.clearFirestore();
+    const target = doc(alice.firestore(), 'posts/post_002');
+    for (const invalid of [
+      { ...publicPost, mediaPath: '' },
+      { ...publicPost, outfitSnapshot: { items: [] } },
+      { ...publicPost, outfitSnapshot: { items: Array(11).fill(publicPost.outfitSnapshot.items[0]) } },
+      ...[
+        { name: '' }, { category: 'unknown' }, { sourceItemId: '../private' },
+        { mediaPath: imagePath }, { mediaPath: 'posts/bob/post_002/items/item_001.jpg' },
+        { mediaPath: 'posts/alice/other_post/items/item_001.jpg' }, { privatePath: imagePath },
+        { productURL: 'file:///private.jpg' },
+      ].map(changes => ({ ...publicPost, outfitSnapshot: {
+        items: [{ ...publicPost.outfitSnapshot.items[0], ...changes }],
+      } })),
+    ]) { await assertFails(setDoc(target, invalid)); }
+    const ten = Array.from({ length: 10 }, (_, i) => ({
+      ...publicPost.outfitSnapshot.items[0], sourceItemId: `piece_${i}`,
+      mediaPath: `posts/alice/post_002/items/piece_${i}.jpg`,
+    }));
+    await assertFails(setDoc(target, { ...publicPost, outfitSnapshot: { items: [
+      ...ten.slice(0, 9), { ...ten[9], mediaPath: imagePath },
+    ] } }));
+    await assertSucceeds(setDoc(target, { ...publicPost, outfitSnapshot: { items: ten } }));
+    await assertFails(updateDoc(target, { caption: 'Changed after publication' }));
+    await assertFails(deleteDoc(target));
+    const readBack = (await assertSucceeds(getDoc(doc(bob.firestore(), 'posts/post_002')))).data();
+    assert.equal(readBack.outfitSnapshot.items.length, 10);
+    assert.equal(readBack.outfitSnapshot.items[9].name, 'Blue shirt');
+  });
+
+  await test('pending media stays private; published copies survive deletion of the private original', async () => {
+    await env.clearFirestore();
+    const root = 'posts/alice/media_post';
+    const cover = ref(alice.storage(bucket), `${root}/composite.jpg`);
+    const piece = ref(alice.storage(bucket), `${root}/items/item_001.jpg`);
+    await assertFails(uploadBytes(ref(bob.storage(bucket), `${root}/composite.jpg`), jpeg, { contentType: 'image/jpeg' }));
+    await assertFails(uploadBytes(ref(guest.storage(bucket), `${root}/composite.jpg`), jpeg, { contentType: 'image/jpeg' }));
+    await assertFails(uploadBytes(cover, jpeg, { contentType: 'image/png' }));
+    await assertFails(uploadBytes(cover, new Uint8Array(0), { contentType: 'image/jpeg' }));
+    await assertFails(uploadBytes(cover, new Uint8Array(10 * 1024 * 1024 + 1), { contentType: 'image/jpeg' }));
+    await assertSucceeds(uploadBytes(cover, jpeg, { contentType: 'image/jpeg' }));
+    await assertSucceeds(uploadBytes(piece, jpeg, { contentType: 'image/jpeg' }));
+    await assertSucceeds(getBytes(cover));
+    await assertFails(getBytes(ref(bob.storage(bucket), `${root}/composite.jpg`)));
+    // Pending upload rollback is allowed.
+    await assertSucceeds(deleteObject(piece));
+    await assertSucceeds(uploadBytes(piece, jpeg, { contentType: 'image/jpeg' }));
+    const record = { ...publicPost, id: 'media_post', mediaPath: `${root}/composite.jpg`, outfitSnapshot: {
+      name: 'Soft layers', items: [{ ...publicPost.outfitSnapshot.items[0], mediaPath: `${root}/items/item_001.jpg` }],
+    } };
+    await assertSucceeds(setDoc(doc(alice.firestore(), 'posts/media_post'), record));
+    assert.deepEqual(new Uint8Array(await assertSucceeds(getBytes(ref(bob.storage(bucket), `${root}/composite.jpg`)))), jpeg);
+    await assertSucceeds(getBytes(ref(bob.storage(bucket), `${root}/items/item_001.jpg`)));
+    await assertFails(getBytes(ref(guest.storage(bucket), `${root}/composite.jpg`)));
+    await assertFails(uploadBytes(cover, jpeg, { contentType: 'image/jpeg' }));
+    await assertFails(deleteObject(cover));
+    await assertFails(deleteObject(ref(bob.storage(bucket), `${root}/items/item_001.jpg`)));
+    const privatePhoto = ref(alice.storage(bucket), imagePath);
+    await assertSucceeds(uploadBytes(privatePhoto, jpeg, { contentType: 'image/jpeg' }));
+    await assertFails(getBytes(ref(bob.storage(bucket), imagePath)));
+    await assertSucceeds(deleteObject(privatePhoto));
+    await assertSucceeds(getBytes(ref(bob.storage(bucket), `${root}/items/item_001.jpg`)));
   });
 
   await test('saved-post writes stay closed until owner rules are reviewed', async () => {
@@ -104,6 +242,111 @@ try {
     await assertFails(setDoc(doc(bob.firestore(), savedPath), saved));
     await assertFails(getDoc(doc(bob.firestore(), savedPath)));
     await assertFails(getDoc(doc(guest.firestore(), savedPath)));
+  });
+
+  await test('comments persist across users, bounded refreshes, and idempotent retries', async () => {
+    await env.clearFirestore();
+    await env.withSecurityRulesDisabled(async (admin) => {
+      await setDoc(doc(admin.firestore(), 'posts/comment_test'), { authorId: 'bob' });
+    });
+    const path = 'posts/comment_test/comments/stable_id';
+    const record = { id: 'stable_id', authorId: 'alice', text: 'Nice fit', createdAt: serverTimestamp() };
+    const send = () => runTransaction(alice.firestore(), async (transaction) => {
+      const target = doc(alice.firestore(), path);
+      if (!(await transaction.get(target)).exists()) transaction.set(target, record);
+    });
+    await assertSucceeds(send());
+    const first = await assertSucceeds(getDoc(doc(bob.firestore(), path)));
+    await assertSucceeds(send());
+    const comments = query(collection(bob.firestore(), 'posts/comment_test/comments'),
+      orderBy('createdAt', 'desc'), orderBy('__name__', 'desc'), limit(50));
+    const loaded = await assertSucceeds(getDocs(comments));
+    assert.equal(loaded.size, 1);
+    assert.equal(loaded.docs[0].data().text, 'Nice fit');
+    assert.ok(loaded.docs[0].data().createdAt.isEqual(first.data().createdAt));
+    await assertFails(getDoc(doc(guest.firestore(), path)));
+    await assertFails(getDocs(query(collection(guest.firestore(), 'posts/comment_test/comments'), limit(50))));
+    await assertFails(getDocs(collection(alice.firestore(), 'posts/comment_test/comments')));
+    await assertFails(getDocs(query(collection(alice.firestore(), 'posts/comment_test/comments'), limit(51))));
+    await assertFails(setDoc(doc(bob.firestore(), path), { ...record, text: 'Edited' }));
+    await assertFails(deleteDoc(doc(bob.firestore(), path)));
+    await assertFails(deleteDoc(doc(alice.firestore(), path)));
+    await env.withSecurityRulesDisabled(async (admin) => {
+      await deleteDoc(doc(admin.firestore(), 'posts/comment_test'));
+    });
+    await assertFails(getDoc(doc(alice.firestore(), path)));
+    await assertFails(getDocs(comments));
+    await assertFails(setDoc(doc(alice.firestore(), 'posts/comment_test/comments/new'), { ...record, id: 'new' }));
+  });
+
+  await test('comments reject impersonation, malformed content, client time, and missing posts', async () => {
+    await env.clearFirestore();
+    await env.withSecurityRulesDisabled(async (admin) => {
+      await setDoc(doc(admin.firestore(), 'posts/comment_test'), { authorId: 'bob' });
+    });
+    const target = doc(alice.firestore(), 'posts/comment_test/comments/check');
+    const record = { id: 'check', authorId: 'alice', text: 'Hello', createdAt: serverTimestamp() };
+    for (const invalid of [
+      { ...record, authorId: 'bob' }, { ...record, id: 'wrong' },
+      { ...record, text: '' }, { ...record, text: ' \n\t ' },
+      { ...record, text: 'a'.repeat(1001) }, { ...record, text: 123 },
+      { ...record, email: 'private@example.invalid' }, { ...record, createdAt },
+    ]) await assertFails(setDoc(target, invalid));
+    await assertFails(setDoc(doc(guest.firestore(), 'posts/comment_test/comments/check'), record));
+    await assertFails(setDoc(doc(alice.firestore(), 'posts/missing/comments/check'), record));
+    await assertSucceeds(setDoc(target, { ...record, text: 'a'.repeat(1000) }));
+    await assertFails(setDoc(target, { ...record, text: 'Replacement' }));
+    await assertFails(getDoc(doc(alice.firestore(), 'COMMENTS/legacy')));
+  });
+
+  await test('a like transaction updates the private relationship and public count exactly once', async () => {
+    await env.clearFirestore();
+    await env.withSecurityRulesDisabled(async (admin) => {
+      await setDoc(doc(admin.firestore(), 'posts/post_001'), { authorId: 'alice', likeCount: 0 });
+    });
+    const post = doc(alice.firestore(), 'posts/post_001');
+    const like = doc(alice.firestore(), 'users/alice/postLikes/post_001');
+    const setLike = async (desired) => runTransaction(alice.firestore(), async (transaction) => {
+      const [postSnapshot, likeSnapshot] = await Promise.all([
+        transaction.get(post), transaction.get(like),
+      ]);
+      if (likeSnapshot.exists() === desired) return;
+      if (desired) {
+        transaction.set(like, {
+          id: 'post_001', schemaVersion: 1, ownerId: 'alice', postId: 'post_001', createdAt,
+        });
+      } else {
+        transaction.delete(like);
+      }
+      transaction.update(post, { likeCount: postSnapshot.data().likeCount + (desired ? 1 : -1) });
+    });
+
+    await assertSucceeds(setLike(true));
+    assert.equal((await getDoc(post)).data().likeCount, 1);
+    assert.equal((await getDoc(like)).data().ownerId, 'alice');
+    await assertSucceeds(setLike(true));
+    assert.equal((await getDoc(post)).data().likeCount, 1);
+    await assertSucceeds(setLike(false));
+    assert.equal((await getDoc(post)).data().likeCount, 0);
+    assert.equal((await getDoc(like)).exists(), false);
+  });
+
+  await test('like identity is owner-only and clients cannot change a count by itself', async () => {
+    await env.clearFirestore();
+    await env.withSecurityRulesDisabled(async (admin) => {
+      await setDoc(doc(admin.firestore(), 'posts/post_001'), { authorId: 'alice', likeCount: 0 });
+    });
+    const aliceLike = doc(alice.firestore(), 'users/alice/postLikes/post_001');
+    const record = {
+      id: 'post_001', schemaVersion: 1, ownerId: 'alice', postId: 'post_001', createdAt,
+    };
+    await assertFails(setDoc(aliceLike, record));
+    await assertFails(setDoc(doc(bob.firestore(), 'users/alice/postLikes/post_001'), record));
+    await assertFails(getDoc(doc(bob.firestore(), 'users/alice/postLikes/post_001')));
+    await assertFails(getDoc(doc(guest.firestore(), 'users/alice/postLikes/post_001')));
+    await assertFails(setDoc(doc(alice.firestore(), 'posts/post_001'), {
+      authorId: 'alice', likeCount: 1,
+    }));
   });
 
   await test('private JPEG media is owner-only and size/type-limited', async () => {

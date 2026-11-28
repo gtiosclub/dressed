@@ -121,6 +121,7 @@ final class PrototypeOutfitStore: ObservableObject {
     }
 
     private func delete(where shouldDelete: (Outfit) -> Bool) throws {
+        reload()
         guard error == nil else { throw PrototypeOutfitError.unavailableStorage }
         let remaining = outfits.filter { !shouldDelete($0) }
         guard remaining.count != outfits.count else { return }

@@ -1,59 +1,97 @@
 import SwiftUI
 
+/// My Closet (Figma 915:526, 973:5888): a chip row, a photo grid and a floating search button.
+/// Outfits is the first chip; Wishlist keeps its list as the third, so it stays on screen.
 struct PrototypeClosetView: View {
+    private enum Filter: Hashable {
+        case outfits
+        case all
+        case category(ClothingCategory)
+        case wishlist
+
+        var title: String {
+            switch self {
+            case .outfits: "Outfits"
+            case .all: "All"
+            case .category(let category): category.rawValue.capitalized
+            case .wishlist: "Wishlist"
+            }
+        }
+    }
+
     @ObservedObject var closet: PrototypeClosetStore
     @ObservedObject var outfits: PrototypeOutfitStore
     @StateObject private var productLinks: ProductLinkStore
-    @State private var category: ClothingCategory?
-    @State private var searchText = ""
-    @State private var section = 0
+    @Binding var isSearching: Bool
+    @Binding var searchText: String
+    @State private var filter: Filter = .all
     @State private var showingOutfitEditor = false
     let onTryOn: (ClothingItem) -> Void
     let onTryOutfit: (Outfit) -> Void
 
-    init(closet: PrototypeClosetStore, outfits: PrototypeOutfitStore, ownerId: String, onTryOn: @escaping (ClothingItem) -> Void, onTryOutfit: @escaping (Outfit) -> Void) {
+    private let columns = [GridItem(.flexible(), spacing: DSSpacing.md), GridItem(.flexible(), spacing: DSSpacing.md)]
+    private let filters: [Filter] = [.outfits, .all, .wishlist] + ClothingCategory.allCases.map(Filter.category)
+
+    init(
+        closet: PrototypeClosetStore,
+        outfits: PrototypeOutfitStore,
+        ownerId: String,
+        isSearching: Binding<Bool> = .constant(false),
+        searchText: Binding<String> = .constant(""),
+        onTryOn: @escaping (ClothingItem) -> Void,
+        onTryOutfit: @escaping (Outfit) -> Void
+    ) {
         _closet = ObservedObject(wrappedValue: closet)
         _outfits = ObservedObject(wrappedValue: outfits)
+        _isSearching = isSearching
+        _searchText = searchText
         self.onTryOn = onTryOn
         self.onTryOutfit = onTryOutfit
         _productLinks = StateObject(wrappedValue: ProductLinkStore(ownerId: ownerId))
     }
 
+    private var trimmedSearch: String { searchText.trimmingCharacters(in: .whitespacesAndNewlines) }
+
     private var visibleItems: [ClothingItem] {
         closet.items.filter { item in
-            (category == nil || item.category == category)
-                && (searchText.isEmpty || item.name.localizedCaseInsensitiveContains(searchText))
+            switch filter {
+            case .category(let category): item.category == category
+            default: true
+            }
         }
+        .filter { trimmedSearch.isEmpty || $0.name.localizedCaseInsensitiveContains(trimmedSearch) }
+    }
+
+    private var visibleOutfits: [Outfit] {
+        outfits.outfits.filter { trimmedSearch.isEmpty || ($0.name ?? "").localizedCaseInsensitiveContains(trimmedSearch) }
+    }
+
+    /// The piece or outfit added in the last day wears the "New" badge.
+    private func isNew(_ date: Date, newest: Date?) -> Bool {
+        date == newest && Date.now.timeIntervalSince(date) < 24 * 60 * 60
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("Closet Section", selection: $section) {
-                Text("Pieces").tag(0)
-                Text("Outfits").tag(1)
-                Text("Wishlist").tag(2)
-            }
-            .pickerStyle(.segmented)
-            .padding()
-
-            if section == 0 {
-                piecesContent
-            } else if section == 1 {
-                outfitsContent
-            } else {
-                wishlistContent
-            }
-        }
-        .navigationTitle("My Closet")
-        .toolbar {
-            if section == 1 {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("New Outfit", systemImage: "plus") { showingOutfitEditor = true }
-                        .disabled(closet.items.isEmpty || closet.error != nil)
+            chipRow.zIndex(1)
+            Group {
+                switch filter {
+                case .outfits: outfitsContent
+                case .wishlist: wishlistContent
+                default: piecesContent
                 }
             }
+            .id(filter)
+            .transition(.opacity)
         }
-        .sheet(isPresented: $showingOutfitEditor) {
+        .animation(.easeOut(duration: 0.2), value: filter)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(DSColor.background)
+        .overlay(alignment: .bottom) {
+            if filter != .wishlist { floatingBar }
+        }
+        .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(isPresented: $showingOutfitEditor) {
             PrototypeOutfitEditorView(closet: closet, outfits: outfits)
         }
         .onAppear {
@@ -63,24 +101,56 @@ struct PrototypeClosetView: View {
         }
     }
 
+    private var chipRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: DSSpacing.sm) {
+                ForEach(filters, id: \.self) { option in
+                    DSChip(title: option.title, isSelected: filter == option) { filter = option }
+                        .accessibilityIdentifier("closet.filter.\(option.title)")
+                }
+            }
+            .padding(.horizontal, DSSpacing.lg)
+            .padding(.top, DSSpacing.md)
+            .padding(.bottom, DSSpacing.md + DSSpacing.sm)
+        }
+    }
+
+    private var floatingBar: some View {
+        HStack(spacing: DSSpacing.sm) {
+            DSFloatingSearchButton(title: trimmedSearch.isEmpty ? "Search Your Closet" : trimmedSearch) {
+                isSearching = true
+            }
+            .accessibilityIdentifier("closet.searchButton")
+            if filter == .outfits {
+                DSFloatingActionButton(accessibilityLabel: "New Outfit") { showingOutfitEditor = true }
+                    .disabled(closet.items.isEmpty || closet.error != nil)
+                    .accessibilityIdentifier("closet.newOutfit")
+            }
+        }
+        .padding(.horizontal, DSSpacing.lg)
+        .padding(.bottom, DSSpacing.sm)
+    }
+
+    /// Room for the floating bar so the last row can scroll clear of it.
+    private var bottomInset: CGFloat { DSFloatingSearchButton.height + 2 * DSSpacing.lg }
+
     @ViewBuilder
     private var wishlistContent: some View {
         if let error = productLinks.error {
-            ContentUnavailableView("Could not load Wishlist", systemImage: "exclamationmark.triangle",
-                                   description: Text(error))
+            DSEmptyState(icon: "TablerAlertTriangle", title: "Could not load Wishlist", message: error)
         } else if productLinks.links.isEmpty {
-            ContentUnavailableView("No saved links", systemImage: "heart",
-                                   description: Text("Paste a product link in Camera or share one to Dressed."))
+            DSEmptyState(icon: "TablerHeart", title: "No saved links",
+                         message: "Paste a product link in Camera or share one to Dressed.")
         } else {
             List {
                 ForEach(productLinks.links) { item in
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(item.name).font(.headline)
+                        Text(item.name).font(DSFont.bodyEmphasis)
                         Text(item.category.rawValue.capitalized)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(DSColor.textMuted)
                         Text(item.productURL.host ?? "Product link")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(DSColor.textMuted)
                         Link("Open product page", destination: item.productURL)
                     }
                     .accessibilityElement(children: .contain)
@@ -91,6 +161,7 @@ struct PrototypeClosetView: View {
                     }
                 }
             }
+            .listStyle(.plain)
         }
     }
 
@@ -98,59 +169,39 @@ struct PrototypeClosetView: View {
     private var piecesContent: some View {
         Group {
             if let error = closet.error {
-                ContentUnavailableView {
-                    Label("Could not load closet", systemImage: "exclamationmark.triangle")
-                } description: {
-                    Text(error)
-                } actions: {
-                    Button("Try Again") { closet.reload() }
-                }
+                DSEmptyState(icon: "TablerAlertTriangle", title: "Could not load closet", message: error,
+                             actionTitle: "Try Again") { closet.reload() }
             } else if closet.items.isEmpty {
-                ContentUnavailableView(
-                    "Your closet is empty",
-                    systemImage: "hanger",
-                    description: Text("Add a piece from Camera or share an image to Dressed.")
-                )
+                DSEmptyState(icon: "TablerHanger2", title: "Your closet is empty",
+                             message: "Add a piece from Camera or share an image to Dressed.")
+            } else if visibleItems.isEmpty {
+                DSEmptyState(icon: "TablerSearch", title: "No matching pieces",
+                             message: "Try another name or category.",
+                             actionTitle: trimmedSearch.isEmpty ? nil : "Clear Search",
+                             action: trimmedSearch.isEmpty ? nil : { searchText = "" })
             } else {
+                let newest = closet.items.map(\.createdAt).max()
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            Text("Pieces")
-                                .font(.title2.bold())
-                            Spacer()
-                            Menu {
-                                Button("All Categories") { category = nil }
-                                ForEach(ClothingCategory.allCases, id: \.self) { option in
-                                    Button(option.rawValue.capitalized) { category = option }
-                                }
-                            } label: {
-                                Label(category?.rawValue.capitalized ?? "All Categories", systemImage: "line.3.horizontal.decrease")
-                                    .font(.subheadline)
-                            }
-                            .accessibilityLabel("Filter pieces by category")
-                        }
-
-                        if visibleItems.isEmpty {
-                            ContentUnavailableView("No matching pieces", systemImage: "magnifyingglass",
-                                                   description: Text("Try another name or category."))
-                                .frame(maxWidth: .infinity)
-                                .frame(minHeight: 300)
-                        } else {
-                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 145), spacing: 12)], spacing: 12) {
-                                ForEach(visibleItems) { item in
-                                    NavigationLink(value: item.id) {
-                                        pieceCard(item)
+                    LazyVGrid(columns: columns, spacing: DSSpacing.md) {
+                        ForEach(visibleItems) { item in
+                            let highlighted = isNew(item.createdAt, newest: newest)
+                            NavigationLink(value: item.id) {
+                                DSTile(isHighlighted: highlighted) { pieceImage(item) }
+                                    .overlay(alignment: .topLeading) {
+                                        if highlighted { DSBadge(text: "New").padding(14) }
                                     }
-                                    .buttonStyle(.plain)
-                                }
                             }
+                            .buttonStyle(.dsPress(0.98))
+                            .accessibilityLabel(item.name)
+                            .accessibilityIdentifier("closet.piece.\(item.id)")
                         }
                     }
-                    .padding()
+                    .padding(.horizontal, DSSpacing.lg)
+                    .padding(.bottom, bottomInset)
                 }
+                .scrollClipDisabled()
             }
         }
-        .searchable(text: $searchText, prompt: "Search pieces")
         .navigationDestination(for: String.self) { id in
             PrototypeItemDetailView(closet: closet, itemID: id, onTryOn: onTryOn)
         }
@@ -159,83 +210,55 @@ struct PrototypeClosetView: View {
     @ViewBuilder
     private var outfitsContent: some View {
         if let error = outfits.error {
-            ContentUnavailableView {
-                Label("Could not load outfits", systemImage: "exclamationmark.triangle")
-            } description: {
-                Text(error)
-            } actions: {
-                Button("Try Again") { outfits.reload() }
-            }
+            DSEmptyState(icon: "TablerAlertTriangle", title: "Could not load outfits", message: error,
+                         actionTitle: "Try Again") { outfits.reload() }
         } else if outfits.outfits.isEmpty {
-            ContentUnavailableView {
-                Label("No outfits yet", systemImage: "square.on.square")
-            } description: {
-                Text("Choose pieces from your closet to make an outfit.")
-            } actions: {
-                Button("New Outfit") { showingOutfitEditor = true }
-                    .disabled(closet.items.isEmpty)
-            }
+            DSEmptyState(icon: "TablerCopy", title: "No outfits yet",
+                         message: "Choose pieces from your closet to make an outfit.",
+                         actionTitle: closet.items.isEmpty ? nil : "New Outfit",
+                         action: closet.items.isEmpty ? nil : { showingOutfitEditor = true })
+        } else if visibleOutfits.isEmpty {
+            DSEmptyState(icon: "TablerSearch", title: "No matching outfits",
+                         message: "Try another name.",
+                         actionTitle: trimmedSearch.isEmpty ? nil : "Clear Search",
+                         action: trimmedSearch.isEmpty ? nil : { searchText = "" })
         } else {
+            let newest = outfits.outfits.map(\.createdAt).max()
             ScrollView {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 155), spacing: 12)], spacing: 12) {
-                    ForEach(outfits.outfits) { outfit in
+                LazyVGrid(columns: columns, spacing: DSSpacing.md) {
+                    ForEach(visibleOutfits) { outfit in
+                        let pieces = outfit.placements.compactMap { closet.item(id: $0.itemId) }
                         NavigationLink {
-                            PrototypeOutfitDetailView(outfit: outfit, closet: closet, onTryOutfit: onTryOutfit)
+                            PrototypeOutfitDetailView(outfit: outfit, closet: closet, outfits: outfits,
+                                                      onTryOutfit: onTryOutfit, onTryOn: onTryOn)
                         } label: {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Image(systemName: "square.on.square")
-                                    .font(.largeTitle)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 100)
-                                Text(outfit.name ?? "Outfit")
-                                    .font(.headline)
-                                Text("\(outfit.placements.count) pieces")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
+                            DSOutfitCollage(count: min(4, pieces.count),
+                                            isHighlighted: isNew(outfit.createdAt, newest: newest)) { index in
+                                pieceImage(pieces[index])
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(12)
-                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+                            .overlay(alignment: .topLeading) {
+                                if isNew(outfit.createdAt, newest: newest) { DSBadge(text: "New").padding(14) }
+                            }
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.dsPress(0.98))
+                        .accessibilityLabel(outfit.name ?? "Outfit")
+                        .accessibilityIdentifier("closet.outfit.\(outfit.id)")
                     }
                 }
-                .padding()
+                .padding(.horizontal, DSSpacing.lg)
+                .padding(.bottom, bottomInset)
             }
+            .scrollClipDisabled()
         }
     }
 
-    private func pieceCard(_ item: ClothingItem) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            GeometryReader { geometry in
-                Group {
-                    if let image = closet.image(for: item) {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFill()
-                    } else {
-                        Image(systemName: "photo")
-                            .resizable()
-                            .scaledToFit()
-                            .padding(40)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .frame(width: geometry.size.width, height: geometry.size.height)
-                .clipped()
-            }
-            .frame(height: 160)
-            Text(item.name)
-                .font(.headline)
-                .lineLimit(2)
-            Text(item.category.rawValue.capitalized)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+    @ViewBuilder
+    private func pieceImage(_ item: ClothingItem) -> some View {
+        if let image = closet.image(for: item) {
+            Image(uiImage: image).resizable().scaledToFit()
+        } else {
+            DSIcon("TablerPhoto", size: 40).foregroundStyle(DSColor.textMuted)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
-        .accessibilityElement(children: .combine)
     }
 }
 
@@ -266,7 +289,7 @@ struct PrototypeItemDetailView: View {
                                 .frame(maxHeight: 340)
                                 .accessibilityLabel("Photo of \(item.name)")
                         } else {
-                            ContentUnavailableView("Photo unavailable", systemImage: "photo")
+                            ContentUnavailableView("Photo unavailable", tabler: "TablerPhoto")
                                 .frame(maxWidth: .infinity)
                         }
                     }
@@ -303,7 +326,7 @@ struct PrototypeItemDetailView: View {
                                 onTryOn(item)
                                 dismiss()
                             } label: {
-                                Label("Try On", systemImage: "person.crop.circle")
+                                Label("Try On", tabler: "TablerUserCircle")
                             }
                             Button("Delete Piece", role: .destructive) { confirmsDeletion = true }
                         }
@@ -315,7 +338,7 @@ struct PrototypeItemDetailView: View {
                     Text("The piece and its private photo will be removed from this device.")
                 }
             } else {
-                ContentUnavailableView("Piece unavailable", systemImage: "hanger",
+                ContentUnavailableView("Piece unavailable", tabler: "TablerHanger2",
                                        description: Text("It may have been deleted."))
             }
         }

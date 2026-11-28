@@ -77,3 +77,11 @@ ui-debug.log
 # Python catalog prototype
 __pycache__/
 *.py[cod]
+
+# Persistent local acquisition data (not source control)
+backend/catalog/local-data/
+
+# Locally converted or downloaded evaluation assets (licenses unreviewed)
+*.mlpackage
+dressed/Camera/Models/
+CatalogPack/

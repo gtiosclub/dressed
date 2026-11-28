@@ -1,11 +1,11 @@
 import Foundation
 
 // Later import work. These templates are not needed to save a manual closet item.
-enum ClosetDestination: String, Codable {
+nonisolated enum ClosetDestination: String, Codable {
     case closet, wishlist
 }
 
-struct ClothingSource: Codable {
+nonisolated struct ClothingSource: Codable {
     enum Kind: String, Codable {
         case camera, photoLibrary, sharedImage, sharedURL, productURL
     }
@@ -22,10 +22,57 @@ struct SavedProductLink: Codable, Identifiable {
     var category: ClothingCategory
     var productURL: URL
     var createdAt: Date
+    // Optional details the person confirmed from a read page. Older saved
+    // links decode without them. Price and availability are never guessed.
+    var retailer: String? = nil
+    var imageURL: URL? = nil
+    var price: ProductPrice? = nil
+    var availability: String? = nil
+    var variant: String? = nil
+    var importId: String? = nil
+}
+
+struct ProductPrice: Codable {
+    var amount: String
+    var currency: String
+}
+
+// Draft returned by the product link reader (backend/links). Every field says
+// where its value came from; state is from_page, from_link, suggested or open.
+// A draft is review input, not a saved record.
+struct ProductImportField<Value: Codable>: Codable {
+    var value: Value?
+    var source: String?
+    var evidence: String?
+    var state: String
+}
+
+struct ProductImportDraft: Codable {
+    struct Fields: Codable {
+        var name: ProductImportField<String>
+        var retailer: ProductImportField<String>
+        var image: ProductImportField<String>
+        var category: ProductImportField<String>
+        var link: ProductImportField<String>
+        var price: ProductImportField<ProductPrice>
+        var availability: ProductImportField<String>
+        var variant: ProductImportField<String>
+    }
+
+    var importId: String
+    var status: String // ready, blocked or failed
+    var message: String?
+    var fields: Fields
+    var canonicalLink: String?
+    var elapsedMs: Int
 }
 
 // Private local draft. Temporary paths are not public Storage references.
-struct ImportDraft: Codable, Identifiable {
+enum ImportSaveMode: String, Codable, CaseIterable {
+    case outfit, individualPieces
+}
+
+nonisolated struct ImportDraft: Codable, Identifiable {
     enum Status: String, Codable {
         case received, processing, review, saving, failed, saved
     }
@@ -38,9 +85,30 @@ struct ImportDraft: Codable, Identifiable {
     var candidates: [ImportCandidate]
     var createdAt: Date
     var expiresAt: Date
+    // Optional fields keep existing on-device drafts readable.
+    var outfitName: String? = nil
+    var saveMode: ImportSaveMode? = nil
+    var reviewedCandidateIDs: [String]? = nil
+    var removedCandidateIDs: [String]? = nil
+    var hasFinishedPieceReview: Bool? = nil
 }
 
-struct ImportCandidate: Codable, Identifiable {
+enum ImportMode: String, Codable {
+    case oneItem, oneOutfit
+}
+
+struct CandidateSighting: Codable, Identifiable {
+    var id: String
+    var photoId: String
+    var region: NormalizedImageRegion
+    var outline: [NormalizedImagePoint]? = nil
+    var category: ClothingCategory
+    var name: String
+    var confidence: Double? = nil
+    var source: String? = nil
+}
+
+nonisolated struct ImportCandidate: Codable, Identifiable {
     var id: String
     var name: String
     var category: ClothingCategory
@@ -49,14 +117,15 @@ struct ImportCandidate: Codable, Identifiable {
     var region: NormalizedImageRegion?
     // Optional user-drawn contour in full-image coordinates. A rectangle remains
     // the fallback when no contour has been drawn.
-    var outline: [NormalizedImagePoint]?
+    var outline: [NormalizedImagePoint]? = nil
+    var sightings: [CandidateSighting]? = nil
     var suggestionSource: String?
     var selected: Bool
     var tags: [String]
     var suggestedTags: [String]
 }
 
-struct NormalizedImagePoint: Codable {
+nonisolated struct NormalizedImagePoint: Codable {
     var x: Double
     var y: Double
 
@@ -66,7 +135,7 @@ struct NormalizedImagePoint: Codable {
 }
 
 // Coordinates use the displayed image's top-left corner as (0, 0).
-struct NormalizedImageRegion: Codable {
+nonisolated struct NormalizedImageRegion: Codable {
     var x: Double
     var y: Double
     var width: Double

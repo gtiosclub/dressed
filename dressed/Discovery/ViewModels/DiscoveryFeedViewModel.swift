@@ -4,7 +4,9 @@ import Foundation
 enum DiscoveryPostSource {
     static var isDemo: Bool {
         #if DEBUG
-        return !ProcessInfo.processInfo.arguments.contains("-livePosts")
+        let arguments = ProcessInfo.processInfo.arguments
+        return !arguments.contains("-livePosts")
+            && (arguments.contains("-demoPosts") || arguments.contains("-mockSignedIn"))
         #else
         return false
         #endif
@@ -115,5 +117,17 @@ struct DemoPostFunctions: PostFunctions {
                 createdAt: Date(timeIntervalSince1970: 1_792_000_000 - Double(index * 3_600))
             )
         }
+    }
+
+    func fetchPosts(ids: [String]) async throws -> [Post] {
+        let wanted = Set(ids)
+        let recent = try await fetchRecentPosts().filter { wanted.contains($0.id) }
+        let paged = (0..<48).filter { $0 != 2 }.map(InfiniteFeedFixtures.post)
+        return recent + paged.filter { wanted.contains($0.id) }
+    }
+
+    // An unknown ID returns nil, the same as a deleted post in Firestore.
+    func fetchPost(id: String) async throws -> Post? {
+        try await fetchRecentPosts().first { $0.id == id }
     }
 }

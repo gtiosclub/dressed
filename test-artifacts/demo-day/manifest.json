@@ -1,0 +1,17 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "100D8234-E78B-47D8-B247-A587997356A0",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "430E942A-B1B7-4D7F-AFE2-72977C95392E.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Infinite feed reached last fixture page_0_652E061E-A684-4FC4-874F-FEAFA0B7041D.png",
+        "timestamp" : 1795574589.61
+      }
+    ],
+    "testIdentifier" : "InfiniteFeedUITests/testAutomaticPagingPausesOnFailureAndRetries()",
+    "testIdentifierURL" : "test://com.apple.xcode/dressed/dressedUITests/InfiniteFeedUITests/testAutomaticPagingPausesOnFailureAndRetries"
+  }
+]

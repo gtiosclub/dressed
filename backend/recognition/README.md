@@ -1,5 +1,43 @@
 # Garment recognition experiment
 
+## Apple Vision on the Mac (free, local)
+
+`python3 backend/recognition/local_service.py --apple-vision` compiles `apple_vision.swift` with the app's `GarmentPoseRegions.swift` and returns Top, Bottom and Shoes regions (plus Headwear when the classifier sees a hat or scarf) on `127.0.0.1:8765`. Debug simulator builds use it automatically for new imports, because the simulator cannot run the body-pose model. No cloud calls or credentials. Requires Xcode command line access (`DEVELOPER_DIR` may need to point at Xcode.app).
+
+## Clothes parsing (evaluation only)
+
+Garment parsing labels every pixel, so review gets the exact shape of tops, dresses, pants, skirts, shoes, hats, scarves, bags, belts and sunglasses. Without a model, the app uses body regions as before.
+
+**Do not ship or commit the model.** The weights ([mattmdjaga/segformer_b2_clothes](https://huggingface.co/mattmdjaga/segformer_b2_clothes), license "other") derive from NVIDIA SegFormer, whose [license](https://github.com/NVlabs/SegFormer/blob/master/LICENSE) allows research or evaluation use only, and were trained on the ATR dataset, whose repository publishes no license file. Choosing a shippable model is a lead decision.
+
+Convert (about 28 MB, int8; 99.8% or more of pixels matched PyTorch on four test photos):
+
+```sh
+uv venv --python 3.12 /private/tmp/dressed-ml/venv
+uv pip install --python /private/tmp/dressed-ml/venv/bin/python \
+  torch==2.5.1 transformers==4.46.3 coremltools==8.2 'numpy<2' pillow safetensors
+# Download config.json and model.safetensors (revision 584abc1) into /private/tmp/dressed-ml/model.
+/private/tmp/dressed-ml/venv/bin/python backend/recognition/convert_clothes_parser.py \
+  /private/tmp/dressed-ml/model /private/tmp/dressed-ml/ClothesParser.mlpackage
+```
+
+Use it in a Debug simulator build, either with the launch argument `-clothesModelPath /private/tmp/dressed-ml/ClothesParser.mlpackage`, or through the bridge with `local_service.py --apple-vision --clothes-model <path>`. For a local device evaluation, copy the package into `dressed/Camera/Models/` (git-ignored) so Xcode bundles it, and remove it before any release build.
+
+Score it on hand-annotated photos (`evaluate_parser.py --help` shows the manifest). Gate: each of top, dress, pants and skirt found in at least 90% of the photos that show it.
+
+November 27, 2026 run, 34 development photos (30 Livostyle product photos and 4 simulator samples), annotated by one agent before the run; not a consented user-photo set:
+
+| Piece | Found |
+| --- | --- |
+| Dress | 7 / 7 |
+| Top | 15 / 16 |
+| Pants | 15 / 17 (below the gate) |
+| Skirt | 2 / 6 (below the gate; mostly read as dress or top) |
+| Shoes | 13 / 14 |
+| Accessory | 6 / 6 |
+
+Extra pieces not annotated: 6 tops, 3 dresses, 1 skirt, 1 accessory. **The gate does not pass.** Outerwear has no separate label and appears as Top; shorts appear as Pants. One parse took about 1 s on the simulator CPU. iPhone speed and memory are unmeasured.
+
 ## Live development mode
 
 The separate Google Cloud project `dressed-511821` has billing linked and the Vision API enabled. A project-scoped **$5 monthly alert** exists, and the project's Object Localization and Product Search quotas are each one request per minute. These are not dollar caps: Google Vision is not covered by the current enforced spend-cap budget feature. Do not increase quotas or use non-development images without lead review.
@@ -49,6 +87,28 @@ The synthetic response contains a shirt, pants, and a person. Its manual annotat
 
 `product_search.py` is a developer-only adapter for Google Vision Product Search. It turns localized product boxes into **unselected** import candidates and attaches up to three visually similar products from the local, active catalog. It does not save clothing, create outfits, expose an HTTP endpoint, or run from the iOS app. A missing box yields `noDetection` so the app can keep its manual entry path. The response is a proposed handoff shape, not an implemented app contract.
 
+## P18 gap analysis: where pieces get lost and what needs more evidence
+
+The gap analysis runs the object-localization adapter on **hard-case fixtures** (layered outfits, partly hidden garments, cropped photos, difficult lighting) and, for every miss or false alert, attributes the problem to the stage where the piece was lost. It distinguishes a **plain miss** (the provider returned no region, so Dressed must not name it) from a **possible missing piece** (a real visual region was returned but could not be named, so Dressed flags it and asks for another photo or manual entry). A localized piece with the wrong suggested category is reported as a `categoryError` (a false suggestion) rather than a miss.
+
+Run the before/after demo:
+
+```sh
+python3 backend/recognition/gap_analysis.py \
+  --manifest backend/recognition/fixtures/gap-evaluation.json
+```
+
+The demo has two samples. `layered-jacket-shirt` returns a confirmed Jacket plus a collar region labeled only as `Clothing`, so the gap analysis flags a **possible top** underneath and does not name it. `cropped-hard-light` confirms Pants, flags a possible cropped top, and records a fully hidden accessory as a plain `no-box` miss that is **not** flagged. These are synthetic contract checks, not evidence of any provider's accuracy on real photos.
+
+For the iOS review demo, the loopback fixture service attaches an optional `clues` list so the app can show a distinct "Possible Missing Piece" state:
+
+```sh
+python3 backend/recognition/local_service.py \
+  --fixture backend/recognition/fixtures/gap-demo-response.json
+```
+
+With the Debug launch argument `-recognitionGapFixture`, single-photo review surfaces those clues as an orange, non-selectable section beside detected candidates, with **Add Another Photo**, **Enter Manually**, and **Dismiss**. Nothing uncertain is saved automatically; P17 consumes the extra photo once the person provides one.
+
 For a side-by-side fixture run, ingest the catalog as below, then add `--compare-object-localization` and use `fixtures/combined-vision-response.json` as `--response-file`. This prints independent Product Search and Object Localization candidate lists from one saved response. The app does not call this CLI.
 
 ## Run without a cloud account
@@ -73,6 +133,22 @@ The saved response is synthetic. Its two item boxes resolve to the fixture catal
 The evaluation example has three annotated garments and two fixture detections, so it reports one missed shoe. This only checks the scoring code; it says nothing about Google's accuracy on real photos. To evaluate real output, save each API response as JSON and add a sample to a manifest with its `importId`, response path, and manually drawn normalized `boundingBox` plus Dressed `category` for each garment. The evaluator pairs boxes at intersection-over-union ≥ 0.5 and reports localization precision/recall, category accuracy on paired boxes, and per-category misses. Keep private test images and real response JSON outside Git.
 
 The `importId` should be the existing private draft ID. Candidate IDs are deterministic for the same response after sorting boxes, but a changed provider response can change the set or order. A future import coordinator must persist the first response for safe retries and require explicit selection before saving. The similarity score is only a ranking hint. It never proves exact identity, and product URLs must come from a reviewed catalog source.
+
+### Multi-photo evaluation (issue #210 spike)
+
+`evaluate_multiphoto.py` scores grouped multi-photo results against manual annotations. It is method-agnostic: each import in the manifest maps a method name (for example `in-house`, later `joint`) to a predictions file of grouped candidates, each with the per-photo sightings it came from. It reports two modes:
+
+- **One outfit:** found and missed garments, duplicates, wrong groupings (garments seen in two or more photos that were split or merged with another garment), extra candidates and category accuracy. The first-photo baseline is derived from the same output by treating each first-photo sighting as its own piece, which is what a one-photo import would show.
+- **One item:** category and name accuracy for the combined guess, the first photo alone and the best single photo (an oracle across photos).
+
+Sightings pair with annotated boxes in the same photo at IoU ≥ 0.5. Grouping fields on the first-photo baseline are not meaningful, because one photo cannot group. The 5% duplicate and 10% wrong-grouping limits are the proposal's proposed thresholds, pending lead sign-off. Optional `latencyMs`, `visionCalls` and `modelCalls` in a predictions file are summed per method. When replaying saved responses, record the original latency at capture time.
+
+```sh
+python3 backend/recognition/evaluate_multiphoto.py \
+  --manifest backend/recognition/fixtures/multiphoto/manifest.json
+```
+
+The fixtures are synthetic and only check the scoring code. One-item mode in the app currently uses the whole-photo classifier, not the box detector (decision recorded November 6, 2026), so one-item sightings have no boxes. Keep real photos, annotations and responses outside Git.
 
 ## Next integration gates
 

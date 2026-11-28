@@ -3,7 +3,7 @@ import SwiftUI
 /// Main Avatar Studio view where the user tries on clothing pieces and outfits in 360 degrees,
 /// customizes avatar appearance, saves outfits, and captures photos.
 struct AvatarStudioView: View {
-    @Bindable var model: OutfitStudioModel
+    @ObservedObject var model: OutfitStudioModel
     var closet: PrototypeClosetStore?
     let items: [ClothingItem]
     @ObservedObject var outfits: PrototypeOutfitStore
@@ -50,7 +50,7 @@ struct AvatarStudioView: View {
     @State private var outfitSavedAlert = false
     @State private var saveError: String?
     @State private var showingFullScreen = false
-    
+
     var body: some View {
         VStack(spacing: 0) {
             Picker("Mode", selection: $activeTab) {
@@ -129,7 +129,7 @@ struct AvatarStudioView: View {
         .onChange(of: wornSignature) { _, _ in
             syncFits()
         }
-        
+
         .sheet(item: $itemDetailSheet) { sheet in
             if let closet {
                 NavigationStack {
@@ -221,8 +221,7 @@ struct AvatarStudioView: View {
                                             .frame(width: 20, height: 20)
                                         Text(wornItem.name)
                                             .font(.caption.weight(.medium))
-                                        Image(systemName: "xmark.circle.fill")
-                                            .font(.caption2)
+                                        DSIcon("TablerCircleXFilled", size: 12)
                                     }
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 5)
@@ -597,11 +596,11 @@ private struct StudioUndoRedoButtons: View {
     var body: some View {
         HStack(spacing: 10) {
             button(
-                "arrow.uturn.backward", label: "Undo outfit change", id: "studio.undo",
+                "TablerArrowBackUp", label: "Undo outfit change", id: "studio.undo",
                 enabled: canUndo, action: undo
             )
             button(
-                "arrow.uturn.forward", label: "Redo outfit change", id: "studio.redo",
+                "TablerArrowForwardUp", label: "Redo outfit change", id: "studio.redo",
                 enabled: canRedo, action: redo
             )
         }
@@ -611,7 +610,7 @@ private struct StudioUndoRedoButtons: View {
         _ symbol: String, label: String, id: String, enabled: Bool, action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Image(systemName: symbol)
+            DSIcon(symbol, size: 20)
                 .font(.body.weight(.semibold))
                 .frame(width: 40, height: 40)
                 .background(.thinMaterial, in: Circle())
@@ -641,7 +640,7 @@ private struct StudioZoomSlider: View {
 
 private struct StudioTakePicView: View {
     @Environment(\.dismiss) private var dismiss
-    @Bindable var model: OutfitStudioModel
+    @ObservedObject var model: OutfitStudioModel
     let image: (ClothingItem) -> Image
     var uiImage: ((ClothingItem) -> UIImage?)?
 
@@ -666,7 +665,7 @@ private struct StudioTakePicView: View {
                         item: Image(uiImage: snapshot),
                         preview: SharePreview("My 3D Outfit", image: Image(uiImage: snapshot))
                     ) {
-                        Label("Share", systemImage: "square.and.arrow.up")
+                        Label("Share", tabler: "TablerUpload")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
@@ -674,7 +673,7 @@ private struct StudioTakePicView: View {
                     Button {
                         UIImageWriteToSavedPhotosAlbum(snapshot, nil, nil, nil)
                     } label: {
-                        Label("Save Photo", systemImage: "square.and.arrow.down")
+                        Label("Save Photo", tabler: "TablerDownload")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)

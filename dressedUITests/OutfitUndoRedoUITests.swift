@@ -8,12 +8,12 @@ final class OutfitUndoRedoUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-mockSignedIn", "-seedClosetFixture"]
+        app.launchArguments = ["-mockSignedIn", "-skipDemoCloset", "-seedClosetFixture"]
         app.launch()
-        if app.buttons["Later"].waitForExistence(timeout: 2) {
-            app.buttons["Later"].tap()
+        if app.buttons["sharedImport.close"].waitForExistence(timeout: 2) {
+            app.buttons["sharedImport.close"].tap()
         }
-        app.tabBars.buttons["Avatar"].tap()
+        app.buttons["tab.avatar"].tap()
         XCTAssertTrue(app.navigationBars["Avatar Studio"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["studio.undo"].waitForExistence(timeout: 10))
     }

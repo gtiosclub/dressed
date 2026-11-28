@@ -27,7 +27,7 @@ struct CatalogProductRow: View {
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.primary)
                     }
-                    Label("View at \(product.sourceName)", systemImage: "arrow.up.right")
+                    Label("View at \(product.sourceName)", tabler: "TablerArrowUpRight", size: 12)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -69,23 +69,36 @@ struct CatalogProductImage: View {
     let product: CatalogProduct
 
     var body: some View {
-        AsyncImage(url: product.imageURL) { phase in
+        AsyncImage(url: product.displayImageURL, transaction: Transaction(animation: .easeOut(duration: 0.25))) { phase in
             if case .success(let image) = phase {
-                image.resizable().scaledToFill()
+                image.resizable().scaledToFill().transition(.opacity)
             } else {
                 GarmentArtwork(category: product.category)
-                    .padding(10)
+                    .padding(DSSpacing.md)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemGray5))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .background(DSColor.tile)
+        .clipShape(RoundedRectangle(cornerRadius: DSRadius.md, style: .continuous))
         .accessibilityHidden(true)
     }
 }
 
 extension CatalogProduct {
     var formattedPrice: String? {
+        if let retailProduct {
+            let offers = retailProduct.offers.filter { $0.availability == "inStock" }
+            let currencies = Set(offers.compactMap(\.currency))
+            let amounts = offers.compactMap { offer -> Decimal? in
+                guard let amount = offer.amount else { return nil }
+                return Decimal(string: amount, locale: Locale(identifier: "en_US_POSIX"))
+            }
+            if currencies.count == 1, let currency = currencies.first,
+               let low = amounts.min(), let high = amounts.max() {
+                let lower = low.formatted(.currency(code: currency))
+                return low == high ? lower : "\(lower) – \(high.formatted(.currency(code: currency)))"
+            }
+        }
         guard let priceCents, let currency else { return nil }
         return (Double(priceCents) / 100).formatted(.currency(code: currency))
     }

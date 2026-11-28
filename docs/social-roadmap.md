@@ -25,7 +25,9 @@ The October 19 local import/recognition prototype stays private in My Closet. It
 
 **Tickets:** [#60 post card](https://github.com/gtiosclub/dressed/issues/60), [#80 recent posts](https://github.com/gtiosclub/dressed/issues/80), [#125 feed status views](https://github.com/gtiosclub/dressed/issues/125), and [#151 expandable caption](https://github.com/gtiosclub/dressed/issues/151). [Lead #59](https://github.com/gtiosclub/dressed/issues/59) owns publication, public media, and feed wiring.
 
-Later engagement proposals [#214](https://github.com/gtiosclub/dressed/issues/214) and [#215](https://github.com/gtiosclub/dressed/issues/215) compare persistent likes and comments using synthetic data. They do not approve backend records, access rules, or implementation tickets; leads and Neal must settle those decisions first.
+The November 17 user request authorizes persistent comment implementation in the current feed; see [architecture](architecture.md) and [comment contract](../backend/schemas/comments.md). This does not approve student assignments. Comment rules were published to `out-fitted` with user approval on November 17, 2026; real-account persistence verification remains pending.
+
+Earlier engagement proposals [#214](https://github.com/gtiosclub/dressed/issues/214) and [#215](https://github.com/gtiosclub/dressed/issues/215) compare persistent likes and comments using synthetic data. They do not approve backend records, access rules, or implementation tickets; leads and Neal must settle those decisions first.
 
 **Acceptance checks:** Supplied recent posts appear in stable newest-first order; card controls report the intended post ID without opening a detail page; empty and failed requests show different messages; retry calls the supplied action once; private closet paths never appear in public post data.
 
@@ -46,6 +48,8 @@ Later engagement proposals [#214](https://github.com/gtiosclub/dressed/issues/21
 **Inputs and outputs:** The save/unsave functions receive a post ID and derive the owner from the current session. The list function returns saved IDs or a bounded page; the lead joins them with available public posts and clears user-specific state after sign-out. A save never copies a post into the private closet.
 
 **Tickets:** [#61 save post](https://github.com/gtiosclub/dressed/issues/61), [#121 remove saved post](https://github.com/gtiosclub/dressed/issues/121), [#122 fetch saved IDs](https://github.com/gtiosclub/dressed/issues/122), [#124 saved-post grid](https://github.com/gtiosclub/dressed/issues/124), [#149 save toggle](https://github.com/gtiosclub/dressed/issues/149), and [#148 filter saved posts](https://github.com/gtiosclub/dressed/issues/148). [Lead #94](https://github.com/gtiosclub/dressed/issues/94) owns the owner-only Firestore rules before live writes.
+
+**Status:** [#186](https://github.com/gtiosclub/dressed/issues/186) connected the toggle, grid and saved IDs on OOTD with Debug demo data. See [architecture](architecture.md#saved-posts-on-ootd-november-2026). Live saving still waits on #94 and a live `posts` source. Saved Posts and the Friends-card save control were subsequently removed from the active Discovery UI to match the approved Figma design (see `dressed/Common/DesignSystem/README.md`).
 
 **Acceptance checks:** Account A can save, relaunch, and still see the state; a second save creates no duplicate; Account B cannot read or alter A's saved relation; unsaving removes only A's relation; a deleted post gives a removed-content state.
 

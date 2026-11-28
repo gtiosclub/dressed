@@ -13,6 +13,7 @@ These are contract templates, not deployed collections, security rules, services
 | Avatar | users/{uid}/private/avatar | viz | Owner only, later phase |
 | Post | posts/{id} | social | Signed-in community; author publishes |
 | SavedPost | users/{uid}/savedPosts/{postId} | social | Owner only |
+| PostLike | users/{uid}/postLikes/{postId} | social | Owner only; public posts expose only `likeCount` |
 | Follow | users/{uid}/following/{targetUid} | social | Owner write; read audience to be decided |
 | PreferenceEvent | users/{uid}/preferenceEvents/{id} | data | Owner only; later phase |
 | UserPreferences | users/{uid}/private/preferences | data | Owner only; later phase |
@@ -25,7 +26,11 @@ Other proposed persisted records currently include `schemaVersion`; `ClothingIte
 
 Storage paths: private item photos under `users/{uid}/items/{id}/`; published copies under `posts/{uid}/{postId}/`. Notifications must not be arbitrarily created by a recipient pretending another user acted. Challenge submissions require ownership checks. No rules or indexes are deployed by adding these files.
 
-Templates cover the currently named entities, including deferred follows, preferences, avatars and engagement. Optional future features such as comments/likes, AR or body scans still need approved contracts before implementation. No functioning feature or server is implied by a schema file.
+Templates cover the currently named entities, including deferred follows, preferences, avatars and engagement. Persistent comments now have an implemented client and locally tested rules; see [comments](comments.md) for their contract and pending deployment verification. Optional future features such as persistent likes, AR or body scans still need approved contracts before implementation. No functioning feature or server is implied by a schema file.
+
+## Catalog cutouts
+
+A catalog record (`RetailCatalogRecord`) may carry `cutoutImageURL`: the product alone on a transparent background. Hosted records use an `https` URL, which the app shows instead of `imageURL`. Local catalog packs use `cutouts/<id>.png`, resolved only by the pack loader. Older records without the field are unchanged.
 
 ## Validate the JSON contracts locally
 
@@ -41,3 +46,8 @@ The harness checks every top-level example for lossless Codable round-trip and r
 ## Starter templates
 
 Use the [template kit](../../templates/README.md) for copyable schema, repository, view, view-model and ticket starters. Keep placeholders out of compiled targets and fill only the scope of the chosen ticket.
+
+Post photo/item publication now has an implemented client and local emulator-tested
+rules. See [post-publication.md](post-publication.md) for paths, retry/cleanup behavior,
+limits and the deployment boundary; the presence of this code does not mean live
+Storage or rules are configured.

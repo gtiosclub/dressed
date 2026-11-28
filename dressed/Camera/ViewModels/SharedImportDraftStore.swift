@@ -2,7 +2,7 @@ import CryptoKit
 import Foundation
 import UIKit
 
-enum SharedImportDraftError: LocalizedError {
+nonisolated enum SharedImportDraftError: LocalizedError {
     case unavailable
     case invalidDraft
     case noSelection
@@ -18,7 +18,19 @@ enum SharedImportDraftError: LocalizedError {
     }
 }
 
-enum SharedImportDraftStore {
+nonisolated enum SharedImportDraftStore {
+    static func shouldRecognize(_ draft: ImportDraft) -> Bool {
+        draft.status == .processing || draft.status == .received
+            || (draft.status == .review && draft.candidates.isEmpty)
+    }
+
+    static func mergingSuggestions(_ found: [ImportCandidate], into existing: [ImportCandidate]) -> [ImportCandidate] {
+        let previous = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+        let foundIDs = Set(found.map(\.id))
+        // Keep edits/selection and pieces missed by a retry, including all manual pieces.
+        return found.map { previous[$0.id] ?? $0 } + existing.filter { !foundIDs.contains($0.id) }
+    }
+
     static func stableID(importID: String, part: String) -> String {
         let digest = SHA256.hash(data: Data("\(importID):\(part)".utf8))
         let hex = digest.prefix(16).map { String(format: "%02X", $0) }.joined()
@@ -73,7 +85,8 @@ enum SharedImportDraftStore {
         try JSONEncoder().encode(draft).write(to: file, options: .atomic)
     }
 
-    static func imageData(for candidate: ImportCandidate, in source: Data) throws -> Data {
+    static func imageData(for candidate: ImportCandidate, in source: Data,
+                          nativeScale: Bool = true) throws -> Data {
         guard let image = UIImage(data: source) else { throw SharedImportDraftError.unavailable }
         if let outline = candidate.outline {
             guard outline.count >= 3, outline.allSatisfy(\.isValid) else {
@@ -121,7 +134,9 @@ enum SharedImportDraftStore {
             return jpeg
         }
         guard region.isValid else { throw SharedImportDraftError.invalidCrop }
-        let renderer = UIGraphicsImageRenderer(size: image.size)
+        let format = UIGraphicsImageRendererFormat()
+        if nativeScale { format.scale = 1 }
+        let renderer = UIGraphicsImageRenderer(size: image.size, format: format)
         let upright = renderer.image { _ in
             image.draw(in: CGRect(origin: .zero, size: image.size))
         }
@@ -142,27 +157,33 @@ enum SharedImportDraftStore {
 
     static func addAutomaticCutouts(to candidates: [ImportCandidate], imageData: Data) async -> [ImportCandidate] {
         var result = candidates
-        guard let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SharedImageInbox.groupId) else {
-            return result
-        }
-        let directory = root.appendingPathComponent("Cutouts", isDirectory: true)
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         for index in result.indices {
             guard !Task.isCancelled else { break }
             let candidate = result[index]
             guard candidate.outline == nil,
                   candidate.temporaryCutoutPath == nil,
                   let crop = try? Self.imageData(for: candidate, in: imageData),
-                  let png = await AutomaticGarmentCutout.png(from: crop) else { continue }
-            let path = "Cutouts/\(candidate.id).png"
-            do {
-                try png.write(to: root.appendingPathComponent(path), options: .atomic)
-                result[index].temporaryCutoutPath = path
-            } catch {
-                // Keep the rectangular crop if the temporary file cannot be written.
-            }
+                  let png = try? await AutomaticGarmentCutout.png(from: crop, allowsBackgroundFill: false) else { continue }
+            // Keep the rectangular crop if the temporary file cannot be written.
+            result[index].temporaryCutoutPath = writeCutout(png, for: candidate.id)
         }
         return result
+    }
+
+    /// Saves a piece's temporary cutout and returns the draft-relative path, or nil if it cannot be written.
+    static func writeCutout(_ png: Data, for candidateID: String) -> String? {
+        guard UUID(uuidString: candidateID) != nil,
+              let root = FileManager.default.containerURL(
+                forSecurityApplicationGroupIdentifier: SharedImageInbox.groupId) else { return nil }
+        let path = "Cutouts/\(candidateID).png"
+        do {
+            try FileManager.default.createDirectory(at: root.appendingPathComponent("Cutouts", isDirectory: true),
+                                                    withIntermediateDirectories: true)
+            try png.write(to: root.appendingPathComponent(path), options: .atomic)
+            return path
+        } catch {
+            return nil
+        }
     }
 
     static func removeAutomaticCutouts(for candidates: [ImportCandidate]) {

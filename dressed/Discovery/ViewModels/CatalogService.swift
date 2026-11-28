@@ -9,12 +9,14 @@ enum DiscoveryCatalogSource {
     static var current: any CatalogSearching {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
-        if !arguments.contains("-liveCatalog") && !arguments.contains("-showCatalog") &&
-            !arguments.contains("-catalogAPIURL") {
+        if arguments.contains("-demoCatalog") || arguments.contains("-mockSignedIn") || arguments.contains("-mockSession") {
             return DemoCatalogService()
         }
         #endif
-        return HTTPCatalogService(baseURL: CatalogConfiguration.baseURL)
+        if let baseURL = CatalogConfiguration.baseURL {
+            return HTTPCatalogService(baseURL: baseURL)
+        }
+        return FirebaseCatalogService()
     }
 
     static let demoStyles: [String: Set<String>] = [

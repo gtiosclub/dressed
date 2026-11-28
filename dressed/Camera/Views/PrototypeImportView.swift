@@ -5,117 +5,73 @@ import UIKit
 struct PrototypeImportView: View {
     @ObservedObject var closet: PrototypeClosetStore
     let ownerId: String
+    /// Leaves the camera and returns to the previous tab.
+    let onClose: () -> Void
+    /// Set while a shared item is deferred; shows a Review Share button over the camera.
+    var onReviewShare: (() -> Void)?
+    /// Presents the piece review for a queued camera capture or single upload.
+    /// Without it, the older single-photo form below is used.
+    var onReviewImage: ((ReviewImage) -> Void)?
+
     @State private var selectedPhoto: PhotosPickerItem?
+    @State private var photoLoadingTask: Task<Void, Never>?
     @State private var review: ReviewImage?
-    @State private var showsCamera = false
-    @State private var capturedImage: UIImage?
+    @State private var showsUploadChoices = false
+    @State private var showsPhotoPicker = false
+    @State private var showsLinkPrompt = false
+    @State private var isLoadingSelectedPhoto = false
     @State private var importError: String?
     @State private var productURLText = ""
     @State private var productLink: ReviewProductLink?
-    @FocusState private var productURLFocused: Bool
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-            Image(systemName: "camera.viewfinder")
-                .font(.system(size: 64))
-                .foregroundStyle(.tint)
-            Text("Add a piece")
-                .font(.title2.bold())
-            Text("Choose or capture a clothing photo. Review the suggested details before it enters your closet.")
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
-
-            PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                Label("Choose from Photos", systemImage: "photo.on.rectangle")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-
-            Button {
-                if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                    showsCamera = true
-                } else {
-                    importError = "Camera is unavailable on this device. Choose a photo instead."
-                }
-            } label: {
-                Label("Take a Photo", systemImage: "camera")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-
-            Text("You can also share an image to Dressed from another app, then open Dressed to review it.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Save a product link").font(.headline)
-                TextField("https://store.example/product", text: $productURLText)
-                    .textContentType(.URL)
-                    .keyboardType(.URL)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .textFieldStyle(.roundedBorder)
-                    .accessibilityIdentifier("productURLField")
-                    .focused($productURLFocused)
-                    .submitLabel(.done)
-                    .onSubmit { productURLFocused = false }
-                Button("Review Product Link") {
-                    productURLFocused = false
-                    guard let url = ProductLinkValidation.normalize(productURLText) else {
-                        importError = ProductLinkError.invalidURL.localizedDescription
-                        return
-                    }
-                    productLink = ReviewProductLink(id: UUID().uuidString, url: url, isShared: false)
-                }
-                .buttonStyle(.bordered)
-                Text("Product links go to Wishlist after review; they do not become owned closet pieces.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(24)
-            .frame(maxWidth: 480)
-            .frame(maxWidth: .infinity)
+        CameraCaptureView(
+            onClose: onClose,
+            onUpload: { showsUploadChoices = true },
+            onPhoto: { data in
+                startReview(ReviewImage(id: UUID().uuidString, data: data, source: "Camera", isShared: false))
+            },
+            onReviewShare: onReviewShare
+        )
+        .overlay {
+            if isLoadingSelectedPhoto { ProgressView("Loading photo…").tint(.white).foregroundStyle(.white) }
         }
-        .navigationTitle("Camera")
+        .toolbar(.hidden, for: .navigationBar)
+        .confirmationDialog("Upload", isPresented: $showsUploadChoices) {
+            Button("Photo") { showsPhotoPicker = true }
+            Button("Product Link") { showsLinkPrompt = true }
+            Button("Cancel", role: .cancel) {}
+        }
+        .photosPicker(isPresented: $showsPhotoPicker, selection: $selectedPhoto, matching: .images)
+        .alert("Add a product link", isPresented: $showsLinkPrompt) {
+            TextField("https://store.example/product", text: $productURLText)
+                .textContentType(.URL)
+                .keyboardType(.URL)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .accessibilityIdentifier("productURLField")
+            Button("Review Product Link") {
+                guard let url = ProductLinkValidation.normalize(productURLText) else {
+                    importError = ProductLinkError.invalidURL.localizedDescription
+                    return
+                }
+                productLink = ReviewProductLink(id: UUID().uuidString, url: url, isShared: false)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Product links go to Wishlist after review; they do not become owned closet pieces.")
+        }
         .onChange(of: selectedPhoto) { _, photo in
-            guard let photo else { return }
-            Task {
-                defer { selectedPhoto = nil }
-                do {
-                    guard let data = try await photo.loadTransferable(type: Data.self),
-                          UIImage(data: data) != nil else {
-                        throw PrototypeImportError.invalidImage
-                    }
-                    review = ReviewImage(id: UUID().uuidString, data: data, source: "Photo Library", isShared: false)
-                } catch {
-                    importError = error.localizedDescription
-                }
-            }
-        }
-        .sheet(isPresented: $showsCamera, onDismiss: {
-            guard let capturedImage else { return }
-            self.capturedImage = nil
-            guard let data = capturedImage.jpegData(compressionQuality: 0.85) else {
-                importError = PrototypeImportError.invalidImage.localizedDescription
-                return
-            }
-            review = ReviewImage(id: UUID().uuidString, data: data, source: "Camera", isShared: false)
-        }) {
-            PrototypeCameraPicker { image in
-                capturedImage = image
-                showsCamera = false
-            }
+            photoLoadingTask?.cancel()
+            photoLoadingTask = Task { await load(photo) }
         }
         .sheet(item: $review) { image in
             ImportReviewView(
                 image: image,
                 closet: closet,
                 onCancel: { review = nil },
-                onSaved: { review = nil }
+                onSaved: { review = nil },
+                onAnotherPhoto: { newImage in review = newImage }
             )
         }
         .sheet(item: $productLink) { link in
@@ -135,6 +91,38 @@ struct PrototypeImportView: View {
             Text(importError ?? "Please try again.")
         }
     }
+
+    /// Camera captures and single uploads use the same piece review as shared images.
+    private func startReview(_ image: ReviewImage) {
+        guard let onReviewImage else { review = image; return }
+        do {
+            onReviewImage(try SharedImageInbox.enqueue(imageData: image.data, ownerId: ownerId, source: image.source))
+        } catch {
+            importError = error.localizedDescription
+        }
+    }
+
+    /// Loads the picked photo, then goes straight to review.
+    private func load(_ photo: PhotosPickerItem?) async {
+        guard let photo else {
+            isLoadingSelectedPhoto = false
+            return
+        }
+
+        isLoadingSelectedPhoto = true
+        let data = try? await photo.loadTransferable(type: Data.self)
+        guard !Task.isCancelled else { return }
+        isLoadingSelectedPhoto = false
+        // Cleared so the same photo can be picked again.
+        selectedPhoto = nil
+
+        guard let data, UIImage(data: data) != nil else {
+            importError = "The selected photo could not be loaded. Choose it again."
+            return
+        }
+        startReview(ReviewImage(id: ImportPhotoID.make(for: data), data: data,
+                                source: "Photo Library", isShared: false))
+    }
 }
 
 struct ImportReviewView: View {
@@ -142,10 +130,12 @@ struct ImportReviewView: View {
     @ObservedObject var closet: PrototypeClosetStore
     let onCancel: () -> Void
     let onSaved: () -> Void
+    // P18 handoff to P17: when the person chooses another photo for a possible
+    // missing piece, hand the new image back so review starts again on it.
+    var onAnotherPhoto: ((ReviewImage) -> Void)? = nil
 
     private enum RecognitionState: Equatable {
         case analyzing
-        case suggested
         case noMatch
         case failed
         case manual
@@ -167,10 +157,10 @@ struct ImportReviewView: View {
     @State private var hasEditedName = false
     @State private var hasEditedCategory = false
     @State private var recognitionState: RecognitionState = .analyzing
-    @State private var recognitionAttempt = 0
     @State private var isSaving = false
     @State private var saveError: String?
     @State private var candidates: [ImportCandidate] = []
+    @State private var possibleMissing: [PossibleMissingPiece] = []
     @State private var isDetectingPieces = false
     @State private var detectionMessage: String?
     @State private var editingCandidateID: String?
@@ -184,6 +174,8 @@ struct ImportReviewView: View {
         }
         return GarmentPreset.allCases.filter { $0.filterCategory == activeFilter }
     }
+    @State private var detectionID = UUID()
+    @State private var additionalPhoto: PhotosPickerItem?
 
     var body: some View {
         NavigationStack {
@@ -227,7 +219,7 @@ struct ImportReviewView: View {
                             Spacer()
 
                             if stylized.graphicEmblem != nil {
-                                Label("Design Extracted", systemImage: "sparkles")
+                                Label("Design Extracted", tabler: "TablerSparkles", size: 11)
                                     .font(.caption2.bold())
                                     .foregroundStyle(.purple)
                             }
@@ -256,6 +248,7 @@ struct ImportReviewView: View {
                     Section {
                         Button("Add Missed Piece", action: addManualPiece)
                         Button("Enter One Piece Manually Instead") {
+                            SharedImportDraftStore.removeAutomaticCutouts(for: candidates)
                             candidates = []
                             recognitionState = .manual
                         }
@@ -289,6 +282,41 @@ struct ImportReviewView: View {
                     Section {
                         Button(isSaving ? "Saving…" : "Save Selected Pieces", action: saveSelectedPieces)
                             .disabled(isSaving || isDetectingPieces || !candidates.contains(where: \.selected))
+                    }
+                }
+
+                if !possibleMissing.isEmpty {
+                    Section {
+                        ForEach(possibleMissing) { hint in
+                            VStack(alignment: .leading, spacing: 10) {
+                                Label("Possible missing piece", tabler: "TablerHelpCircle")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.orange)
+                                Text(hint.reason)
+                                    .foregroundStyle(.secondary)
+                                PhotosPicker(selection: $additionalPhoto, matching: .images) {
+                                    Label("Add Another Photo", tabler: "TablerLibraryPhoto")
+                                        .font(.footnote)
+                                }
+                                HStack {
+                                    Button("Enter Manually") {
+                                        addManualPiece()
+                                        dismissPossiblePiece(hint.id)
+                                    }
+                                    Spacer()
+                                    Button("Dismiss", role: .destructive) {
+                                        dismissPossiblePiece(hint.id)
+                                    }
+                                }
+                                .font(.footnote)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        Text("A possible piece is not a detected one and is never saved automatically. Choose another photo or enter it by hand to confirm it.")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    } header: {
+                        Text("Possible Missing Piece")
                     }
                 }
 
@@ -326,8 +354,7 @@ struct ImportReviewView: View {
                                     selectPreset(preset)
                                 } label: {
                                     VStack(spacing: 6) {
-                                        Image(systemName: preset.icon)
-                                            .font(.system(size: 22))
+                                        DSIcon(preset.icon, size: 22)
                                             .foregroundStyle(selectedPreset == preset ? Color.white : Color.accentColor)
                                             .frame(height: 26)
 
@@ -354,7 +381,7 @@ struct ImportReviewView: View {
 
                     // Preset description
                     HStack(spacing: 6) {
-                        Image(systemName: selectedPreset.coversShoulders ? "shield.fill" : "sparkles")
+                        DSIcon(selectedPreset.coversShoulders ? "TablerShieldFilled" : "TablerSparkles", size: 16)
                             .foregroundStyle(selectedPreset.coversShoulders ? .blue : .purple)
                         Text(selectedPreset.coverageDescription)
                             .font(.caption)
@@ -376,12 +403,10 @@ struct ImportReviewView: View {
                             Text("Filling preset with details from photo…")
                         }
                         Button("Enter details manually") {
+                            detectionTask?.cancel()
+                            isDetectingPieces = false
                             recognitionState = .manual
-                            recognitionAttempt += 1
                         }
-                    case .suggested:
-                        Label("Suggested preset: \(selectedPreset.rawValue)", systemImage: "sparkles")
-                            .foregroundStyle(.secondary)
                     case .noMatch:
                         Text("Choose a preset above and name your piece.")
                             .foregroundStyle(.secondary)
@@ -397,7 +422,7 @@ struct ImportReviewView: View {
 
                     TextField("Name (for example, Blue \(selectedPreset.rawValue))", text: Binding(
                         get: { name },
-                        set: { name = $0; hasEditedName = true }
+                        set: { name = $0 }
                     ))
 
                     Picker("Category", selection: Binding(
@@ -464,36 +489,21 @@ struct ImportReviewView: View {
                     }
                 }
             }
-            .task(id: recognitionAttempt) {
-                guard recognitionState == .analyzing else { return }
-                async let suggestionTask = PrototypeGarmentRecognition.analyze(image.data)
-                async let stylizerTask = GarmentStylizer.convert(image.data)
-
-                do {
-                    let (suggestion, stylized) = try await (suggestionTask, stylizerTask)
-                    guard !Task.isCancelled, recognitionState == .analyzing else { return }
-                    self.stylizedResult = stylized
-                    self.selectedPreset = stylized.detectedPreset
-                    self.category = stylized.detectedPreset.category
-
-                    if let suggestion {
-                        if !hasEditedName { name = suggestion.name }
-                        if !hasEditedCategory { category = suggestion.category }
-                        recognitionState = .suggested
-                    } else {
-                        if !hasEditedName { name = stylized.detectedPreset.rawValue }
-                        recognitionState = .noMatch
-                    }
-                } catch is CancellationError {
-                } catch {
-                    guard !Task.isCancelled, recognitionState == .analyzing else { return }
-                    recognitionState = .failed
-                }
-            }
             .task {
                 guard !didStartPieceDetection else { return }
                 didStartPieceDetection = true
                 detectPieces()
+            }
+            .onChange(of: additionalPhoto) { _, item in
+                guard let item else { return }
+                Task {
+                    defer { additionalPhoto = nil }
+                    guard let data = try? await item.loadTransferable(type: Data.self),
+                          UIImage(data: data) != nil else { return }
+                    detectionTask?.cancel()
+                    onAnotherPhoto?(ReviewImage(id: UUID().uuidString, data: data,
+                                                source: "Photo Library", isShared: false))
+                }
             }
             .onDisappear {
                 detectionTask?.cancel()
@@ -529,7 +539,7 @@ struct ImportReviewView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 14))
 
                 HStack(spacing: 4) {
-                    Image(systemName: "arrow.triangle.2.circlepath")
+                    DSIcon("TablerRefresh", size: 12)
                     Text("Drag to rotate 360°")
                 }
                 .font(.caption2.weight(.medium))
@@ -593,31 +603,40 @@ struct ImportReviewView: View {
 
     private func retryRecognition() {
         recognitionState = .analyzing
-        recognitionAttempt += 1
+        detectPieces()
     }
 
     private func detectPieces() {
         guard !isDetectingPieces else { return }
         isDetectingPieces = true
         detectionMessage = nil
+        let attempt = UUID()
+        detectionID = attempt
         detectionTask = Task {
-            defer { isDetectingPieces = false }
+            defer { if detectionID == attempt { isDetectingPieces = false } }
             do {
-                let found = try await AutomaticImportSuggestions.detect(imageData: image.data, importID: image.id)
+                let result = try await AutomaticImportSuggestions.review(imageData: image.data, importID: image.id)
                 guard !Task.isCancelled else {
-                    SharedImportDraftStore.removeAutomaticCutouts(for: found)
+                    SharedImportDraftStore.removeAutomaticCutouts(for: result.candidates)
                     return
                 }
-                let previous = Dictionary(uniqueKeysWithValues: candidates.map { ($0.id, $0) })
-                let manual = candidates.filter { $0.suggestionSource == nil }
-                candidates = found.map { previous[$0.id] ?? $0 } + manual
-                if found.isEmpty {
+                possibleMissing = result.possibleMissing
+                candidates = SharedImportDraftStore.mergingSuggestions(result.candidates, into: candidates)
+                recognitionState = result.candidates.isEmpty ? .noMatch : .manual
+                if result.candidates.isEmpty {
                     detectionMessage = "No separate clothing pieces found. You can enter one piece manually below."
                 }
+            } catch is CancellationError {
+                return
             } catch {
+                recognitionState = .failed
                 detectionMessage = "Could not find pieces automatically. You can enter one manually below."
             }
         }
+    }
+
+    private func dismissPossiblePiece(_ id: String) {
+        possibleMissing.removeAll { $0.id == id }
     }
 
     private func addManualPiece() {
@@ -670,36 +689,5 @@ struct ImportReviewView: View {
             saveError = error.localizedDescription
         }
         isSaving = false
-    }
-}
-
-private struct PrototypeCameraPicker: UIViewControllerRepresentable {
-    let onResult: (UIImage?) -> Void
-
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.sourceType = .camera
-        picker.delegate = context.coordinator
-        return picker
-    }
-
-    func updateUIViewController(_ controller: UIImagePickerController, context: Context) {}
-
-    func makeCoordinator() -> Coordinator { Coordinator(onResult: onResult) }
-
-    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let onResult: (UIImage?) -> Void
-
-        init(onResult: @escaping (UIImage?) -> Void) {
-            self.onResult = onResult
-        }
-
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            onResult(info[.originalImage] as? UIImage)
-        }
-
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            onResult(nil)
-        }
     }
 }

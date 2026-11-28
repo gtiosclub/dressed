@@ -1,0 +1,28 @@
+{
+  "description": "Synthetic contract fixture. These are not real retailer products or coverage evidence.",
+  "searches": {
+    "fixture baggy jeans": {
+      "shopping_results": [
+        {
+          "product_id": "fixture-jeans-1",
+          "title": "Fixture baggy jeans",
+          "source": "Fixture store",
+          "price": "$50.00",
+          "thumbnail": "https://images.example/jeans.jpg",
+          "product_link": "https://www.google.com/shopping/product/fixture-jeans-1",
+          "immersive_product_page_token": "fixture-jeans-token"
+        }
+      ]
+    },
+    "fixture empty search": {"shopping_results": []}
+  },
+  "details": {
+    "fixture-jeans-token": {
+      "product_results": {
+        "stores": [
+          {"name": "Fixture store", "title": "Fixture baggy jeans", "link": "https://shop.example/jeans", "price": "$52.00"}
+        ]
+      }
+    }
+  }
+}

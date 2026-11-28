@@ -8,6 +8,8 @@ protocol SessionService {
     func signIn(email: String, password: String) async throws
     func createAccount(email: String, password: String) async throws
     func signOut() throws
+    /// The signed-in account's name for the user's own profile, or nil when there is none.
+    var accountName: String? { get }
 }
 
 @MainActor
@@ -31,6 +33,11 @@ final class FirebaseSessionService: SessionService {
 
     func signOut() throws {
         try Auth.auth().signOut()
+    }
+
+    var accountName: String? {
+        let user = Auth.auth().currentUser
+        return profileDisplayName(displayName: user?.displayName, email: user?.email)
     }
 }
 
@@ -66,6 +73,9 @@ final class SessionViewModel: ObservableObject {
         state = .signedOut
     }
 
+    /// Shown only to the signed-in user; never published with posts.
+    var accountName: String? { service.accountName }
+
     deinit {
         stopObserving?()
     }
@@ -99,4 +109,6 @@ final class PreviewSessionService: SessionService {
         userId = nil
         onChange?(nil)
     }
+
+    var accountName: String? { userId == nil ? nil : "Preview" }
 }

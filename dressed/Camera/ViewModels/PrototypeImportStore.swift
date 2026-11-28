@@ -2,14 +2,14 @@ import Combine
 import Foundation
 import UIKit
 
-struct ReviewImage: Identifiable {
+nonisolated struct ReviewImage: Identifiable {
     let id: String
     let data: Data
     let source: String
     let isShared: Bool
 }
 
-enum PrototypeImportError: LocalizedError {
+nonisolated enum PrototypeImportError: LocalizedError {
     case unavailableStorage
     case invalidImage
     case emptyName
@@ -154,7 +154,9 @@ final class PrototypeClosetStore: ObservableObject {
             throw error
         }
         items = updated
+        #if !RECOGNITION_LAB
         GarmentPresetStore.remove(for: id)
+        #endif
         if hadPhoto {
             do {
                 try fileManager.removeItem(at: backupURL)
@@ -188,7 +190,7 @@ struct SharedImageEnvelope: Codable {
 }
 
 enum SharedImageInbox {
-    static let groupId = "group.gtiosclub.dressed"
+    nonisolated static let groupId = "group.com.jdayal.dresseddev"
     private static let ownerKey = "activeOwnerId"
     private static let draftLifetime: TimeInterval = 24 * 60 * 60
 
@@ -242,6 +244,35 @@ enum SharedImageInbox {
         return .none
     }
 
+    /// Queues a camera capture or single uploaded photo so it goes through the same
+    /// piece review, Later and Discard handling as an image shared from another app.
+    static func enqueue(imageData: Data, ownerId: String, source: String) throws -> ReviewImage {
+        guard !ownerId.isEmpty, let image = UIImage(data: imageData),
+              let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId) else {
+            throw PrototypeImportError.invalidImage
+        }
+        // Normalize orientation and format: the review stores JPEG and crops in display coordinates.
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let upright = UIGraphicsImageRenderer(size: image.size, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: image.size))
+        }
+        guard let jpeg = upright.jpegData(compressionQuality: 0.9) else { throw PrototypeImportError.invalidImage }
+        let inbox = root.appendingPathComponent("Inbox", isDirectory: true)
+        try FileManager.default.createDirectory(at: inbox, withIntermediateDirectories: true)
+        let id = UUID().uuidString
+        let imageURL = inbox.appendingPathComponent("\(id).jpg")
+        try jpeg.write(to: imageURL, options: .atomic)
+        do {
+            try JSONEncoder().encode(SharedImageEnvelope(id: id, ownerId: ownerId, createdAt: Date()))
+                .write(to: inbox.appendingPathComponent("\(id).json"), options: .atomic)
+        } catch {
+            try? FileManager.default.removeItem(at: imageURL)
+            throw error
+        }
+        return ReviewImage(id: id, data: jpeg, source: source, isShared: true)
+    }
+
     static func remove(id: String) {
         guard UUID(uuidString: id) != nil else { return }
         guard let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId) else {
@@ -263,7 +294,8 @@ enum SharedImageInbox {
     }
 
     #if DEBUG
-    static func seedFixture(id: String, ownerId: String, withCandidates: Bool) throws {
+    static func seedFixture(id: String, ownerId: String, withCandidates: Bool,
+                            interruptedManual: Bool = false) throws {
         guard UUID(uuidString: id) != nil,
               let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId) else {
             throw SharedImportDraftError.unavailable
@@ -292,13 +324,13 @@ enum SharedImageInbox {
         try data.write(to: inbox.appendingPathComponent("\(id).jpg"), options: .atomic)
         try JSONEncoder().encode(SharedImageEnvelope(id: id, ownerId: ownerId, createdAt: Date()))
             .write(to: inbox.appendingPathComponent("\(id).json"), options: .atomic)
-        if withCandidates {
+        do {
             var draft = try SharedImportDraftStore.loadOrCreate(
                 image: ReviewImage(id: id, data: data, source: "Shared image", isShared: true),
                 ownerId: ownerId
             )
             draft.status = .review
-            draft.candidates = [
+            draft.candidates = withCandidates ? [
                 ImportCandidate(id: SharedImportDraftStore.stableID(importID: id, part: "upper"),
                                 name: "Top", category: .tops, destination: .closet,
                                 temporaryCutoutPath: nil,
@@ -314,9 +346,72 @@ enum SharedImageInbox {
                                 temporaryCutoutPath: nil,
                                 region: NormalizedImageRegion(x: 0.3, y: 0.01, width: 0.4, height: 0.12),
                                 suggestionSource: "Fixture region", selected: false, tags: [], suggestedTags: [])
-            ]
+            ] : []
+            if interruptedManual {
+                draft.status = .processing
+                draft.candidates = [ImportCandidate(
+                    id: SharedImportDraftStore.stableID(importID: id, part: "manual-0"),
+                    name: "Manual scarf", category: .accessories, destination: .closet,
+                    temporaryCutoutPath: nil,
+                    region: NormalizedImageRegion(x: 0.2, y: 0.2, width: 0.6, height: 0.6),
+                    suggestionSource: nil, selected: true, tags: ["User tag"], suggestedTags: [])]
+                draft.reviewedCandidateIDs = draft.candidates.map(\.id)
+                draft.hasFinishedPieceReview = true
+            }
             try SharedImportDraftStore.save(draft)
         }
+    }
+
+    /// `-importDemo`: queues a generated flat-lay photo (sweater, necklace, jeans cutouts from
+    /// `PreviewAssets`) with three detected pieces, so the share review can be walked through
+    /// without the Share Extension or on-device recognition. Reseeded on every launch.
+    static func seedDemoPhoto(ownerId: String) throws {
+        let id = "00000000-0000-4000-8000-00000000DE70"
+        remove(id: id)
+        guard let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId) else {
+            throw SharedImportDraftError.unavailable
+        }
+        let inbox = root.appendingPathComponent("Inbox", isDirectory: true)
+        try FileManager.default.createDirectory(at: inbox, withIntermediateDirectories: true)
+
+        let size = CGSize(width: 900, height: 1200)
+        let pieces: [(asset: String, name: String, category: ClothingCategory, rect: CGRect)] = [
+            ("PreviewSweaterBrown", "Brown Wool Sweater", .tops, CGRect(x: 90, y: 90, width: 470, height: 440)),
+            ("PreviewNecklace", "Silver Pendant Necklace", .accessories, CGRect(x: 610, y: 110, width: 200, height: 400)),
+            ("PreviewJeans", "Wide-Leg Jeans", .pants, CGRect(x: 190, y: 620, width: 520, height: 500)),
+        ]
+        let photo = UIGraphicsImageRenderer(size: size).image { context in
+            let colors = [UIColor(white: 0.93, alpha: 1).cgColor, UIColor(white: 0.82, alpha: 1).cgColor]
+            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors as CFArray, locations: [0, 1]) {
+                context.cgContext.drawLinearGradient(gradient, start: .zero, end: CGPoint(x: 0, y: size.height), options: [])
+            }
+            for piece in pieces {
+                guard let asset = UIImage(named: piece.asset) else { continue }
+                let scale = min(piece.rect.width / asset.size.width, piece.rect.height / asset.size.height)
+                let drawn = CGSize(width: asset.size.width * scale, height: asset.size.height * scale)
+                asset.draw(in: CGRect(x: piece.rect.midX - drawn.width / 2, y: piece.rect.midY - drawn.height / 2,
+                                      width: drawn.width, height: drawn.height))
+            }
+        }
+        guard let data = photo.jpegData(compressionQuality: 0.9) else { throw SharedImportDraftError.unavailable }
+        try data.write(to: inbox.appendingPathComponent("\(id).jpg"), options: .atomic)
+        try JSONEncoder().encode(SharedImageEnvelope(id: id, ownerId: ownerId, createdAt: Date()))
+            .write(to: inbox.appendingPathComponent("\(id).json"), options: .atomic)
+
+        var draft = try SharedImportDraftStore.loadOrCreate(
+            image: ReviewImage(id: id, data: data, source: "Shared image", isShared: true), ownerId: ownerId)
+        draft.status = .review
+        draft.candidates = pieces.enumerated().map { index, piece in
+            // Regions hug each cutout with a little padding, in the photo's normalized coordinates.
+            let box = piece.rect.insetBy(dx: -10, dy: -10)
+            return ImportCandidate(
+                id: SharedImportDraftStore.stableID(importID: id, part: "demo-\(index)"),
+                name: piece.name, category: piece.category, destination: .closet, temporaryCutoutPath: nil,
+                region: NormalizedImageRegion(x: box.minX / size.width, y: box.minY / size.height,
+                                              width: box.width / size.width, height: box.height / size.height),
+                suggestionSource: "Demo photo", selected: false, tags: [], suggestedTags: [])
+        }
+        try SharedImportDraftStore.save(draft)
     }
     #endif
 }

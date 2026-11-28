@@ -55,7 +55,7 @@ private struct ClothingItemCardPreview: View {
     var body: some View {
         VStack(spacing: 16) {
             ClothingItemCard(
-                image: Image(systemName: "photo"),
+                image: Image("TablerPhoto"),
                 name: "Blue shirt",
                 category: .tops,
                 onTap: {

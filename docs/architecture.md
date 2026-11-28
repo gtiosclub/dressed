@@ -1,6 +1,295 @@
+## Post photo and outfit publication (November 19, 2026)
+
+The current New post composer now requires an explicitly selected Photos image and
+1–10 tagged pieces from the signed-in owner's local closet, or a saved outfit.
+Choosing an outfit copies its name and item selection; missing pieces block that
+selection rather than silently producing a partial outfit. The ten-item publishing
+limit keeps every snapshot item within Firestore's rule-evaluation budget; private
+outfits retain their existing limit. Audio selection was a placeholder and is no
+longer shown. The caption limit is 500 characters.
+
+`PostComposerModel` coordinates selection and loading through `PostCompositionSource`.
+On Share it freezes a `PostPublicationDraft`, including an ID, caption, photo and
+item metadata/bytes. `FirebasePostPublisher` uses injected media/document stores,
+checks the Firebase identity, and uploads separate JPEG copies before creating
+`posts/{id}` in an idempotent transaction. See [publication contract](../backend/schemas/post-publication.md).
+The main image is at `posts/{uid}/{id}/composite.jpg`; individual copies are at
+`posts/{uid}/{id}/items/{sourceItemId}.jpg`. Images are rendered afresh to strip
+source metadata, bound dimensions and flatten item transparency onto white. No
+private image paths are written to the public snapshot. The existing `Post`,
+`PublishedOutfitSnapshot`, and six-field `ClothingItem` contracts are reused.
+
+Only a successful commit inserts the live post into Friends. Refresh merges avoid
+showing the same post twice. Both feed layouts load published main images, and
+Friends cards and For You previews offer Outfit details with the saved names,
+categories and separately published item images. Debug demo publication is local
+and uses an in-memory image cache, not Firebase.
+
+The same frozen draft is retried after failure, with editing disabled to avoid
+changing an ambiguous request. Failed uploads or rejected commits trigger cleanup;
+a lost commit acknowledgement is resolved with a server read. If the result is
+still unknown, media is retained and Retry Share checks the same ID before writing.
+Pending uploads are owner-only; published copies become immutable and readable to
+signed-in users. Removing a private original does not remove a published copy.
+Post deletion remains unavailable. Abandoned uploads after process termination
+need owner/administrator maintenance; there is no deployed scheduled cleanup job.
+
+The updated Firestore and Storage rules are local changes, tested against synthetic
+users in the emulators. They have **not been deployed by this change**. Live Storage
+availability and billing must be confirmed before deployment; prior setup notes
+recorded Storage as unavailable. No billing, bucket, cloud service, or existing user
+data was changed. Native simulator and test results are recorded with this change;
+they do not establish successful publication to the live project.
+
+## Persistent comments implementation (November 17, 2026)
+
+The current feed now opens `PostCommentsSheet` from Friends cards and For You
+previews. `CommentsViewModel` coordinates loading, empty, submitting, retry,
+refresh, cancellation and removed-post states through an injected `CommentService`.
+`FirebaseCommentService` reads/writes `posts/{postId}/comments/{commentId}` using
+the app's configured Firebase project. Normal Debug and Release launches use live
+posts; `-demoPosts` and fixture-backed mock-session tests use isolated demo data
+(unless `-livePosts` is supplied). Demo comments are labeled and never written to
+Firestore. The older `OOTDFeedView` still contains its historical local prototype.
+
+The user's request authorizes this implementation, superseding the proposal-only
+scope of #215 for this work. Assumptions for this bounded implementation: signed-in
+community reads; authenticated author creation; plain text of 1–1,000 characters;
+newest-first latest 50 with document ID tie-breaking; pull-to-refresh. Display is
+“You” or “Member” until a trusted public profile contract exists; no email or
+client-supplied display identity is published. Editing, deletion, reporting and
+moderation remain TBD before public launch. No aggregate comment count is claimed.
+
+Comment IDs are retained across a failed submission. A transaction checks the
+parent post and existing comment before creating a document with a server timestamp.
+A repeated request with the same author/text is a no-op. The UI clears the draft
+only after write acknowledgement; failure retains it and prevents editing until
+retry or dismissal. A subsequent refresh failure does not resubmit the saved text.
+Server reads avoid presenting a cached write as verified database persistence.
+Rules deny impersonation, extra fields, whitespace-only/oversized text, changes,
+deletes, unbounded queries and access after the parent post is removed. Parent
+post creation remains closed. Orphan cleanup remains part of the publication/
+deletion contract; hiding orphan comments does not delete them.
+
+Verification: all 13 Firebase emulator cases passed, including synthetic
+cross-user comment persistence and denial checks. The standalone view-model checks
+passed, and the five new Swift files pass focused SwiftLint. Full-repository lint
+still reports pre-existing violations. A signed iPhone 17 Pro iOS 26.0 build passed.
+The first focused UI run passed feed switching but found inherited accessibility
+identifiers on the new button; the card now explicitly contains its child elements.
+After the interrupted run, both focused fixture-backed UI checks passed, including
+comment submission and reopening from both feed layouts. No hot reload is claimed for this structural change.
+
+Before pushing to main, PR #257 arrived with newer saved-post integration and
+profile work. Those commits are preserved, including the bookmark row below the
+Discovery header and both post-fetch contracts. The four affected UI cases passed
+across the latest merged-tree run and a focused retry rerun: comment submit/reopen,
+feed switching, saved-post relaunch/unsave, and failed-save retry. The retry test now
+waits for enabled state and scrolls its footer fully into view before tapping. The
+earlier merged-tree checks also covered removed saved posts, pieces, read failures
+and failed refresh. All 11 saved-post state scenarios passed. Screenshots of the
+comment sheet and feed were inspected; these UI checks use synthetic demo data.
+
+The emulator-tested rules were published to `out-fitted` with user approval on
+November 17, 2026. The console showed the new active version (8:00 PM), no
+unpublished changes, and content matching the tested file. A real-account
+save/relaunch/cross-account check is **not yet performed**. Existing legacy
+uppercase collections are untouched. See `backend/schemas/comments.md` for mapping
+and test commands. The new sheet reuses design-system tokens and buttons; no live
+Figma design-context tool was available for an independent frame comparison.
+
 # Architecture and shared contracts
 
+## Data branch retirement integration (November 17, 2026)
+
+All seven remaining Data PRs are included in the integration: #142, #157, #158,
+#159, #160, #228 and #229. The clothing update follows `users/{ownerId}/items`;
+outfit deletion remains scoped to `users/{ownerId}/outfits`. Existing shared test
+targets are retained alongside the standalone recognition lab.
+
+Recognition uses the on-device pipeline by default and preserves interrupted
+manual drafts. The P18 loopback clue demonstration requires the explicit Debug
+argument `-recognitionGapFixture`; it does not replace the normal recognizer.
+The multi-photo Vision safeguard against degenerate simulator CPU outputs remains
+in place. The recognition prototype's device performance and accuracy gates are
+still open; merging it does not establish those results.
+
+## Subteam integration (November 10, 2026)
+
+The data, viz, and social integration histories are combined in this revision.
+The signed-in shell keeps My Closet, Discovery, and Camera
+as its three top-level tabs. Profile opens as a child sheet from My Closet or
+Discovery; Try On opens its Avatar Studio destination. The social team's
+`DiscoverySectionSwitch` now selects the current Discovery ideas and OOTD
+sections. Both the data team's multi-photo import and the viz team's outfit
+studio are present in the combined app.
+The studio model uses `ObservableObject` with a nonisolated type declaration:
+on the iOS 18.6 and 26.2 simulators, actor-isolated deallocation crashed all
+model tests, while the nonisolated declaration passed the 20-test viz suite.
+
+`PublishedPostImageView` and the social post-detail screen remain separate components.
+The saved-post controls and grid are connected to OOTD as described below; live post
+media remains unavailable. The current Firestore
+rules still deny saved-post writes, and the feed has no public media loader.
+Their presence in the project does not establish a production publication or
+bookmark flow. The local changes on `feat/camera-capture-screen` are separate
+from this committed branch integration.
+
+## Persistent OOTD likes (November 17, 2026)
+
+The working tree now models one like at `users/{uid}/postLikes/{postId}` and exposes only
+`posts/{postId}.likeCount` to other signed-in viewers. `FirebasePostLikeFunctions` uses one
+Firestore transaction to create/delete the private relationship and increment/decrement the public
+count. The rules require both changes in the same atomic request, prevent direct count edits, and
+allow only the owner to read a relationship. Repeated desired states are no-ops. `Post.likeCount`
+is optional so existing posts decode as zero until their first like.
+
+`PostLikesViewModel` disables repeat taps while a write is pending, keeps the last confirmed state
+on failure, and reloads the signed-in user's relationship after relaunch. Debug fixtures persist in
+UserDefaults and do not contact Firebase. The Firestore emulator suite passes like, unlike, retry,
+privacy, and direct-write rejection checks. The rules are not deployed to `out-fitted`, so this is
+not yet a live production feature.
+
+## Social branch promotion (November 17, 2026)
+
+The integration preserves main’s per-user saved-post state and adds its existing Save controls and Saved Posts destination to the infinite Discovery feed. The Friends cards and outfit-preview sheet share the same saved state. Demo saved-post lookups also resolve the paged fixtures after relaunch. Both bulk saved-post lookup and single-post detail lookup remain in `PostFunctions`. The public profile component from #256 is included without introducing a live profile route or backend service.
+
+Validation: the signed Debug simulator build and 10 focused fixture-backed XCUITests passed on iPhone 17 Pro / iOS 26.2, covering saved-post persistence, unavailable posts, read/write failures, pieces, navigation, composition, layout switching, and pagination retry. Discovery and Saved Posts screenshots were inspected. Ranking, pagination, and all 11 saved-state command-line scenarios passed. SwiftLint was unavailable; fresh authentication, live backend access, and the full UI suite were not reverified.
+
+## Eric design system integration (November 17, 2026)
+
+`social_main` incorporates Eric's shared tokens, presentational components, Tabler
+assets, preview gallery, custom four-tab bar, and Discovery header/search styling.
+The existing `InfiniteDiscoveryFeed`, chronological paging/retry model, ranking,
+and post-detail services remain in place. After the user's navigation correction,
+one top `DiscoveryHeader` switch controls that persistent feed: **For You** shows
+the ranked outfit grid and **Friends** shows chronological outfit cards. The inner
+picker was removed; switching layouts keeps the same loaded pages and retry state.
+The separate catalog clothing-ideas screen is no longer the For You destination;
+its view remains in the project.
+The system tab bar is also hidden on Discovery's navigation content so its
+invisible hit area cannot intercept the feed's Retry button. The correction passed
+a signed simulator build and four focused fixture-backed UI tests: one-header
+layout switching, tab/profile navigation, local post preview, and paging/retry to
+the final page. Both layout screenshots were inspected. SwiftLint still reports
+inherited errors; fresh authentication and live Figma comparison were not repeated.
+ The header's create button
+opens the existing local preview composer, with preview sharing enabled only for
+the demo source; it does not publish to Firebase. Social-only screens use the shared
+Tabler icon API as well. No service contracts or backend rules changed.
+
+Validation on iPhone 17 Pro / iOS 26.0: signed Debug build passed; five
+fixture-backed XCUITests passed across closet/tab/profile navigation, Discovery
+style search and search access, local post composition, and paging/retry/end of
+feed. Search, composer, feed, and tab screenshots were inspected. A launch
+without mock flags restored the existing Firebase session; fresh credential
+submission was not tested because the guide does not contain test credentials.
+Both Swift command-line checks (ranking and pagination) passed. SwiftLint reported
+241 findings, including 75 errors; all errors also occur on either pre-merge
+`social_main` or `eric`. This was not a full UI-suite or live Figma verification.
+`NavigationUITests.swift` was added to the explicit Xcode test source list so its
+navigation coverage actually executes.
+
+## OOTD recommendation ranking baseline (November 16, 2026)
+
+`dressed/Discovery/ViewModels/FeedRanker.swift` now contains a deterministic,
+dependency-injected ranking baseline for public OOTD `Post` snapshots. It can
+combine normalized recency, category and author affinity, saved-outfit category
+similarity, follows, smoothed saves, trend, novelty, exploration, session intent,
+public snapshot completeness, dismissals, and repeat exposure. A greedy rerank
+penalizes repeated authors, saturated categories, and category-set similarity.
+
+`InfiniteDiscoveryFeed` applies that projection only to **For You**. The
+underlying `ChronologicalFeedModel` and **Friends** presentation retain service
+order, so an empty ranking context is an explicit chronological fallback. The
+current live call supplies that empty context because durable impressions,
+dismissals, follows, saves, and preference aggregation are not implemented.
+The ranker does not read private closet records and is not a deployed backend
+recommendation service. Moving scoring behind an authorized, versioned service
+remains lead work before real personalization.
+
+## Discovery header and search (November 7, 2026)
+
+The Discovery tab follows the "for u" Figma frame. `DiscoveryHeader` replaces the
+segmented picker with a profile button, a **For You / Friends** switch and a create-post
+button. The November 17 correction makes For You the ranked outfit grid and Friends the
+chronological outfit cards within `InfiniteDiscoveryFeed`.
+The profile button moved from a floating button into the header, and OOTD's create button
+moved from the feed into the header. Search is a floating "Search Styles" button above the
+tab bar; tapping it opens the existing style search and suggestions. Behavior, data sources
+and accessibility identifiers are unchanged apart from the labels and the new
+`discovery.searchButton`.
+
+## Navigation bar and icons (November 7, 2026)
+
+The signed-in shell now hides the system tab bar and shows the design system's
+`DSTabBar` below the `TabView`, matching the dressed-design Figma bar: Closet,
+Discovery, Avatar, Camera, with the purple active tab. Tab tags and launch flags are
+unchanged. The bar hides while the keyboard is visible. UI tests locate tabs by
+`tab.closet`, `tab.discovery`, `tab.avatar` and `tab.camera`. All app icons are now
+Tabler icons from `Assets.xcassets`; SF Symbols are no longer used. The product scope's
+three-tab description predates the Avatar tab and is unchanged. See
+[the design system README](../dressed/Common/DesignSystem/README.md).
+
+## Saved posts on OOTD (November 2026)
+
+Each published OOTD card has a Save control, and the bookmark button in the feed
+header opens a Saved Posts screen inside the Discovery tab. `SavedPostsState` builds
+the grid from the saved IDs: one entry per ID, sorted by post ID, so the toggle and
+the grid can't disagree and a refresh doesn't reorder them. A saved ID with no post
+gets a "No longer available" entry that can still be unsaved, never a post card. A
+save or unsave changes the state only after the write succeeds. `AppTabs` creates
+one `SavedPostsViewModel` per signed-in user, so signing out discards it. It reads
+and writes through the injected `SavedPostFunctions` and `PostFunctions.fetchPosts(ids:)`.
+Tapping a saved post opens its published pieces, because posts have no separate page.
+
+Debug builds use `DemoSavedPostFunctions`, which keeps synthetic IDs in UserDefaults.
+`-livePosts` and Release builds use Firestore. Live saving can't work until
+[#94](https://github.com/gtiosclub/dressed/issues/94): `firestore.rules` still denies
+`users/{uid}/savedPosts`, so reads show an error with Retry and writes show "Couldn't
+save". Debug launch arguments for checking these states: `-resetSavedPosts`,
+`-seedSavedPosts` (two posts and one removed post), `-failSavedPostReads 1,2` and
+`-failNextSavedPostWrite`.
+
+Still undecided: newest-first order needs `createdAt`, which `fetchSavedPostIds`
+doesn't return, and Firestore finishes a write only once the server confirms it, so
+offline the toggle keeps its spinner until the connection returns. If the first load
+fails, feed cards show Save even for a post that's already saved; saving it again is
+harmless.
+
+To check the state logic without a simulator, from the repository root:
+
+```sh
+xcrun swiftc dressed/Common/Models/*.swift dressed/Discovery/ViewModels/SavedPostsState.swift \
+  dressedStateChecks/*.swift -o /private/tmp/saved-posts-state-check
+/private/tmp/saved-posts-state-check
+```
+
+`SavedPostsUITests` in `dressedUITests/NavigationUITests.swift` covers the fixture-backed
+screens with the mock session. Neither check covers real sign-in or the Firestore rules.
+
+Checked on November 2, 2026, on an iPhone 17 Pro simulator with iOS 27.0:
+
+- The state check passed all 11 scenarios.
+- `SavedPostsUITests` passed 6 of 6, and each screen was checked in its screenshots.
+- The whole `dressedUITests` target passed 11 of 15. The four failures are
+  `testThreeTabsClosetSectionsAndAvatarEntry`, `testManualPieceWhenNoSuggestions`,
+  `testSelectTop` and `testReviewSelectTwoSkipOneSaveOutfitAndReopen`. They fail at the
+  same lines on `main` without this work.
+- A scratch app ran the real Firebase functions and `SavedPostsViewModel` against the
+  Firestore emulator. Lookups across two batches, a missing post, a malformed post,
+  invalid IDs, repeated saves and unsaves, an unavailable entry and an offline lookup
+  behaved as described above. Writes passed a stand-in rule requiring the document shape
+  in #94; that rule doesn't check ownership.
+- With `firestore.rules` on the emulator, a signed-in test token can't read or write
+  its own `savedPosts` and can look up posts by ID. A signed-out client can do neither.
+
+Not checked: real sign-in and sign-out in the running app, the live Firebase project,
+the owner-only rule itself, a physical device, dark mode and a Release build.
+
 ## Discovery and OOTD navigation update (October 18, 2026)
+
+Historical prototype behavior; the November 17 integration above supersedes its shell and feed routing.
 
 The signed-in Discovery tab now uses a Discovery / OOTD switch based on the
 supplied prototype. Discovery renders individual `CatalogProduct` ideas in a
@@ -13,16 +302,18 @@ contract exists. An idea never becomes a private closet item on tap.
 
 OOTD renders the existing `Post` outfit snapshots as vertical cards with
 in-feed pin, Find items, comment and like controls. Find items shows published
-pieces in a category-filtered sheet. Debug builds use synthetic posts by default;
-`-livePosts` selects Firestore. The Debug Share button inserts only a local
-preview. There is still no connected publication, public media loader,
-persistent comments, likes, or saved-post state. The earlier midsemester
+pieces in a category-filtered sheet. Debug UI tests use synthetic posts with
+`-mockSignedIn` (or the explicit `-demoPosts` flag); normal authenticated Debug
+and Release sessions use Firestore. Share now copies a selected photo and tagged
+items into the published snapshot described above. Persistent comments and public
+media loading are connected in the current `InfiniteDiscoveryFeed`. Saved posts are described above. The earlier midsemester
 Discovery post prototype below records previous behavior, not the current
 navigation.
 
-The OOTD plus button now pushes the New post composition screen within the
-Discovery tab, keeping the native tab bar visible. Its outfit image is the
-prototype's greyscale vector placeholder until publishable media is selected.
+The OOTD plus button pushes the New post composition screen within the Discovery
+tab. The photo picker replaces the former fixed outfit placeholder; Outfit details
+opens real closet/saved-outfit selection. The older `OOTDFeedView` below remains a
+historical preview and is not the app's current feed.
 The Find items sheet uses the prototype's product-row layout, sort and category
 chips, and a local bookmark toggle. Only the first Debug demo post has fixture
 brands, prices, ratings, and alternatives; other posts display their published
@@ -42,9 +333,9 @@ Search response into separate, unselected garment candidates with normalized
 boxes. It resolves similar product IDs only against active records in the local
 catalog and leaves an empty/manual result when no regions are found. A developer
 can run it against a saved response. `object_localization.py` separately parses
-generic Google Vision garment boxes. A Debug-only Camera action calls
-`local_service.py` over simulator loopback for reviewed multi-piece suggestions;
-that local service serves fixtures only and makes no cloud request. There is no
+generic Google Vision garment boxes. The legacy `local_service.py` serves fixtures
+only and makes no cloud request; current Camera and shared-image recognition do
+not call it. There is no
 hosted/authenticated endpoint, indexed product set, live catalog match, or
 measured recognition quality on user photos. A local evaluation harness compares
 saved responses with annotated garment boxes; its bundled example is synthetic
@@ -57,9 +348,18 @@ The local product-link flow accepts pasted HTTPS links in Camera and URL shares 
 the Share Extension. Both reach review, where the user enters a name and
 category and explicitly confirms Wishlist. The separate owner-scoped
 `SavedProductLink` record persists on-device without a photo; it does not alter
-the six-field `ClothingItem`. Dressed does not fetch retailer page metadata or
-infer exact identity from a photo. Shared link drafts expire after 24 hours;
-Wishlist storage is not backend-enforced or synced across devices.
+the six-field `ClothingItem`. Dressed does not infer exact identity from a photo.
+Shared link drafts expire after 24 hours; Wishlist storage is not backend-enforced
+or synced across devices.
+
+P19 prototype (not deployed): in Debug, link review asks the loopback-only
+`backend/links/local_service.py` (port 8767) to read the page and return a draft.
+Each field carries its source. Name and category prefill only when the page states
+them; price, availability and image appear as optional details the person can turn
+off; variant stays open unless the link names one. A blocked, failed or missing
+service leaves the manual form with the link filled in. The app never fetches store
+pages and holds no keys. A hosted, authenticated endpoint and the Dressed category
+list are TBD. Real-store accuracy has not been measured; see `backend/links/README.md`.
 
 `backend/catalog/catalog.py` ingests a synthetic fixture feed into local
 SQLite and serves a read-only API on loopback. It records stable product IDs,
@@ -101,10 +401,9 @@ outside the search field and suggested styles returns to the prior feed state
 and discards edits from the current search session. Selected styles filter
 locally against the demo style associations or visible post text.
 Style associations for synthetic posts live only in the demo view. A public
-style-tag contract is still TBD. Debug builds show synthetic post snapshots by
-default; `-livePosts` uses `FirebasePostFunctions` for development checks.
-Release builds also use `FirebasePostFunctions`, but public media loading,
-author profiles, publishing, and saved-post state are not connected. Live posts
+style-tag contract is still TBD. `-mockSignedIn` and `-demoPosts` select
+synthetic snapshots; normal authenticated builds use `FirebasePostFunctions`.
+Public media loading, author profiles, and saved-post state are not connected. Live posts
 therefore show an explicit image fallback;
 the demo artwork does not resolve private clothing paths. `-showCatalog` still
 opens the Search section for existing Debug tests. Saved-post reads and writes
@@ -117,7 +416,7 @@ The current `main` working tree contains a local-only import prototype under
 `dressed/Camera/Views/PrototypeImportView.swift`, and
 `DressedShareExtension/ShareViewController.swift`. A share extension accepts one
 supported image from file, data, or UIImage share representations, converts it
-to a bounded JPEG, writes a user-bound draft into `group.gtiosclub.dressed`, and tells the
+to a bounded JPEG, writes a user-bound draft into `group.com.jdayal.dresseddev`, and tells the
 user to open Dressed. Camera and photo-library images enter the same review
 screen. Apple's on-device Vision classifier may suggest a category for one
 garment in the whole image; no-match and failure states allow manual details.
@@ -153,9 +452,21 @@ returned three Dress boxes for Google's public sample image. This does not
 verify live Google recognition from inside the app or accuracy on personal photos.
 
 The shared-image review now keeps an owner-bound, 24-hour review draft in the App
-Group. Recognition starts when a new review opens. In Debug the app first tries
-the local Google Vision service; otherwise it uses on-device body landmarks and
-whole-image classification as fallbacks.
+Group. Recognition starts when a new review opens. Both Debug and Release use
+on-device body landmarks and whole-image classification. The #208 pipeline
+offers an opt-in native-resolution crop/context-reuse/scanline-mask trial and removes a
+duplicate Camera classifier task. Imports default to original processing until
+physical-phone speed and quality checks pass. Simulator builds explicitly select a supported
+CPU for image classification; device builds keep automatic compute selection. Current iOS
+27 simulator body-pose and foreground-mask inference still fail, as recorded in the
+[environment investigation](verification/recognition-208/vision-environment.md). The diagnostic compares the
+original processing path against the new path without writing closet records.
+Interrupted processing drafts restart on return, including drafts with manual
+pieces; this is restart, not guaranteed execution while the app is suspended.
+The standalone `DressedSpeedLab` target references the same source files and runs without
+Firebase, authentication or an App Group entitlement. It supplies independent diagnostics,
+not a closet-save flow. See [recognition performance guide](recognition-speed-demo.md) for measured results,
+cancellation behavior and physical-device verification limits.
 Each suggestion starts unselected. The user can adjust a rectangular region
 or trace a polygon around a garment. Each suggested region attempts a
 transparent cutout with Apple's foreground-instance mask, then a local edge
@@ -371,3 +682,7 @@ This document explains the broader system, not the expected size of a student ta
 ## Approved first implementation path
 
 Photo-library selection and manual name/category entry come first. Views display supplied values and report interactions; view models hold screen state and call functions; Firebase functions perform individual reads/writes; Common/Models defines records. Leads connect these into the first closet flow. Later extraction can supply suggestions to that same form. See [the roadmap](delivery-plan.md).
+
+## Live retailer catalog
+
+`FirebaseCatalogService` reads at most 200 `catalogProducts` documents for authenticated Discovery browsing. `RetailCatalogRecord` maps the catalog envelope into `CatalogProduct` while preserving nested `RetailProduct` photos, descriptions, options and offers. The For You feed adds a retailer shelf and a searchable full catalog without changing outfit/Friends routing. Catalog records remain separate from owned clothing and wishlist confirmation. Client catalog writes are denied. See [retailer implementation](retailer-import-implementation.md).

@@ -11,7 +11,7 @@ service cloud.firestore {
         && item.keys().hasOnly(['id', 'ownerId', 'name', 'category', 'imagePath', 'createdAt'])
         && item.id == itemId
         && item.ownerId == uid
-        && item.name is string && item.name.size() > 0 && item.name.size() <= 80
+        && item.name.matches('[\\s\\S]{1,80}')
         && item.category in ['tops', 'pants', 'skirts', 'dresses', 'shoes', 'outerwear', 'accessories', 'other']
         && item.imagePath is string
         && item.imagePath.matches('users/' + uid + '/items/' + itemId + '/original\\.jpg')
@@ -27,6 +27,164 @@ service cloud.firestore {
         && (!('name' in outfit) || (outfit.name is string && outfit.name.size() <= 80))
         && outfit.placements is list && outfit.placements.size() <= 20
         && outfit.createdAt is timestamp && outfit.updatedAt is timestamp;
+    }
+
+    function likeCount(data) {
+      return 'likeCount' in data ? data.likeCount : 0;
+    }
+
+    function validPostLike(uid, postId) {
+      let like = request.resource.data;
+      return like.keys().hasAll(['id', 'schemaVersion', 'ownerId', 'postId', 'createdAt'])
+        && like.keys().hasOnly(['id', 'schemaVersion', 'ownerId', 'postId', 'createdAt'])
+        && like.id == postId && like.postId == postId && like.ownerId == uid
+        && like.schemaVersion == 1 && like.createdAt is timestamp;
+    }
+
+    function validLikeCountTransition(postId) {
+      let uid = request.auth.uid;
+      let likePath = /databases/$(database)/documents/users/$(uid)/postLikes/$(postId);
+      let before = likeCount(resource.data);
+      let after = likeCount(request.resource.data);
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount'])
+        && after is int && after >= 0
+        && ((!exists(likePath) && existsAfter(likePath) && after == before + 1)
+          || (exists(likePath) && !existsAfter(likePath) && after == before - 1));
+    }
+
+    function validPublishedItem(item, root) {
+      return item.keys().hasOnly(['sourceItemId', 'name', 'category', 'mediaPath', 'productURL'])
+        && item.sourceItemId.matches('[A-Za-z0-9_-]{1,128}')
+        && item.name.matches('[\\s\\S]{1,80}')
+        && item.category in ['tops', 'pants', 'skirts', 'dresses', 'shoes', 'outerwear', 'accessories', 'other']
+        && item.mediaPath == root + '/items/' + item.sourceItemId + '.jpg'
+        && (!('productURL' in item) || (item.productURL is string && item.productURL.matches('https://.+')));
+    }
+
+    function validPublishedIndex(items, index, root) {
+      let item = items.size() > index ? items[index] : null;
+      return items.size() <= index || validPublishedItem(item, root);
+    }
+
+    function validPostCreate(postId) {
+      let post = request.resource.data;
+      let outfit = post.outfitSnapshot;
+      let root = 'posts/' + request.auth.uid + '/' + postId;
+      return post.keys().hasAll([
+          'id', 'schemaVersion', 'authorId', 'caption', 'outfitSnapshot',
+          'mediaPath', 'createdAt', 'likeCount'
+        ])
+        && post.keys().hasOnly([
+          'id', 'schemaVersion', 'authorId', 'caption', 'outfitSnapshot',
+          'mediaPath', 'createdAt', 'likeCount'
+        ])
+        && post.id == postId && post.schemaVersion == 1
+        && post.authorId == request.auth.uid
+        && post.caption is string && post.caption.size() <= 500
+        && post.mediaPath == 'posts/' + request.auth.uid + '/' + postId + '/composite.jpg'
+        && post.createdAt is timestamp && post.likeCount == 0
+        && outfit is map
+        && outfit.keys().hasAll(['items'])
+        && outfit.keys().hasOnly(['name', 'items'])
+        && (!('name' in outfit) || (outfit.name is string && outfit.name.size() <= 80))
+        && outfit.items is list && outfit.items.size() > 0 && outfit.items.size() <= 10
+        && validPublishedIndex(outfit.items, 0, root)
+        && validPublishedIndex(outfit.items, 1, root)
+        && validPublishedIndex(outfit.items, 2, root)
+        && validPublishedIndex(outfit.items, 3, root)
+        && validPublishedIndex(outfit.items, 4, root)
+        && validPublishedIndex(outfit.items, 5, root)
+        && validPublishedIndex(outfit.items, 6, root)
+        && validPublishedIndex(outfit.items, 7, root)
+        && validPublishedIndex(outfit.items, 8, root)
+        && validPublishedIndex(outfit.items, 9, root);
+    }
+
+    function validUserProfile(uid) {
+      let profile = request.resource.data;
+      return profile.keys().hasAll(['id', 'schemaVersion', 'username', 'displayName', 'createdAt', 'updatedAt'])
+        && profile.keys().hasOnly(['id', 'schemaVersion', 'username', 'displayName', 'avatarPath', 'createdAt', 'updatedAt'])
+        && profile.id == uid
+        && profile.schemaVersion == 1
+        && profile.username is string
+        && profile.username.matches('[a-z0-9._]{2,30}')
+        && profile.displayName is string
+        && profile.displayName.size() >= 1 && profile.displayName.size() <= 50
+        && (!('avatarPath' in profile) || profile.avatarPath == null
+          || (profile.avatarPath is string && profile.avatarPath.size() <= 256))
+        && profile.createdAt is timestamp
+        && profile.updatedAt is timestamp;
+    }
+
+    function validFollow(ownerUid, targetUid, docId) {
+      let follow = request.resource.data;
+      return ownerUid != targetUid
+        && follow.keys().hasAll(['id', 'schemaVersion', 'ownerId', 'targetUserId', 'createdAt'])
+        && follow.keys().hasOnly(['id', 'schemaVersion', 'ownerId', 'targetUserId', 'createdAt'])
+        && follow.id == docId
+        && follow.schemaVersion == 1
+        && follow.ownerId == ownerUid
+        && follow.targetUserId == targetUid
+        && follow.createdAt is timestamp;
+    }
+
+    function validBlockedUser(uid, targetUid) {
+      let block = request.resource.data;
+      return uid != targetUid
+        && block.keys().hasAll(['id', 'schemaVersion', 'ownerId', 'targetUserId', 'createdAt'])
+        && block.keys().hasOnly(['id', 'schemaVersion', 'ownerId', 'targetUserId', 'createdAt'])
+        && block.id == targetUid
+        && block.schemaVersion == 1
+        && block.ownerId == uid
+        && block.targetUserId == targetUid
+        && block.createdAt is timestamp;
+    }
+
+    function validReport(reportId) {
+      let report = request.resource.data;
+      return report.keys().hasAll(['id', 'schemaVersion', 'reporterId', 'targetType', 'targetId', 'reason', 'createdAt'])
+        && report.keys().hasOnly(['id', 'schemaVersion', 'reporterId', 'targetType', 'targetId', 'postId', 'reason', 'createdAt'])
+        && report.id == reportId
+        && report.schemaVersion == 1
+        && report.reporterId == request.auth.uid
+        && report.targetType in ['post', 'comment', 'user']
+        && report.targetId is string && report.targetId.size() >= 1 && report.targetId.size() <= 128
+        && (!('postId' in report) || (report.postId is string && report.postId.size() >= 1 && report.postId.size() <= 128))
+        && report.reason is string && report.reason.size() >= 1 && report.reason.size() <= 500
+        && report.createdAt is timestamp;
+    }
+
+    function postCountChangesBy(postId, delta) {
+      let postPath = /databases/$(database)/documents/posts/$(postId);
+      return exists(postPath) && existsAfter(postPath)
+        && likeCount(getAfter(postPath).data) == likeCount(get(postPath).data) + delta;
+    }
+
+    match /users/{uid} {
+      allow get, list: if request.auth != null;
+      allow create: if owns(uid) && validUserProfile(uid);
+      allow update: if owns(uid)
+        && validUserProfile(uid)
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
+    }
+
+    match /users/{uid}/following/{targetUid} {
+      allow get, list: if request.auth != null;
+      allow create, update: if owns(uid) && validFollow(uid, targetUid, targetUid);
+      allow delete: if owns(uid);
+    }
+
+    match /users/{uid}/followers/{followerUid} {
+      allow get, list: if request.auth != null;
+      allow create, update: if owns(followerUid) && validFollow(followerUid, uid, followerUid);
+      allow delete: if owns(followerUid);
+    }
+
+    match /users/{uid}/blockedUsers/{targetUid} {
+      allow get, list: if owns(uid);
+      allow create, update: if owns(uid) && validBlockedUser(uid, targetUid);
+      allow delete: if owns(uid);
     }
 
     match /users/{uid}/items/{itemId} {
@@ -49,9 +207,57 @@ service cloud.firestore {
       allow delete: if owns(uid);
     }
 
-    // #59 must define and test safe publication before clients can write posts.
+    match /users/{uid}/postLikes/{postId} {
+      allow get, list: if owns(uid);
+      allow create: if owns(uid)
+        && exists(/databases/$(database)/documents/posts/$(postId))
+        && validPostLike(uid, postId)
+        && postCountChangesBy(postId, 1);
+      allow update: if false;
+      allow delete: if owns(uid) && postCountChangesBy(postId, -1);
+    }
+
+    // Immutable published copies; private closet paths are never valid post media.
     match /posts/{postId} {
       allow get, list: if request.auth != null;
+      allow create: if request.auth != null && validPostCreate(postId);
+      allow update: if request.auth != null && validLikeCountTransition(postId);
+      allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
+    }
+
+    // Comments belong only to existing published posts. Reads are bounded;
+    // clients cannot impersonate authors, edit records, or revive removed posts.
+    match /posts/{postId}/comments/{commentId} {
+      function visiblePost() {
+        return request.auth != null
+          && exists(/databases/$(database)/documents/posts/$(postId));
+      }
+      function validComment() {
+        let comment = request.resource.data;
+        return comment.keys().hasAll(['id', 'authorId', 'text', 'createdAt'])
+          && comment.keys().hasOnly(['id', 'authorId', 'text', 'createdAt'])
+          && comment.id == commentId
+          && comment.authorId == request.auth.uid
+          && comment.text is string && comment.text.size() <= 1000
+          && comment.text.matches('[\\s\\S]*[^\\s][\\s\\S]*')
+          && comment.createdAt == request.time;
+      }
+      allow get: if visiblePost();
+      allow list: if visiblePost() && request.query.limit != null && request.query.limit <= 50;
+      allow create: if visiblePost() && validComment();
+      allow update: if false;
+      allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
+    }
+
+    match /reports/{reportId} {
+      allow create: if request.auth != null && validReport(reportId);
+      allow read, update, delete: if false;
+    }
+
+    // Public retailer metadata is curated by the backend, never by client writes.
+    match /catalogProducts/{productId} {
+      allow get: if request.auth != null;
+      allow list: if request.auth != null && request.query.limit != null && request.query.limit <= 200;
       allow create, update, delete: if false;
     }
 

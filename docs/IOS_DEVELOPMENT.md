@@ -31,19 +31,32 @@ Check the resulting app with `codesign -dv --verbose=2 /private/tmp/dressed-sign
 
 The iOS 27 simulator Photos library has three product photos for import checks: a [blue Uniqlo merino sweater](https://www.uniqlo.com/us/en/products/E469395-000/00), a [Uniqlo wide straight jeans outfit shot](https://www.uniqlo.com/us/en/products/E470542-000/01), and a [Nike Air Force 1 Low shoe](https://www.nike.com/t/air-force-1-low-mens-shoes-XVPIszaq). They are simulator-only test media; the images are not part of the repository. The outfit shot is useful for checking review of multiple visible garments.
 
-## Camera recognition test service
+## On-device recognition and speed test
 
-The Camera and shared-image review screens look for pieces as soon as a new image opens. In Debug they first try a local service on this Mac at `127.0.0.1:8765`; if it is unavailable, they fall back to on-device Vision. Use fixture mode for repeatable UI checks:
+Camera and shared-image review start on-device recognition when a new image opens,
+in both Debug and Release. They do not call the legacy loopback fixture service.
+Use **Camera → On-device speed test** in Debug, or launch with `-recognitionLab`
+for the isolated diagnostic. See [the #208 demo guide](recognition-speed-demo.md)
+for Release comparisons, exported timings, regression tests and remaining phone checks.
+
+The Python fixture service and Google response adapters remain separate developer
+tools. Only its `--apple-vision` mode, described below, feeds the app (Debug
+simulator builds); the Google and fixture modes do not change imports.
+See [the recognition prototype guide](../backend/recognition/README.md) for those
+legacy experiments. Historical observations below are dated explicitly.
+
+**Pieces in the simulator:** the simulator cannot run Apple's body-pose model, so a worn outfit comes back as one whole-photo piece. To split it into Top, Bottom and Shoes, run the same Apple Vision step on your Mac while testing (local only, no cloud calls). A Debug simulator build uses it automatically for new imports; physical devices run the model themselves.
 
 ```sh
-python3 backend/recognition/local_service.py --fixture backend/recognition/fixtures/object-localization-response.json
+python3 backend/recognition/local_service.py --apple-vision
+# Optional garment outlines: add --clothes-model <ClothesParser.mlpackage> (backend/recognition/README.md)
 ```
 
-Fixture labels are predetermined and may not match the photo. Only run one service on port 8765 at a time. Confirm it is listening with `lsof -nP -iTCP:8765 -sTCP:LISTEN`; then open a new photo review or tap **Find Pieces Again**. A suggestion should appear unselected. On a physical iPhone, `127.0.0.1` points at the phone, so the Debug bridge will be unavailable and on-device suggestions will run. See [the recognition prototype guide](../backend/recognition/README.md) for limits and troubleshooting.
+The same bridge compares catalog images for product matches, which the simulator also cannot do itself. Without it, review shows no matches.
 
-For live Google Object Localization checks, use `--live-project dressed-511821` instead of `--fixture` after your Google account has project access and you run `gcloud auth login`. This mode is metered and limited to 20 calls per service process by default; the shared project also has a one-request-per-minute quota and a $5 monthly alert, neither of which is a hard dollar cap. It suggests garment regions, not exact products. See [recognition setup](../backend/recognition/README.md).
+Upload takes one photo or a product link. Closing a photo review discards it immediately; a review interrupted by quitting the app resumes on the next launch.
 
-For a shared image, return to Dressed after finishing the iOS share sheet. The extension cannot force the app to open; Dressed presents the queued review when it becomes active. Recognition begins automatically. The app tries Apple's foreground-instance mask on each suggested crop, then a local edge flood fill for plain product-photo backgrounds. A mask can include skin, miss fabric or retain a shadow, so inspect it before selecting. **Add Piece Manually** opens the region editor. Choose **Draw Outline**, trace with a finger or tap several points and **Close Outline**, then **Use Outline** to replace an inaccurate cutout. A transparent cutout saves as PNG; a rectangle keeps JPEG. Release builds use only on-device suggestions.
+For a shared image, return to Dressed after finishing the iOS share sheet. The extension cannot force the app to open; Dressed presents the queued review when it becomes active. Recognition begins automatically. With a [clothes-parsing model](../backend/recognition/README.md#clothes-parsing-evaluation-only) each piece is cut out along its outline. Otherwise the app tries Apple's foreground-instance mask on each suggested crop and keeps the plain rectangle if that fails (imports no longer use the edge flood fill). A mask can include skin, miss fabric or retain a shadow, so inspect it before selecting. **Add Piece Manually** opens the region editor. Choose **Draw Outline**, trace with a finger or tap several points and **Close Outline**, then **Use Outline** to replace an inaccurate cutout. A transparent cutout saves as PNG; a rectangle keeps JPEG. Both build configurations use only on-device suggestions.
 
 On October 16, a real public shoe photo selected from Photos on the iOS 27 simulator opened review and automatically produced one unselected candidate. The background fallback made a 1620×785 transparent PNG; its alpha ranged from 0 to 1 and the shoe was visibly isolated. The simulator's on-device classifier returned an Espresso context error, so the candidate kept the generic name **Piece**. This verifies one plain-background cutout, not general garment segmentation or category accuracy.
 
@@ -53,7 +66,7 @@ On October 16, a real public shoe photo selected from Photos on the iOS 27 simul
 
 1. Connect the iPhone to the Mac, unlock it, tap **Trust** if prompted, and enable **Developer Mode** in iPhone Settings if Xcode asks. Confirm it appears as a *physical* device with `xcrun devicectl list devices`.
 2. In Xcode, open **Xcode → Settings… → Apple Accounts**. Sign in again if the account shows **Authentication Expired**. Complete the password and two-factor prompts yourself. Open `dressed.xcodeproj` and select the connected iPhone as the run destination.
-3. Under **Signing & Capabilities**, keep **Automatically manage signing**. For the checked-in app IDs and Share Extension, use an Apple team that owns `gtiosclub.dressed`, `gtiosclub.dressed.share`, and the `group.gtiosclub.dressed` App Group. The checked-in team ID `WDRKBQFYRJ` came from the project's initial Xcode configuration; it is not necessarily the current app owner's Apple team. Ask the owner of those Apple identifiers for signing access only if you want to install that exact configuration.
+3. Under **Signing & Capabilities**, keep **Automatically manage signing**. Use an Apple team that owns the selected app and Share Extension identifiers and the checked-in `group.com.jdayal.dresseddev` App Group. The checked-in team IDs came from the project's Xcode configuration; they are not necessarily the current app owner's Apple team. Ask the owner of an identifier for signing access only if you want to install that exact configuration.
 4. Build and run from Xcode once. For a command-line build after signing works, substitute the phone's device ID:
 
    ```sh
@@ -85,6 +98,19 @@ mobilebuildmcp simulator test --simulator-id <UDID> --derived-data-path /private
 ```
 
 Use the `ui-automation` tools to tap an element reference from a fresh `snapshot-ui` result. Refresh the snapshot after navigation. Build and test responses include artifact paths for full logs and useful diagnostics. Screenshots show appearance; use accessibility snapshots, interaction, and tests to check behavior. The share flow can require App Group signing and a device; see [project docs](README.md#local-import-prototype).
+
+### Repeatable Data feature UI checks
+
+Create a **disposable** simulator named `Dressed Data E2E` using an installed iOS runtime. For example, with iOS 18.6 installed:
+
+```sh
+xcrun simctl create 'Dressed Data E2E' \
+  com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro \
+  com.apple.CoreSimulator.SimRuntime.iOS-18-6
+SIMULATOR_ID=<UDID printed above> tests/run-data-feature-ui-tests.sh
+```
+
+The runner verifies the simulator name, erases that device, seeds two synthetic photos, and runs seven focused XCUITests covering photo picker handoff, Share to Dressed review and persistence, and product-link Wishlist save/relaunch. It prints an `.xcresult` path and a `screenshots` directory with exported review screenshots. The test session uses `-mockSignedIn` to isolate import behavior; run the normal signed-in app separately for Firebase authentication. The synthetic photos prove picker and review wiring, not recognition accuracy. The reader service is not started by this runner, so the product-link test covers manual fallback.
 
 ## Hot reload loop
 

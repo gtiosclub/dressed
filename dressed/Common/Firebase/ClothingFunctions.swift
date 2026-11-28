@@ -4,6 +4,7 @@ import FirebaseFirestore
 // Shared contract for DATA-04 (#70) and DATA-05 (#71).
 // The caller supplies the signed-in user's ID; Firestore rules enforce ownership.
 protocol ClothingFunctions {
+    func updateClothingDetails(ownerId: String, itemId: String, name: String, category: ClothingCategory) async throws
     /// Save the supplied record at users/{ownerId}/items/{id}; throw on failure.
     func saveClothingItem(_ item: ClothingItem) async throws
 
@@ -61,5 +62,39 @@ extension ClothingFunctions {
         // Absent document → nil. A present document that fails to decode throws.
         guard snapshot.exists else { return nil }
         return try snapshot.data(as: ClothingItem.self)
+    }
+
+    func updateClothingDetails(
+        ownerId: String,
+        itemId: String,
+        name: String,
+        category: ClothingCategory
+    ) async throws {
+        let db = Firestore.firestore()
+        let document = db.collection("users").document(ownerId).collection("items").document(itemId)
+
+        let snapshot = try await document.getDocument()
+
+        guard snapshot.exists else {
+            throw NSError(
+                domain: "ClothingFunctions",
+                code: 404,
+                userInfo: [NSLocalizedDescriptionKey: "Clothing item not found."]
+            )
+        }
+
+        guard let existingOwnerId = snapshot.data()?["ownerId"] as? String,
+              existingOwnerId == ownerId else {
+            throw NSError(
+                domain: "ClothingFunctions",
+                code: 403,
+                userInfo: [NSLocalizedDescriptionKey: "Clothing item does not belong to this owner."]
+            )
+        }
+
+        try await document.updateData([
+            "name": name,
+            "category": category.rawValue
+        ])
     }
 }
