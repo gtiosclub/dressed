@@ -21,6 +21,17 @@ service firebase.storage {
       allow delete: if request.auth != null && request.auth.uid == uid;
     }
 
+    // Full aligned outfit composite PNG (sorted worn item cache key); owner read/write only.
+    match /users/{uid}/outfits/{cacheKey}.png {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && cacheKey.matches('[a-f0-9]{64}')
+        && request.resource.size > 0
+        && request.resource.size <= 12 * 1024 * 1024
+        && request.resource.contentType == 'image/png';
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
     // Pending uploads are owner-only. A committed post makes its copies readable
     // to signed-in members and immutable, including for the author.
     match /posts/{uid}/{postId} {

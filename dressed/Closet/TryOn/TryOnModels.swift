@@ -69,7 +69,7 @@ enum TryOnVersions {
     /// Outfit composite baked from per-item body-part layers instead of overlay fitting.
     static let bodyPartProcessing = 14
     /// Single OpenAI image for the full worn outfit aligned to the avatar (preferred display path).
-    static let alignedOutfitProcessing = 15
+    static let alignedOutfitProcessing = 16
     /// When false, body-part PNGs are references only — not stacked or skin-slot baked for display.
     static let bodyPartTileCompositingEnabled = false
     static let maxLocalDisplacement = 0.02

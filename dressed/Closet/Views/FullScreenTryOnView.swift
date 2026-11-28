@@ -147,8 +147,11 @@ struct FullScreenTryOnView: View {
 
     @ViewBuilder
     private var bodyPartStatusBanner: some View {
-        if bodyPartRefreshComplete, !tryOn.isBusy, !tryOn.wornBodyPartCompositeReady {
-            Text("Outfit render not ready")
+        if bodyPartRefreshComplete,
+           !tryOn.isBusy,
+           !tryOn.awaitingBodyPartComposite,
+           !tryOn.wornBodyPartCompositeReady {
+            Text(outfitStatusMessage)
                 .font(.caption.weight(.semibold))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 14)
@@ -157,6 +160,16 @@ struct FullScreenTryOnView: View {
                 .padding(.bottom, 12)
                 .accessibilityIdentifier("tryon.body-part-not-ready")
         }
+    }
+
+    private var outfitStatusMessage: String {
+        if !TryOnAPIKey.isConfigured {
+            return "Add an OpenAI key in TryOnAPIKey for aligned outfit rendering."
+        }
+        if let message = tryOn.message, !message.isEmpty {
+            return message
+        }
+        return "Outfit render not ready"
     }
 
     private var closeButton: some View {

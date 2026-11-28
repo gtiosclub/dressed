@@ -203,9 +203,20 @@ struct TryOnMetalCanvas: UIViewRepresentable {
 
         private func texture(for path: String, device: MTLDevice) -> MTLTexture? {
             if let cached = textures[path] { return cached }
+            guard TryOnLibrary.validatePNG(at: URL(fileURLWithPath: path)) else {
+                #if DEBUG
+                NSLog("[TryOn] Metal skipped unreadable texture path=%@", path)
+                #endif
+                note = "Outfit image could not be displayed."
+                return nil
+            }
             guard let image = UIImage(contentsOfFile: path)?.cgImage,
                   let bytes = TryOnBitmap.rgba(from: image),
                   let texture = makeTexture(device: device, width: bytes.width, height: bytes.height, bytes: bytes.bytes) else {
+                #if DEBUG
+                NSLog("[TryOn] Metal texture upload failed path=%@", path)
+                #endif
+                note = "Outfit image could not be displayed."
                 return nil
             }
             textures[path] = texture

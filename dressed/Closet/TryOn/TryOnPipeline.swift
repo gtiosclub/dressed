@@ -466,7 +466,7 @@ actor TryOnPipeline {
             ))
         }
         guard !worn.isEmpty else { throw TryOnImageError.emptyImage }
-        progress("Rendering full outfit on avatar")
+        progress("Rendering aligned outfit on avatar")
         var payloads = [try png(avatarImage)]
         for piece in worn where payloads.count < 4 {
             if let original = await image(at: piece.garment.originalImagePath) {

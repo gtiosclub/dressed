@@ -1,5 +1,6 @@
 import CoreGraphics
 import Foundation
+import UIKit
 
 struct TryOnLibrarySnapshot: Equatable {
     var root: URL
@@ -127,6 +128,52 @@ actor TryOnLibrary {
 
     func saveOutfitComposite(_ image: CGImage, outfitID: String) throws -> String {
         let relative = "outfits/\(outfitID)/composite.png"
+        _ = try write(image, relative)
+        return relative
+    }
+
+    func alignedOutfitCacheRelativePath(_ cacheKey: String) -> String {
+        OutfitCompositeRecord.localRelativePath(cacheKey: cacheKey)
+    }
+
+    func alignedOutfitCacheExists(_ cacheKey: String) -> Bool {
+        FileManager.default.fileExists(atPath: url(OutfitCompositeRecord.localRelativePath(cacheKey: cacheKey)).path)
+    }
+
+    /// Validates that a relative composite path points to a readable, non-empty PNG.
+    func isValidCompositeImage(relative: String) -> Bool {
+        Self.validatePNG(at: url(relative))
+    }
+
+    func alignedOutfitCacheIsValid(_ cacheKey: String) -> Bool {
+        isValidCompositeImage(relative: OutfitCompositeRecord.localRelativePath(cacheKey: cacheKey))
+    }
+
+    func deleteAlignedOutfitCache(cacheKey: String) {
+        let relative = OutfitCompositeRecord.localRelativePath(cacheKey: cacheKey)
+        let fileURL = url(relative)
+        guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
+        try? FileManager.default.removeItem(at: fileURL)
+    }
+
+    static func validatePNG(at fileURL: URL) -> Bool {
+        let path = fileURL.path
+        guard FileManager.default.fileExists(atPath: path) else { return false }
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: path),
+              let byteCount = attrs[.size] as? Int,
+              byteCount > 128 else { return false }
+        guard let data = try? Data(contentsOf: fileURL),
+              data.count > 128,
+              data.starts(with: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]),
+              let image = UIImage(data: data)?.cgImage,
+              image.width > 8,
+              image.height > 8,
+              TryOnBitmap.rgba(from: image) != nil else { return false }
+        return true
+    }
+
+    func saveAlignedOutfitCache(_ image: CGImage, cacheKey: String) throws -> String {
+        let relative = OutfitCompositeRecord.localRelativePath(cacheKey: cacheKey)
         _ = try write(image, relative)
         return relative
     }

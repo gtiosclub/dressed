@@ -29,6 +29,31 @@ service cloud.firestore {
         && row.updatedAt is timestamp;
     }
 
+    function validOutfitComposite(uid, cacheKey) {
+      let row = request.resource.data;
+      return row.keys().hasAll(['id', 'cacheKey', 'ownerId', 'garmentIds', 'avatarVersion', 'processingVersion', 'status', 'updatedAt'])
+        && row.id == cacheKey && row.cacheKey == cacheKey && row.ownerId == uid
+        && row.garmentIds is list && row.garmentIds.size() > 0 && row.garmentIds.size() <= 20
+        && row.avatarVersion is int
+        && row.processingVersion is int
+        && row.status in ['queued', 'preparing', 'fitting', 'segmenting', 'validating', 'ready', 'retrying', 'needs_review', 'failed']
+        && row.updatedAt is timestamp
+        && (!('storagePath' in row) || row.storagePath == null
+          || (row.storagePath is string
+            && row.storagePath == 'users/' + uid + '/outfits/' + cacheKey + '.png'));
+    }
+
+    function validOutfitCacheIndex(uid, docId) {
+      let row = request.resource.data;
+      return docId == 'index'
+        && row.keys().hasAll(['id', 'schemaVersion', 'ownerId', 'cachedKeys', 'updatedAt'])
+        && row.id == 'index'
+        && row.schemaVersion == 1
+        && row.ownerId == uid
+        && row.cachedKeys is list && row.cachedKeys.size() <= 500
+        && row.updatedAt is timestamp;
+    }
+
     function validOutfit(uid, outfitId) {
       let outfit = request.resource.data;
       return outfit.keys().hasAll(['id', 'schemaVersion', 'ownerId', 'placementSchemaVersion', 'placements', 'createdAt', 'updatedAt'])
@@ -212,6 +237,19 @@ service cloud.firestore {
       allow get, list: if owns(uid);
       allow create: if owns(uid) && validGarmentBodyPart(uid, itemId);
       allow update: if owns(uid) && validGarmentBodyPart(uid, itemId);
+      allow delete: if owns(uid);
+    }
+
+    match /users/{uid}/outfitComposites/{cacheKey} {
+      allow get, list: if owns(uid);
+      allow create: if owns(uid) && validOutfitComposite(uid, cacheKey);
+      allow update: if owns(uid) && validOutfitComposite(uid, cacheKey);
+      allow delete: if owns(uid);
+    }
+
+    match /users/{uid}/outfitCacheIndex/{docId} {
+      allow get, list: if owns(uid);
+      allow create, update: if owns(uid) && validOutfitCacheIndex(uid, docId);
       allow delete: if owns(uid);
     }
 

@@ -32,6 +32,11 @@ final class TryOnEditorModel {
     /// Bumped when a fit starts and again when it finishes. A progress update from
     /// "Segmenting and validating" that lands after the job ends is ignored.
     private var activityGeneration = 0
+    private var outfitCompositeReconcileTask: Task<Void, Never>?
+    private var outfitCompositeRefreshInFlight = false
+    private var outfitCompositeRefreshReschedule = false
+    /// Worn+avatar signature where aligned composite failed; overlays are shown until the outfit changes.
+    private var outfitCompositeOverlayFallbackKey: String?
 
     init(ownerId: String) {
         let library = TryOnLibrary(ownerId: ownerId)
@@ -82,6 +87,9 @@ final class TryOnEditorModel {
         }
         guard !slotGarmentIDs.isEmpty else { return true }
         if TryOnAPIKey.isConfigured {
+            let cacheKey = alignedOutfitCacheKey(for: draft) ?? ""
+            if !cacheKey.isEmpty, outfitCompositeOverlayFallbackKey == cacheKey { return true }
+            if awaitingOutfitComposite || outfitCompositeRefreshInFlight { return false }
             return draft.alignedOutfitFittingActive
         }
         if TryOnVersions.bodyPartTileCompositingEnabled {
@@ -159,13 +167,18 @@ final class TryOnEditorModel {
     }
 
     func awaitBodyPartCompositeIdle() async {
-        reconcileOutfitCompositeIfNeeded()
+        outfitCompositeReconcileTask?.cancel()
+        outfitCompositeReconcileTask = nil
+        reconcileOutfitCompositeNow()
         var spins = 0
-        while awaitingOutfitComposite || isBusy {
+        while awaitingOutfitComposite || outfitCompositeRefreshInFlight || isBusy {
             await Task.yield()
             try? await Task.sleep(for: .milliseconds(40))
             spins += 1
-            if spins > 500 { break }
+            if spins > 500 {
+                awaitingOutfitComposite = false
+                break
+            }
         }
     }
 
@@ -688,7 +701,7 @@ final class TryOnEditorModel {
             textureEpoch += 1
             return
         }
-        showActivity("Compositing body-region fits", generation: generation)
+        showActivity("Compositing body-region outfit tiles", generation: generation)
         guard let composite = TryOnBitmap.compositeBodyPartLayers(
             base: skinBase,
             landmarks: landmarks,
@@ -763,14 +776,37 @@ final class TryOnEditorModel {
     }
 
     func reconcileOutfitCompositeIfNeeded() {
-        guard let draft, let avatar else { return }
-        let visibleWorn = draft.selectedGarmentIDs.filter { id in
+        outfitCompositeReconcileTask?.cancel()
+        outfitCompositeReconcileTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(120))
+            guard !Task.isCancelled else { return }
+            reconcileOutfitCompositeNow()
+        }
+    }
+
+    private func visibleAlignedGarmentIDs(for draft: TryOnOutfit) -> [String] {
+        draft.selectedGarmentIDs.filter { id in
             guard draft.placement(for: id).visible,
                   let garment = garments.first(where: { $0.id == id }),
-                  garment.status == .ready || garment.status == .needsReview else { return false }
+                  garment.status == .ready || garment.status == .needsReview,
+                  let category = ClothingCategory(rawValue: garment.sourceCategory),
+                  TryOnBodySlot.slot(for: category) != nil else { return false }
             return true
         }
+    }
+
+    private func alignedOutfitCacheKey(for draft: TryOnOutfit) -> String? {
+        guard let avatar else { return nil }
+        let visible = visibleAlignedGarmentIDs(for: draft)
+        guard !visible.isEmpty else { return nil }
+        return OutfitCompositeRecord.cacheKey(garmentIds: visible, avatarVersion: avatar.version)
+    }
+
+    private func reconcileOutfitCompositeNow() {
+        guard var draft, let avatar else { return }
+        let visibleWorn = visibleAlignedGarmentIDs(for: draft)
         if visibleWorn.isEmpty {
+            outfitCompositeOverlayFallbackKey = nil
             if draft.compositeImagePath != nil {
                 var cleared = draft
                 cleared.compositeImagePath = nil
@@ -785,22 +821,77 @@ final class TryOnEditorModel {
         if TryOnAPIKey.isConfigured {
             let baked = Set(draft.compositeBakedGarmentIDs ?? [])
             let wornSet = Set(visibleWorn)
+            let cacheKey = OutfitCompositeRecord.cacheKey(
+                garmentIds: visibleWorn,
+                avatarVersion: avatar.version
+            )
+            if outfitCompositeOverlayFallbackKey != nil, outfitCompositeOverlayFallbackKey != cacheKey {
+                outfitCompositeOverlayFallbackKey = nil
+            }
+            let l1Relative = OutfitCompositeRecord.localRelativePath(cacheKey: cacheKey)
+            let l1URL = root.appendingPathComponent(l1Relative)
+            if FileManager.default.fileExists(atPath: l1URL.path) {
+                if TryOnLibrary.validatePNG(at: l1URL) {
+                    outfitCompositeOverlayFallbackKey = nil
+                    if baked != wornSet
+                        || draft.compositeProcessingVersion != TryOnVersions.alignedOutfitProcessing
+                        || draft.compositeImagePath != l1Relative
+                        || !draft.alignedOutfitFittingActive {
+                        var updated = draft
+                        updated.compositeImagePath = l1Relative
+                        updated.compositeBakedGarmentIDs = visibleWorn
+                        updated.compositeProcessingVersion = TryOnVersions.alignedOutfitProcessing
+                        updated.revision += 1
+                        updated.updatedAt = Date()
+                        self.draft = updated
+                        persistDraft()
+                        textureEpoch += 1
+                        #if DEBUG
+                        NSLog(
+                            "[TryOn] composite saved path=%@ active=%@",
+                            l1Relative,
+                            updated.alignedOutfitFittingActive ? "yes" : "no"
+                        )
+                        #endif
+                    }
+                    return
+                }
+                #if DEBUG
+                NSLog("[TryOn] L1 outfit composite invalid, deleting and regenerating cacheKey=%@", cacheKey)
+                #endif
+                try? FileManager.default.removeItem(at: l1URL)
+                if draft.alignedOutfitFittingActive || draft.compositeImagePath == l1Relative {
+                    var cleared = draft
+                    cleared.compositeImagePath = nil
+                    cleared.compositeBakedGarmentIDs = nil
+                    cleared.compositeProcessingVersion = nil
+                    self.draft = cleared
+                    persistDraft()
+                    textureEpoch += 1
+                }
+            }
+            if let activePath = draft.compositeImagePath,
+               draft.compositeProcessingVersion == TryOnVersions.alignedOutfitProcessing,
+               !TryOnLibrary.validatePNG(at: root.appendingPathComponent(activePath)) {
+                var cleared = draft
+                cleared.compositeImagePath = nil
+                cleared.compositeBakedGarmentIDs = nil
+                cleared.compositeProcessingVersion = nil
+                self.draft = cleared
+                persistDraft()
+                textureEpoch += 1
+                draft = cleared
+            }
+            if outfitCompositeOverlayFallbackKey == cacheKey {
+                return
+            }
             let staleBodyPart = draft.compositeProcessingVersion == TryOnVersions.bodyPartProcessing
             let needsRefresh = staleBodyPart
                 || draft.compositeProcessingVersion != TryOnVersions.alignedOutfitProcessing
                 || !draft.alignedOutfitFittingActive
                 || baked != wornSet
             guard needsRefresh else { return }
-            awaitingOutfitComposite = true
-            textureEpoch += 1
-            run("Rendering aligned outfit") { model in
-                let generation = model.activityGeneration
-                defer {
-                    model.awaitingOutfitComposite = false
-                    model.textureEpoch += 1
-                }
-                try await model.refreshAlignedOutfitComposite(generation: generation)
-            }
+            scheduleAlignedOutfitCompositeRefresh()
             return
         }
         if TryOnVersions.bodyPartTileCompositingEnabled {
@@ -836,13 +927,50 @@ final class TryOnEditorModel {
             || !draft.bodyPartFittingActive
             || baked != wornSet
         guard needsRefresh else { return }
+        scheduleBodyPartTileCompositeRefresh()
+    }
+
+    private func scheduleAlignedOutfitCompositeRefresh() {
+        guard !outfitCompositeRefreshInFlight else {
+            outfitCompositeRefreshReschedule = true
+            return
+        }
+        outfitCompositeRefreshInFlight = true
         awaitingOutfitComposite = true
         textureEpoch += 1
-        run("Recompositing body-region fits") { model in
+        run("Rendering aligned outfit") { model in
             let generation = model.activityGeneration
             defer {
                 model.awaitingOutfitComposite = false
+                model.outfitCompositeRefreshInFlight = false
                 model.textureEpoch += 1
+                if model.outfitCompositeRefreshReschedule {
+                    model.outfitCompositeRefreshReschedule = false
+                    model.reconcileOutfitCompositeNow()
+                }
+            }
+            try await model.refreshAlignedOutfitComposite(generation: generation)
+        }
+    }
+
+    private func scheduleBodyPartTileCompositeRefresh() {
+        guard !outfitCompositeRefreshInFlight else {
+            outfitCompositeRefreshReschedule = true
+            return
+        }
+        outfitCompositeRefreshInFlight = true
+        awaitingOutfitComposite = true
+        textureEpoch += 1
+        run("Compositing body-region outfit") { model in
+            let generation = model.activityGeneration
+            defer {
+                model.awaitingOutfitComposite = false
+                model.outfitCompositeRefreshInFlight = false
+                model.textureEpoch += 1
+                if model.outfitCompositeRefreshReschedule {
+                    model.outfitCompositeRefreshReschedule = false
+                    model.reconcileOutfitCompositeNow()
+                }
             }
             try await model.refreshBodyPartComposite(generation: generation)
         }
@@ -863,9 +991,63 @@ final class TryOnEditorModel {
             textureEpoch += 1
             return
         }
-        let key = try key()
+        let cacheKey = OutfitCompositeRecord.cacheKey(
+            garmentIds: wornReady,
+            avatarVersion: avatar.version
+        )
+        let wornSet = Set(wornReady)
+
+        if await library.alignedOutfitCacheExists(cacheKey) {
+            if await library.alignedOutfitCacheIsValid(cacheKey) {
+                let relative = await library.alignedOutfitCacheRelativePath(cacheKey)
+                applyAlignedOutfitComposite(relative: relative, wornReady: wornReady, draft: &draft)
+                self.draft = draft
+                persistDraft()
+                textureEpoch += 1
+                return
+            }
+            await library.deleteAlignedOutfitCache(cacheKey: cacheKey)
+            #if DEBUG
+            NSLog("[TryOn] local aligned outfit cache invalid; will regenerate cacheKey=%@", cacheKey)
+            #endif
+        }
+
+        if OutfitCompositeFunctions.isOwnerSignedIn(ownerId) {
+            showActivity("Loading cached aligned outfit", generation: generation)
+            do {
+                if let remote = try await OutfitCompositeFunctions.downloadMetadata(ownerId: ownerId, cacheKey: cacheKey),
+                   remote.processingVersion == TryOnVersions.alignedOutfitProcessing,
+                   remote.avatarVersion == avatar.version,
+                   Set(remote.garmentIds) == wornSet,
+                   remote.status == .ready,
+                   let storagePath = remote.storagePath {
+                    let pngData = try await OutfitCompositeFunctions.downloadPNG(storagePath: storagePath)
+                    guard pngData.count > 128,
+                          pngData.starts(with: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]),
+                          let image = UIImage(data: pngData)?.cgImage,
+                          image.width > 8,
+                          image.height > 8,
+                          TryOnBitmap.rgba(from: image) != nil else {
+                        throw TryOnStoreError.unreadableImage
+                    }
+                    let relative = try await library.saveAlignedOutfitCache(image, cacheKey: cacheKey)
+                    applyAlignedOutfitComposite(relative: relative, wornReady: wornReady, draft: &draft)
+                    self.draft = draft
+                    persistDraft()
+                    textureEpoch += 1
+                    return
+                }
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                logCompositeError(error, context: "remote aligned outfit cache")
+                message = "Cached outfit unavailable; rendering on device."
+            }
+        }
+
         showActivity("Rendering aligned outfit on avatar", generation: generation)
         do {
+            let key = try key()
             let composite = try await pipeline.composeAlignedOutfit(
                 avatar: avatar,
                 outfit: draft,
@@ -874,26 +1056,111 @@ final class TryOnEditorModel {
             ) { text in
                 self.showActivity(text, generation: generation)
             }
-            let relative = try await library.saveOutfitComposite(composite, outfitID: draft.id)
-            draft.compositeImagePath = relative
-            draft.compositeProcessingVersion = TryOnVersions.alignedOutfitProcessing
-            draft.compositeBakedGarmentIDs = wornReady
-            draft.revision += 1
-            draft.updatedAt = Date()
+            let relative = try await library.saveAlignedOutfitCache(composite, cacheKey: cacheKey)
+            applyAlignedOutfitComposite(relative: relative, wornReady: wornReady, draft: &draft)
+            if let pngData = TryOnBitmap.pngData(from: composite),
+               OutfitCompositeFunctions.isOwnerSignedIn(ownerId) {
+                let storagePath = OutfitCompositeRecord.storagePath(ownerId: ownerId, cacheKey: cacheKey)
+                let record = OutfitCompositeRecord(
+                    id: cacheKey,
+                    cacheKey: cacheKey,
+                    ownerId: ownerId,
+                    garmentIds: wornReady.sorted(),
+                    avatarId: avatar.id,
+                    avatarVersion: avatar.version,
+                    processingVersion: TryOnVersions.alignedOutfitProcessing,
+                    storagePath: storagePath,
+                    status: .ready,
+                    createdAt: Date(),
+                    updatedAt: Date()
+                )
+                await OutfitCompositeFunctions.upload(record: record, pngData: pngData)
+            }
             self.draft = draft
             persistDraft()
             textureEpoch += 1
         } catch is CancellationError {
             throw CancellationError()
         } catch {
-            showActivity("Aligned outfit unavailable, using garment overlays", generation: generation)
+            let userMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            abandonAlignedOutfitComposite(
+                cacheKey: cacheKey,
+                draft: &draft,
+                generation: generation,
+                error: error,
+                userMessage: userMessage.isEmpty ? "Aligned outfit unavailable." : userMessage
+            )
+        }
+    }
+
+    private func abandonAlignedOutfitComposite(
+        cacheKey: String,
+        draft: inout TryOnOutfit,
+        generation: Int,
+        error: Error?,
+        userMessage: String
+    ) {
+        if let error {
+            logCompositeError(error, context: "aligned outfit composite")
+        }
+        outfitCompositeOverlayFallbackKey = cacheKey
+        showActivity("Using garment overlays", generation: generation)
+        message = userMessage
+        draft.compositeImagePath = nil
+        draft.compositeBakedGarmentIDs = nil
+        draft.compositeProcessingVersion = nil
+        self.draft = draft
+        persistDraft()
+        textureEpoch += 1
+    }
+
+    private func logCompositeError(_ error: Error, context: String) {
+        #if DEBUG
+        let ns = error as NSError
+        NSLog(
+            "[TryOn] %@ failed: %@ (domain=%@ code=%ld)",
+            context,
+            ns.localizedDescription,
+            ns.domain,
+            ns.code
+        )
+        #endif
+    }
+
+    private func applyAlignedOutfitComposite(
+        relative: String,
+        wornReady: [String],
+        draft: inout TryOnOutfit
+    ) {
+        let fileURL = root.appendingPathComponent(relative)
+        guard TryOnLibrary.validatePNG(at: fileURL) else {
+            #if DEBUG
+            NSLog("[TryOn] refusing invalid composite path=%@", relative)
+            #endif
+            outfitCompositeOverlayFallbackKey = OutfitCompositeRecord.cacheKey(
+                garmentIds: wornReady,
+                avatarVersion: avatar?.version ?? 0
+            )
+            message = "Saved outfit image was corrupt; using garment overlays."
             draft.compositeImagePath = nil
             draft.compositeBakedGarmentIDs = nil
             draft.compositeProcessingVersion = nil
-            self.draft = draft
-            persistDraft()
-            textureEpoch += 1
+            return
         }
+        outfitCompositeOverlayFallbackKey = nil
+        draft.compositeImagePath = relative
+        draft.compositeProcessingVersion = TryOnVersions.alignedOutfitProcessing
+        draft.compositeBakedGarmentIDs = wornReady
+        draft.revision += 1
+        draft.updatedAt = Date()
+        #if DEBUG
+        NSLog(
+            "[TryOn] composite saved path=%@ active=%@ display=%@",
+            relative,
+            draft.alignedOutfitFittingActive ? "yes" : "no",
+            draft.compositeDisplayActive ? "yes" : "no"
+        )
+        #endif
     }
 
     private func invalidateComposite(_ draft: inout TryOnOutfit, removedGarmentID: String) {
@@ -927,6 +1194,15 @@ final class TryOnEditorModel {
                     break
                 } catch {
                     message = error.localizedDescription
+                    #if DEBUG
+                    let ns = error as NSError
+                    NSLog(
+                        "[TryOn] job failed: %@ (domain=%@ code=%ld)",
+                        ns.localizedDescription,
+                        ns.domain,
+                        ns.code
+                    )
+                    #endif
                 }
             }
             if activityGeneration == generation {

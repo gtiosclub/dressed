@@ -7,6 +7,7 @@ These are contract templates, not deployed collections, security rules, services
 | Record | Proposed location | Primary contract owner | Access intent |
 | --- | --- | --- | --- |
 | UserProfile | users/{uid} | social | Signed-in community; owner writes |
+| OutfitComposite (try-on cache) | users/{uid}/outfitComposites/{cacheKey} | viz | Owner only; see [outfit-composite.md](outfit-composite.md) |
 | ClothingItem | users/{uid}/items/{id} | data | Owner only |
 | ImportDraft | App Group/local draft store | data | Auth-bound, expires, never published |
 | Outfit | users/{uid}/outfits/{id} | viz | Owner only; data implements persistence |

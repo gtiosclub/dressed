@@ -35,5 +35,4 @@ wears a combination (cache key: sorted worn IDs + avatar version).
 
 Optional server batch: Firebase Function `onClosetItemWritten` (template in
 `backend/functions/`) may regenerate up to **N** outfits involving a new piece — a separate
-lead milestone. Optional Firestore collection: `users/{ownerId}/outfitComposites/{hash}` with
-`storagePath`, `bakedGarmentIDs`, `processingVersion`.
+lead milestone. Aligned outfit combination cache is specified in [outfit-composite.md](outfit-composite.md).
