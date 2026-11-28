@@ -26,3 +26,14 @@ Version fields on `GarmentBodyPartRecord`: `generationVersion`, `promptVersion`,
 1. After `PrototypeClosetStore.save` (new or replaced piece).
 2. On closet `reload()` when cached layers are missing or version-stale.
 3. On Avatar Studio `.task` after the try-on editor attaches (full closet backfill with photos).
+
+## Outfit composites (not per-item factorial)
+
+Full **outfit** images (all worn slots aligned on the avatar) are **not** generated for every
+closet upload on device. The client calls `refreshAlignedOutfitComposite` lazily when the user
+wears a combination (cache key: sorted worn IDs + avatar version).
+
+Optional server batch: Firebase Function `onClosetItemWritten` (template in
+`backend/functions/`) may regenerate up to **N** outfits involving a new piece — a separate
+lead milestone. Optional Firestore collection: `users/{ownerId}/outfitComposites/{hash}` with
+`storagePath`, `bakedGarmentIDs`, `processingVersion`.

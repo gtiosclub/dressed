@@ -61,13 +61,17 @@ enum TryOnJobStatus: String, Codable, Equatable {
 enum TryOnVersions {
     static let style = "closet-tryon-1"
     static let prompt = "prompt-v4"
-    static let bodyPartPrompt = "body-part-prompt-v1"
-    static let bodyPartGeneration = "body-part-v1"
+    static let bodyPartPrompt = "body-part-prompt-v2"
+    static let bodyPartGeneration = "body-part-v2"
     static let poseSet = "poses-v1"
     static let provider = "gpt-image-2.5-sunburst"
     static let processing = 8
     /// Outfit composite baked from per-item body-part layers instead of overlay fitting.
-    static let bodyPartProcessing = 13
+    static let bodyPartProcessing = 14
+    /// Single OpenAI image for the full worn outfit aligned to the avatar (preferred display path).
+    static let alignedOutfitProcessing = 15
+    /// When false, body-part PNGs are references only — not stacked or skin-slot baked for display.
+    static let bodyPartTileCompositingEnabled = false
     static let maxLocalDisplacement = 0.02
 }
 
@@ -450,7 +454,8 @@ struct TryOnOutfit: Codable, Equatable, Identifiable {
     var compositeDisplayActive: Bool {
         guard compositeImagePath != nil else { return false }
         guard compositeProcessingVersion == TryOnVersions.processing
-            || compositeProcessingVersion == TryOnVersions.bodyPartProcessing else { return false }
+            || compositeProcessingVersion == TryOnVersions.bodyPartProcessing
+            || compositeProcessingVersion == TryOnVersions.alignedOutfitProcessing else { return false }
         let baked = Set(compositeBakedGarmentIDs ?? [])
         let worn = Set(selectedGarmentIDs)
         return !baked.isEmpty && baked.isSubset(of: worn)
@@ -458,6 +463,10 @@ struct TryOnOutfit: Codable, Equatable, Identifiable {
 
     var bodyPartFittingActive: Bool {
         compositeDisplayActive && compositeProcessingVersion == TryOnVersions.bodyPartProcessing
+    }
+
+    var alignedOutfitFittingActive: Bool {
+        compositeDisplayActive && compositeProcessingVersion == TryOnVersions.alignedOutfitProcessing
     }
 }
 

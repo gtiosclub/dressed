@@ -24,6 +24,7 @@ struct FullScreenTryOnView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var selectedZone: Zone?
+    @State private var bodyPartRefreshComplete = false
 
     /// Widest the figure gets is about 0.38 units (hands out to the sides, wide skirt hems); the view
     /// is 1/0.95 units tall. 0.40 leaves a little margin on top of that.
@@ -108,10 +109,11 @@ struct FullScreenTryOnView: View {
                 }
             }
             .overlay(alignment: .topLeading) { closeButton }
+            .overlay(alignment: .bottom) { bodyPartStatusBanner }
             .animation(.snappy, value: selectedZone)
-            .onAppear(perform: refreshTryOnForFullScreen)
-            .onChange(of: wornSignature) { _, _ in
-                refreshTryOnForFullScreen()
+            .task(id: wornSignature) {
+                bodyPartRefreshComplete = false
+                await refreshTryOnForFullScreen()
             }
     }
 
@@ -122,20 +124,39 @@ struct FullScreenTryOnView: View {
             .joined(separator: "|")
     }
 
-    /// Matches studio try-on: sync worn slots, rebake the v13 composite, and backfill body-part fits.
-    private func refreshTryOnForFullScreen() {
+    /// Matches studio try-on: sync worn slots, hydrate body-part refs, render one aligned outfit composite, then draw.
+    private func refreshTryOnForFullScreen() async {
         let photos = Dictionary(
             uniqueKeysWithValues: items.compactMap { item -> (String, UIImage)? in
                 guard let photo = photo(for: item) else { return nil }
                 return (item.id, photo)
             }
         )
-        GarmentBodyPartCoordinator.shared(for: tryOn.closetOwnerId).backfill(items: items, photos: photos)
+        let coordinator = GarmentBodyPartCoordinator.shared(for: tryOn.closetOwnerId)
+        coordinator.registerCachedBodyParts(items: items, tryOn: tryOn)
+        coordinator.backfill(items: items, photos: photos)
+        await tryOn.hydrateWornBodyPartsFromCache(worn: model.worn)
         tryOn.syncWornItems(
             worn: model.worn,
             uiImage: { photo(for: $0) ?? uiImage?($0) },
             avatarSource: TryOnBitmap.neutralFigure()
         )
+        await tryOn.awaitBodyPartCompositeIdle()
+        bodyPartRefreshComplete = true
+    }
+
+    @ViewBuilder
+    private var bodyPartStatusBanner: some View {
+        if bodyPartRefreshComplete, !tryOn.isBusy, !tryOn.wornBodyPartCompositeReady {
+            Text("Outfit render not ready")
+                .font(.caption.weight(.semibold))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(.thinMaterial, in: Capsule())
+                .padding(.bottom, 12)
+                .accessibilityIdentifier("tryon.body-part-not-ready")
+        }
     }
 
     private var closeButton: some View {

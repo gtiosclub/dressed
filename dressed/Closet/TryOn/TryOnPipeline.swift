@@ -434,6 +434,61 @@ actor TryOnPipeline {
         TryOnBitmap.compositeLayers(base: base, overlays: parts)
     }
 
+    /// One images-API call: avatar plus worn-item sources → full-body dressed figure.
+    func composeAlignedOutfit(
+        avatar: TryOnAvatar,
+        outfit: TryOnOutfit,
+        garments: [TryOnGarmentAsset],
+        key: String,
+        progress: @escaping (String) -> Void
+    ) async throws -> CGImage {
+        guard let avatarImage = await image(at: avatar.canonicalImagePath) else {
+            throw TryOnImageError.emptyImage
+        }
+        struct WornPiece {
+            var slot: TryOnBodySlot
+            var category: ClothingCategory
+            var label: String
+            var garment: TryOnGarmentAsset
+        }
+        var worn: [WornPiece] = []
+        for id in outfit.selectedGarmentIDs.sorted() {
+            guard outfit.placement(for: id).visible,
+                  let garment = garments.first(where: { $0.id == id }),
+                  garment.status == .ready || garment.status == .needsReview,
+                  let category = ClothingCategory(rawValue: garment.sourceCategory),
+                  let slot = TryOnBodySlot.slot(for: category) else { continue }
+            worn.append(WornPiece(
+                slot: slot,
+                category: category,
+                label: category.rawValue.capitalized,
+                garment: garment
+            ))
+        }
+        guard !worn.isEmpty else { throw TryOnImageError.emptyImage }
+        progress("Rendering full outfit on avatar")
+        var payloads = [try png(avatarImage)]
+        for piece in worn where payloads.count < 4 {
+            if let original = await image(at: piece.garment.originalImagePath) {
+                payloads.append(try png(original))
+            } else if let bodyPartPath = piece.garment.bodyPartImagePath,
+                      let bodyPart = await image(at: bodyPartPath) {
+                payloads.append(try png(bodyPart))
+            } else if let fittedPath = piece.garment.fittedReferencePath,
+                      let fitted = await image(at: fittedPath) {
+                payloads.append(try png(fitted))
+            }
+        }
+        let promptPieces = worn.map { (slot: $0.slot, category: $0.category, label: $0.label) }
+        let prompt = TryOnPrompts.alignedOutfit(worn: promptPieces, avatarVersion: avatar.version)
+        let generated = try await generatedImage(key: key, prompt: prompt, images: payloads, quality: "high")
+        let keyed = TryOnBitmap.keyedIfNeeded(generated).image
+        guard TryOnBitmap.stats(of: keyed)?.opaqueFraction ?? 0 > 0.08 else {
+            throw TryOnImageError.provider("The aligned outfit image came back nearly empty.")
+        }
+        return keyed
+    }
+
     private func aiFittedGarment(
         item: ClothingItem,
         template: TryOnTemplateID,

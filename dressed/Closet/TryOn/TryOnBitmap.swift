@@ -171,13 +171,47 @@ enum TryOnBitmap {
         }.cgImage
     }
 
-    /// Composites body-part layers into one figure frame using avatar landmark slots.
+    /// Transparent skin plate for body-part baking: avatar body with all garment slots cleared.
+    /// Arms and hair are drawn separately in the render graph; never bake legacy garment PNGs here.
+    static func skinOnlyBodyPartBase(
+        avatarBody: CGImage,
+        landmarks: TryOnLandmarks,
+        canvas: TryOnCanvas = .canonical
+    ) -> CGImage? {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = false
+        let size = CGSize(width: canvas.width, height: canvas.height)
+        return UIGraphicsImageRenderer(size: size, format: format).image { context in
+            if let baseImage = placed(avatarBody, canvas: canvas) {
+                UIImage(cgImage: baseImage).draw(in: CGRect(origin: .zero, size: size))
+            }
+            let cg = context.cgContext
+            for slot in TryOnBodySlot.allCases {
+                let frame = slot.figureFrame(landmarks: landmarks)
+                let slotRect = CGRect(
+                    x: frame.x * size.width,
+                    y: frame.y * size.height,
+                    width: frame.width * size.width,
+                    height: frame.height * size.height
+                )
+                cg.saveGState()
+                cg.setBlendMode(.clear)
+                cg.fill(slotRect)
+                cg.restoreGState()
+            }
+        }.cgImage
+    }
+
+    /// Composites body-part PNGs onto a skin-only base; does not draw garment overlay assets.
     static func compositeBodyPartLayers(
         base: CGImage,
         landmarks: TryOnLandmarks,
         layers: [BodyPartLayer],
-        canvas: TryOnCanvas = .canonical
+        canvas: TryOnCanvas = .canonical,
+        clearSlotsBeforePaint: Bool = true
     ) -> CGImage? {
+        guard !layers.isEmpty else { return nil }
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         format.opaque = false
@@ -190,18 +224,20 @@ enum TryOnBitmap {
                 UIImage(cgImage: baseImage).draw(in: CGRect(origin: .zero, size: size))
             }
             let cg = context.cgContext
-            for layer in ordered {
-                let frame = layer.slot.figureFrame(landmarks: landmarks)
-                let slotRect = CGRect(
-                    x: frame.x * size.width,
-                    y: frame.y * size.height,
-                    width: frame.width * size.width,
-                    height: frame.height * size.height
-                )
-                cg.saveGState()
-                cg.setBlendMode(.clear)
-                cg.fill(slotRect)
-                cg.restoreGState()
+            if clearSlotsBeforePaint {
+                for layer in ordered {
+                    let frame = layer.slot.figureFrame(landmarks: landmarks)
+                    let slotRect = CGRect(
+                        x: frame.x * size.width,
+                        y: frame.y * size.height,
+                        width: frame.width * size.width,
+                        height: frame.height * size.height
+                    )
+                    cg.saveGState()
+                    cg.setBlendMode(.clear)
+                    cg.fill(slotRect)
+                    cg.restoreGState()
+                }
             }
             for layer in ordered {
                 guard let normalized = bodyPartLayerOnCanvas(

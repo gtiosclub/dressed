@@ -26,6 +26,9 @@ final class TryOnEditorModel {
     private var jobs: [(String, (TryOnEditorModel) async throws -> Void)] = []
     private var draining = false
     private var pendingFits: Set<String> = []
+    /// True while an outfit composite render is queued or running; suppresses duplicate overlays in the render graph.
+    private(set) var awaitingOutfitComposite = false
+    var awaitingBodyPartComposite: Bool { awaitingOutfitComposite }
     /// Bumped when a fit starts and again when it finishes. A progress update from
     /// "Segmenting and validating" that lands after the job ends is ignored.
     private var activityGeneration = 0
@@ -42,17 +45,50 @@ final class TryOnEditorModel {
     var closetOwnerId: String { ownerId }
 
     var scene: TryOnScene {
-        TryOnRenderGraph.scene(
+        let wornBodyPartCount = draft?.selectedGarmentIDs.filter { id in
+            garments.contains {
+                $0.id == id
+                    && $0.bodyPartImagePath != nil
+                    && $0.bodyPartGenerationVersion == TryOnVersions.bodyPartGeneration
+            }
+        }.count ?? 0
+        let suppressOverlays = awaitingOutfitComposite
+            || draft?.alignedOutfitFittingActive == true
+            || (TryOnVersions.bodyPartTileCompositingEnabled && (
+                wornBodyPartCount > 0 || hasCachedBodyPartRecords(for: draft?.selectedGarmentIDs ?? [])
+            ))
+        return TryOnRenderGraph.scene(
             avatar: avatar,
             garments: garments,
             outfit: draft,
             meshes: meshes,
             root: root,
-            textureEpoch: textureEpoch
+            textureEpoch: textureEpoch,
+            suppressGarmentOverlays: suppressOverlays
         )
     }
 
     var isBusy: Bool { activity != nil }
+
+    /// False when a worn outfit still needs the aligned AI composite (OpenAI key required).
+    var wornBodyPartCompositeReady: Bool {
+        guard let draft, avatar != nil else { return true }
+        let slotGarmentIDs = draft.selectedGarmentIDs.filter { id in
+            guard let garment = garments.first(where: { $0.id == id }),
+                  draft.placement(for: id).visible,
+                  let category = ClothingCategory(rawValue: garment.sourceCategory),
+                  TryOnBodySlot.slot(for: category) != nil else { return false }
+            return true
+        }
+        guard !slotGarmentIDs.isEmpty else { return true }
+        if TryOnAPIKey.isConfigured {
+            return draft.alignedOutfitFittingActive
+        }
+        if TryOnVersions.bodyPartTileCompositingEnabled {
+            return draft.bodyPartFittingActive
+        }
+        return true
+    }
 
     func reload() async {
         let snapshot = await library.snapshot()
@@ -69,7 +105,7 @@ final class TryOnEditorModel {
         }
         if draft?.avatarID != avatar?.id { draft = nil }
         ensureDraft()
-        reconcileBodyPartCompositeIfNeeded()
+        reconcileOutfitCompositeIfNeeded()
         textureEpoch += 1
     }
 
@@ -92,6 +128,45 @@ final class TryOnEditorModel {
             return true
         }
         return asset.processingVersion >= TryOnVersions.processing
+    }
+
+    private func hasCachedBodyPartRecords(for garmentIDs: [String]) -> Bool {
+        garmentIDs.contains { id in
+            guard let record = bodyPartStore.record(for: id) else { return false }
+            return bodyPartStore.isCurrent(record) && bodyPartStore.image(for: record) != nil
+        }
+    }
+
+    /// Copies on-disk body-part PNGs onto try-on garment assets for worn slots (no OpenAI required).
+    func hydrateWornBodyPartsFromCache(worn: [ClothingCategory: ClothingItem]) async {
+        guard avatar != nil else { return }
+        let generation = activityGeneration
+        for item in worn.values {
+            guard let record = bodyPartStore.record(for: item.id), bodyPartStore.isCurrent(record),
+                  let template = TryOnTemplateID.suggested(for: item.category) else { continue }
+            if let asset = asset(for: item.id),
+               asset.bodyPartImagePath != nil,
+               asset.bodyPartGenerationVersion == TryOnVersions.bodyPartGeneration {
+                continue
+            }
+            try? await applyBodyPartFit(
+                item: item,
+                record: record,
+                template: template,
+                generation: generation
+            )
+        }
+    }
+
+    func awaitBodyPartCompositeIdle() async {
+        reconcileOutfitCompositeIfNeeded()
+        var spins = 0
+        while awaitingOutfitComposite || isBusy {
+            await Task.yield()
+            try? await Task.sleep(for: .milliseconds(40))
+            spins += 1
+            if spins > 500 { break }
+        }
     }
 
     /// Keeps worn slots, body-part assets, and the baked composite aligned with the studio picker.
@@ -122,7 +197,7 @@ final class TryOnEditorModel {
                 avatarSource: avatarSource
             )
         }
-        reconcileBodyPartCompositeIfNeeded()
+        reconcileOutfitCompositeIfNeeded()
     }
 
     func wearFromCloset(item: ClothingItem, template: TryOnTemplateID, image: UIImage, avatarSource: UIImage) {
@@ -148,6 +223,7 @@ final class TryOnEditorModel {
                     template: template,
                     generation: generation
                 )
+                model.reconcileOutfitCompositeIfNeeded()
                 return
             }
             if let existing = model.asset(for: item.id), model.matchesAvatar(existing),
@@ -155,24 +231,14 @@ final class TryOnEditorModel {
                existing.bodyPartGenerationVersion == TryOnVersions.bodyPartGeneration {
                 model.showActivity("Using saved body-region fit", generation: generation)
                 model.setWorn(existing, category: item.category, on: true)
-                try await model.refreshBodyPartComposite(generation: generation)
+                model.reconcileOutfitCompositeIfNeeded()
                 return
             }
             if let existing = model.asset(for: item.id), model.matchesAvatar(existing) {
                 if existing.processingVersion >= TryOnVersions.processing {
                     model.showActivity("Using saved fit", generation: generation)
                     model.setWorn(existing, category: item.category, on: true)
-                    if TryOnAPIKey.isConfigured {
-                        let apiKey = try model.key()
-                        try await model.refreshAvatarComposite(
-                            item: item,
-                            template: template,
-                            sourcePhoto: image,
-                            garmentCutout: await model.fittedImage(for: existing),
-                            key: apiKey,
-                            generation: generation
-                        )
-                    }
+                    model.reconcileOutfitCompositeIfNeeded()
                     return
                 }
                 model.showActivity("Refitting with updated fitting", generation: generation)
@@ -198,16 +264,8 @@ final class TryOnEditorModel {
                 if TryOnAPIKey.isConfigured,
                    let record = model.bodyPartStore.record(for: item.id), model.bodyPartStore.isCurrent(record) {
                     try await model.applyBodyPartFit(item: item, record: record, template: template, generation: generation)
-                } else if TryOnAPIKey.isConfigured {
-                    try await model.refreshAvatarComposite(
-                        item: item,
-                        template: template,
-                        sourcePhoto: image,
-                        garmentCutout: await model.fittedImage(for: prepared.asset),
-                        key: key,
-                        generation: generation
-                    )
                 }
+                model.reconcileOutfitCompositeIfNeeded()
             } else {
                 model.message = prepared.asset.validation.checks.filter { !$0.passed }.map(\.message).joined(separator: " ")
             }
@@ -259,16 +317,7 @@ final class TryOnEditorModel {
             if prepared.asset.status != .failed {
                 model.setWorn(prepared.asset, category: item.category, on: true)
                 model.message = notes.isEmpty ? nil : notes.joined(separator: " ")
-                if TryOnAPIKey.isConfigured {
-                    try await model.refreshAvatarComposite(
-                        item: item,
-                        template: template,
-                        sourcePhoto: image,
-                        garmentCutout: await model.fittedImage(for: prepared.asset),
-                        key: key,
-                        generation: generation
-                    )
-                }
+                model.reconcileOutfitCompositeIfNeeded()
             } else {
                 model.message = notes.joined(separator: " ")
             }
@@ -457,6 +506,7 @@ final class TryOnEditorModel {
         draft.updatedAt = Date()
         self.draft = draft
         persistDraft()
+        reconcileOutfitCompositeIfNeeded()
     }
 
     private func replace(_ asset: TryOnGarmentAsset) {
@@ -533,7 +583,7 @@ final class TryOnEditorModel {
             if let asset = try? await ensureBodyPartAsset(item: item, record: record, avatar: avatar, template: template) {
                 replace(asset)
                 if isWorn(record.itemId) {
-                    reconcileBodyPartCompositeIfNeeded()
+                    reconcileOutfitCompositeIfNeeded()
                 } else {
                     textureEpoch += 1
                 }
@@ -551,7 +601,7 @@ final class TryOnEditorModel {
         let asset = try await ensureBodyPartAsset(item: item, record: record, avatar: avatar, template: template)
         replace(asset)
         setWorn(asset, category: item.category, on: true)
-        try await refreshBodyPartComposite(generation: generation)
+        reconcileOutfitCompositeIfNeeded()
         textureEpoch += 1
     }
 
@@ -602,26 +652,48 @@ final class TryOnEditorModel {
 
     fileprivate func refreshBodyPartComposite(generation: Int) async throws {
         guard var draft, let avatar else { return }
-        let basePath = root.appendingPathComponent(avatar.canonicalImagePath)
-        guard let base = UIImage(contentsOfFile: basePath.path)?.cgImage else { return }
+        let bodyRelative = avatar.layers.bodyBasePath ?? avatar.canonicalImagePath
+        let bodyPath = root.appendingPathComponent(bodyRelative)
+        guard let avatarBody = UIImage(contentsOfFile: bodyPath.path)?.cgImage else { return }
         let landmarks = avatar.fittingMap.landmarks
+        let skinBase: CGImage
+        if TryOnVersions.bodyPartTileCompositingEnabled,
+           let cleared = TryOnBitmap.skinOnlyBodyPartBase(avatarBody: avatarBody, landmarks: landmarks) {
+            skinBase = cleared
+        } else {
+            skinBase = avatarBody
+        }
         var layers: [TryOnBitmap.BodyPartLayer] = []
         for id in draft.selectedGarmentIDs {
             guard draft.placement(for: id).visible,
                   let garment = garments.first(where: { $0.id == id }),
+                  garment.bodyPartGenerationVersion == TryOnVersions.bodyPartGeneration,
                   let category = ClothingCategory(rawValue: garment.sourceCategory),
                   let slot = TryOnBodySlot.slot(for: category),
                   let path = garment.bodyPartImagePath,
+                  path.contains("/body-part.png"),
                   let image = UIImage(contentsOfFile: root.appendingPathComponent(path).path)?.cgImage else {
                 continue
             }
             layers.append(TryOnBitmap.BodyPartLayer(slot: slot, image: image))
         }
+        guard !layers.isEmpty else {
+            draft.compositeImagePath = nil
+            draft.compositeBakedGarmentIDs = nil
+            draft.compositeProcessingVersion = nil
+            draft.revision += 1
+            draft.updatedAt = Date()
+            self.draft = draft
+            persistDraft()
+            textureEpoch += 1
+            return
+        }
         showActivity("Compositing body-region fits", generation: generation)
         guard let composite = TryOnBitmap.compositeBodyPartLayers(
-            base: base,
+            base: skinBase,
             landmarks: landmarks,
-            layers: layers
+            layers: layers,
+            clearSlotsBeforePaint: TryOnVersions.bodyPartTileCompositingEnabled
         ) else { return }
         let relative = try await library.saveOutfitComposite(composite, outfitID: draft.id)
         draft.compositeImagePath = relative
@@ -690,7 +762,65 @@ final class TryOnEditorModel {
         }
     }
 
+    func reconcileOutfitCompositeIfNeeded() {
+        guard let draft, let avatar else { return }
+        let visibleWorn = draft.selectedGarmentIDs.filter { id in
+            guard draft.placement(for: id).visible,
+                  let garment = garments.first(where: { $0.id == id }),
+                  garment.status == .ready || garment.status == .needsReview else { return false }
+            return true
+        }
+        if visibleWorn.isEmpty {
+            if draft.compositeImagePath != nil {
+                var cleared = draft
+                cleared.compositeImagePath = nil
+                cleared.compositeBakedGarmentIDs = nil
+                cleared.compositeProcessingVersion = nil
+                self.draft = cleared
+                persistDraft()
+                textureEpoch += 1
+            }
+            return
+        }
+        if TryOnAPIKey.isConfigured {
+            let baked = Set(draft.compositeBakedGarmentIDs ?? [])
+            let wornSet = Set(visibleWorn)
+            let staleBodyPart = draft.compositeProcessingVersion == TryOnVersions.bodyPartProcessing
+            let needsRefresh = staleBodyPart
+                || draft.compositeProcessingVersion != TryOnVersions.alignedOutfitProcessing
+                || !draft.alignedOutfitFittingActive
+                || baked != wornSet
+            guard needsRefresh else { return }
+            awaitingOutfitComposite = true
+            textureEpoch += 1
+            run("Rendering aligned outfit") { model in
+                let generation = model.activityGeneration
+                defer {
+                    model.awaitingOutfitComposite = false
+                    model.textureEpoch += 1
+                }
+                try await model.refreshAlignedOutfitComposite(generation: generation)
+            }
+            return
+        }
+        if TryOnVersions.bodyPartTileCompositingEnabled {
+            reconcileBodyPartTileCompositeIfNeeded()
+        } else if draft.bodyPartFittingActive || draft.compositeProcessingVersion == TryOnVersions.bodyPartProcessing {
+            var cleared = draft
+            cleared.compositeImagePath = nil
+            cleared.compositeBakedGarmentIDs = nil
+            cleared.compositeProcessingVersion = nil
+            self.draft = cleared
+            persistDraft()
+            textureEpoch += 1
+        }
+    }
+
     func reconcileBodyPartCompositeIfNeeded() {
+        reconcileOutfitCompositeIfNeeded()
+    }
+
+    private func reconcileBodyPartTileCompositeIfNeeded() {
         guard let draft, avatar != nil else { return }
         let wornBodyParts = draft.selectedGarmentIDs.filter { id in
             garments.contains {
@@ -706,9 +836,63 @@ final class TryOnEditorModel {
             || !draft.bodyPartFittingActive
             || baked != wornSet
         guard needsRefresh else { return }
+        awaitingOutfitComposite = true
+        textureEpoch += 1
         run("Recompositing body-region fits") { model in
             let generation = model.activityGeneration
+            defer {
+                model.awaitingOutfitComposite = false
+                model.textureEpoch += 1
+            }
             try await model.refreshBodyPartComposite(generation: generation)
+        }
+    }
+
+    fileprivate func refreshAlignedOutfitComposite(generation: Int) async throws {
+        guard var draft, let avatar else { return }
+        let wornReady = draft.selectedGarmentIDs.filter { id in
+            guard draft.placement(for: id).visible else { return false }
+            return garments.contains { $0.id == id && ($0.status == .ready || $0.status == .needsReview) }
+        }
+        guard !wornReady.isEmpty else {
+            draft.compositeImagePath = nil
+            draft.compositeBakedGarmentIDs = nil
+            draft.compositeProcessingVersion = nil
+            self.draft = draft
+            persistDraft()
+            textureEpoch += 1
+            return
+        }
+        let key = try key()
+        showActivity("Rendering aligned outfit on avatar", generation: generation)
+        do {
+            let composite = try await pipeline.composeAlignedOutfit(
+                avatar: avatar,
+                outfit: draft,
+                garments: garments,
+                key: key
+            ) { text in
+                self.showActivity(text, generation: generation)
+            }
+            let relative = try await library.saveOutfitComposite(composite, outfitID: draft.id)
+            draft.compositeImagePath = relative
+            draft.compositeProcessingVersion = TryOnVersions.alignedOutfitProcessing
+            draft.compositeBakedGarmentIDs = wornReady
+            draft.revision += 1
+            draft.updatedAt = Date()
+            self.draft = draft
+            persistDraft()
+            textureEpoch += 1
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            showActivity("Aligned outfit unavailable, using garment overlays", generation: generation)
+            draft.compositeImagePath = nil
+            draft.compositeBakedGarmentIDs = nil
+            draft.compositeProcessingVersion = nil
+            self.draft = draft
+            persistDraft()
+            textureEpoch += 1
         }
     }
 

@@ -1,11 +1,22 @@
-## Garment body-part try-on layers (November 28, 2026)
+## Try-on outfit composites (November 28, 2026)
 
-Each closet item with a `TryOnBodySlot` can cache one AI **body-region** PNG (local
-`body-parts/` plus optional `users/{uid}/garmentBodyParts/{itemId}` and Storage
-`body-part.png`). Avatar Studio and Full Screen Try On prefer these layers: the editor
-composites them over the canonical avatar (`TryOnVersions.bodyPartProcessing`) instead
-of overlay garment fits when current. Generation runs on piece save, closet reload
-backfill, and studio load; requires a canonical avatar and a configured `TryOnAPIKey`.
+**Recommended path (implemented on client):** lazy **aligned outfit** rendering — one
+OpenAI images call per worn combination when the user wears pieces or opens Full Screen Try
+On (`TryOnVersions.alignedOutfitProcessing`, `refreshAlignedOutfitComposite`). Inputs are
+the canonical avatar plus up to three worn-source references (originals, body-part cache, or
+fitted assets). Output is saved on the draft as `compositeImagePath`; cache invalidation is
+sorted visible worn garment IDs plus avatar version. Body-part PNGs remain optional **input
+references** only; `TryOnVersions.bodyPartTileCompositingEnabled` is **false**, so slot
+stacking and skin-slot baking are not the primary display path.
+
+**Later (template, not deployed):** a Firebase Callable or Storage trigger
+`onClosetItemWritten` may queue regeneration for that item against the current closet,
+capped (e.g. 20 outfits), storing metadata under
+`users/{uid}/outfitComposites/{hash}`. See [backend/functions/README.md](../backend/functions/README.md)
+and [garment-body-part.md](../backend/schemas/garment-body-part.md). Full combinatorial
+generation on every upload is explicitly **not** done on the client.
+
+Per-item **body-region** layers still cache locally/Firestore for reuse as references.
 See [garment-body-part.md](../backend/schemas/garment-body-part.md). Firestore/Storage
 rule changes are in-repo and not deployed unless published separately.
 

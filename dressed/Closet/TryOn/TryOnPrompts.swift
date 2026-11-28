@@ -187,6 +187,35 @@ enum TryOnPrompts {
         """
     }
 
+    static func alignedOutfit(
+        worn: [(slot: TryOnBodySlot, category: ClothingCategory, label: String)],
+        avatarVersion: Int
+    ) -> String {
+        let garmentLine = worn.isEmpty
+            ? "No separate garments."
+            : worn.map { "• \($0.slot.displayName): \($0.label) (\($0.category.rawValue))" }.joined(separator: "\n")
+        return """
+        TASK
+        Create one front-facing full-body stylized figure wearing every listed garment at once on the same person.
+
+        AVATAR (image 1)
+        Use the canonical avatar as the identity anchor: preserve face, hair, skin tone, body proportions, standing pose, \
+        illustration style, and line weight. Avatar version \(avatarVersion). Do not replace the person or change the pose.
+
+        WORN GARMENTS
+        Additional images are photos of a person wearing each exact piece. Match colors, patterns, logos, construction, \
+        fit, and natural drape on this avatar body. Wear all slots together — top, bottom, shoes, and headwear when listed.
+        \(garmentLine)
+
+        OUTPUT
+        One 1024 wide by 1536 tall PNG: complete dressed figure with face clearly visible, both feet on canvas, \
+        transparent background, single neutral standing pose. No text, no garment-only layers, no letterboxing or empty bands.
+
+        DO NOT
+        Return flat overlays, cropped regions, missing face, or cleared white rectangles above or below the torso.
+        """
+    }
+
     static func pose(_ pose: TryOnPose, referenceCount: Int) -> String {
         """
         Create one stylized full-body image of the same person wearing the same garments.

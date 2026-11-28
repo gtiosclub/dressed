@@ -40,7 +40,18 @@ final class GarmentBodyPartCoordinator {
 
     func backfill(items: [ClothingItem], photos: [String: UIImage]) {
         guard let tryOn else { return }
+        registerCachedBodyParts(items: items, tryOn: tryOn)
         enqueue(items, photos: photos, tryOn: tryOn)
+    }
+
+    /// Attaches saved body-part PNGs to try-on assets even when OpenAI is unavailable.
+    func registerCachedBodyParts(items: [ClothingItem], tryOn: TryOnEditorModel) {
+        for item in items {
+            guard let record = store.record(for: item.id),
+                  store.isCurrent(record),
+                  store.image(for: record) != nil else { continue }
+            tryOn.registerBodyPart(record)
+        }
     }
 
     func backfillFromCloset(items: [ClothingItem], imageLoader: @escaping (ClothingItem) -> UIImage?) {
@@ -61,6 +72,7 @@ final class GarmentBodyPartCoordinator {
     }
 
     private func enqueue(_ items: [ClothingItem], photos: [String: UIImage], tryOn: TryOnEditorModel) {
+        registerCachedBodyParts(items: items, tryOn: tryOn)
         let pending = store.itemsNeedingGeneration(from: items, avatar: tryOn.avatar)
         guard !pending.isEmpty else { return }
         Task {

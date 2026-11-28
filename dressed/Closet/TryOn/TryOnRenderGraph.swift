@@ -24,7 +24,8 @@ enum TryOnRenderGraph {
         outfit: TryOnOutfit?,
         meshes: [String: TryOnMesh],
         root: URL,
-        textureEpoch: Int
+        textureEpoch: Int,
+        suppressGarmentOverlays: Bool = false
     ) -> TryOnScene {
         guard let avatar, let outfit else { return TryOnScene(textureEpoch: textureEpoch, items: []) }
         let ready = Dictionary(uniqueKeysWithValues: garments.filter {
@@ -44,19 +45,34 @@ enum TryOnRenderGraph {
             $0.bodyPartImagePath != nil && $0.bodyPartGenerationVersion == TryOnVersions.bodyPartGeneration
         }.map(\.id)
 
-        if outfit.bodyPartFittingActive, let composite = outfit.compositeImagePath {
+        if outfit.alignedOutfitFittingActive, let composite = outfit.compositeImagePath {
             addLayer("body", composite)
+            return TryOnScene(textureEpoch: textureEpoch, items: items)
+        }
+
+        if TryOnVersions.bodyPartTileCompositingEnabled,
+           outfit.bodyPartFittingActive,
+           let composite = outfit.compositeImagePath {
+            addLayer("back-arms", avatar.layers.backArmsPath)
+            addLayer("body", composite)
+            addLayer("front-arms", avatar.layers.frontArmsPath)
             addLayer("front-hair", avatar.layers.frontHairPath)
             addLayer("face", avatar.layers.faceForegroundPath)
             return TryOnScene(textureEpoch: textureEpoch, items: items)
         }
 
-        let preferBodyPartLayers = !outfit.compositeDisplayActive && wornBodyPartIDs.isEmpty
+        let hasBodyPartLayers = !wornBodyPartIDs.isEmpty
+        let preferBodyPartLayers = TryOnVersions.bodyPartTileCompositingEnabled
+            && hasBodyPartLayers
+            && !outfit.bodyPartFittingActive
         let overlayGarments: [TryOnGarmentAsset]
-        if outfit.compositeDisplayActive {
-            overlayGarments = worn.filter { !baked.contains($0.id) }
-        } else if !wornBodyPartIDs.isEmpty {
+        let suppressTiles = suppressGarmentOverlays
+            || outfit.alignedOutfitFittingActive
+            || (TryOnVersions.bodyPartTileCompositingEnabled && (hasBodyPartLayers || outfit.bodyPartFittingActive))
+        if suppressTiles {
             overlayGarments = []
+        } else if outfit.compositeDisplayActive {
+            overlayGarments = worn.filter { !baked.contains($0.id) }
         } else {
             overlayGarments = worn
         }
@@ -71,7 +87,11 @@ enum TryOnRenderGraph {
         ))
         addLayer("back-arms", avatar.layers.backArmsPath)
         let bodyPath: String?
-        if outfit.compositeDisplayActive, let composite = outfit.compositeImagePath {
+        if TryOnVersions.bodyPartTileCompositingEnabled,
+           outfit.bodyPartFittingActive,
+           let composite = outfit.compositeImagePath {
+            bodyPath = composite
+        } else if outfit.compositeDisplayActive, let composite = outfit.compositeImagePath {
             bodyPath = composite
         } else {
             bodyPath = avatar.layers.bodyBasePath ?? avatar.canonicalImagePath
