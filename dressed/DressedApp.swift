@@ -1,10 +1,15 @@
-import FirebaseCore
 import SwiftUI
 
 // initialization of the app
 
 @main
 struct DressedApp: App {
+    @UIApplicationDelegateAdaptor(DressedAppDelegate.self) private var appDelegate
+
+    init() {
+        FirebaseBootstrap.configureIfNeeded()
+    }
+
     var body: some Scene {
         WindowGroup {
             if ProcessInfo.processInfo.arguments.contains("-recognitionLab") {
@@ -25,8 +30,5 @@ struct DressedApp: App {
                 #endif
             }
         }
-    }
-    init() {
-        FirebaseApp.configure()
     }
 }

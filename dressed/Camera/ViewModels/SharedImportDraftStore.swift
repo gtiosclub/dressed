@@ -122,7 +122,7 @@ nonisolated enum SharedImportDraftStore {
         }
         if let path = candidate.temporaryCutoutPath,
            path == "Cutouts/\(candidate.id).png",
-           let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SharedImageInbox.groupId),
+           let root = AppGroupContainer.storageRoot,
            let data = try? Data(contentsOf: root.appendingPathComponent(path)),
            UIImage(data: data) != nil {
             return data
@@ -173,8 +173,7 @@ nonisolated enum SharedImportDraftStore {
     /// Saves a piece's temporary cutout and returns the draft-relative path, or nil if it cannot be written.
     static func writeCutout(_ png: Data, for candidateID: String) -> String? {
         guard UUID(uuidString: candidateID) != nil,
-              let root = FileManager.default.containerURL(
-                forSecurityApplicationGroupIdentifier: SharedImageInbox.groupId) else { return nil }
+              let root = AppGroupContainer.storageRoot else { return nil }
         let path = "Cutouts/\(candidateID).png"
         do {
             try FileManager.default.createDirectory(at: root.appendingPathComponent("Cutouts", isDirectory: true),
@@ -187,7 +186,7 @@ nonisolated enum SharedImportDraftStore {
     }
 
     static func removeAutomaticCutouts(for candidates: [ImportCandidate]) {
-        guard let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SharedImageInbox.groupId) else {
+        guard let root = AppGroupContainer.storageRoot else {
             return
         }
         for candidate in candidates where candidate.temporaryCutoutPath == "Cutouts/\(candidate.id).png" {
@@ -197,7 +196,7 @@ nonisolated enum SharedImportDraftStore {
 
     private static func reviewFile(for id: String) throws -> URL {
         guard UUID(uuidString: id) != nil,
-              let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SharedImageInbox.groupId) else {
+              let root = AppGroupContainer.storageRoot else {
             throw SharedImportDraftError.unavailable
         }
         return root.appendingPathComponent("Reviews", isDirectory: true)

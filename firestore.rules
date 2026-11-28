@@ -18,6 +18,17 @@ service cloud.firestore {
         && item.createdAt is timestamp;
     }
 
+    function validGarmentBodyPart(uid, itemId) {
+      let row = request.resource.data;
+      return row.keys().hasAll(['id', 'ownerId', 'itemId', 'slot', 'category', 'generationVersion', 'promptVersion', 'providerVersion', 'status', 'updatedAt'])
+        && row.id == itemId && row.ownerId == uid && row.itemId == itemId
+        && row.slot in ['top', 'bottom', 'shoes', 'headwear']
+        && row.category in ['tops', 'pants', 'skirts', 'dresses', 'shoes', 'outerwear', 'accessories', 'other']
+        && row.status in ['queued', 'preparing', 'fitting', 'segmenting', 'validating', 'ready', 'retrying', 'needs_review', 'failed']
+        && row.generationVersion is string && row.promptVersion is string && row.providerVersion is string
+        && row.updatedAt is timestamp;
+    }
+
     function validOutfit(uid, outfitId) {
       let outfit = request.resource.data;
       return outfit.keys().hasAll(['id', 'schemaVersion', 'ownerId', 'placementSchemaVersion', 'placements', 'createdAt', 'updatedAt'])
@@ -194,6 +205,13 @@ service cloud.firestore {
         && resource.data.id == itemId && resource.data.ownerId == uid
         && request.resource.data.createdAt == resource.data.createdAt
         && validItem(uid, itemId);
+      allow delete: if owns(uid);
+    }
+
+    match /users/{uid}/garmentBodyParts/{itemId} {
+      allow get, list: if owns(uid);
+      allow create: if owns(uid) && validGarmentBodyPart(uid, itemId);
+      allow update: if owns(uid) && validGarmentBodyPart(uid, itemId);
       allow delete: if owns(uid);
     }
 

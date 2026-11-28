@@ -77,8 +77,7 @@ enum AutomaticImportSuggestions {
         let run = try await OnDeviceRecognitionPipeline.run(imageData: imageData, importID: importID, mode: mode,
                                                             allowsBackgroundFill: false)
         var candidates = run.candidates
-        guard let root = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: SharedImageInbox.groupId) else { return candidates }
+        guard let root = AppGroupContainer.storageRoot else { return candidates }
         let directory = root.appendingPathComponent("Cutouts", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         var created: [URL] = []

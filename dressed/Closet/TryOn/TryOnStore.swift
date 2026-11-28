@@ -60,6 +60,21 @@ actor TryOnLibrary {
         decode(TryOnMesh.self, relative: relative)
     }
 
+    func saveBodyPartGarment(_ asset: TryOnGarmentAsset, closetBodyPartFile: URL) throws -> TryOnGarmentAsset {
+        var stored = asset
+        let directory = "garments/\(asset.id)"
+        let relative = "\(directory)/body-part.png"
+        if FileManager.default.fileExists(atPath: closetBodyPartFile.path) {
+            let data = try Data(contentsOf: closetBodyPartFile)
+            try write(data, relative)
+            stored.bodyPartImagePath = relative
+            stored.bodyPartGenerationVersion = TryOnVersions.bodyPartGeneration
+        }
+        stored.updatedAt = Date()
+        try writeJSON(stored, "\(directory)/asset.json")
+        return stored
+    }
+
     func saveGarment(
         _ asset: TryOnGarmentAsset,
         fitted: CGImage?,

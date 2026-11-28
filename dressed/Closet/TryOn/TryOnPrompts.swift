@@ -147,6 +147,46 @@ enum TryOnPrompts {
         """
     }
 
+    static func bodyPartRegion(
+        slot: TryOnBodySlot,
+        category: ClothingCategory,
+        template: TryOnTemplateID,
+        sourceFit: TryOnSourceFit?,
+        hemDescription: String?
+    ) -> String {
+        let regionLine: String
+        switch slot {
+        case .top:
+            regionLine = "Paint from the base of the neck through the waist, including upper arms and sleeves."
+        case .bottom:
+            regionLine = "Paint from the waist through the ankles, including hips and legs."
+        case .shoes:
+            regionLine = "Paint both feet, ankles, and footwear only."
+        case .headwear:
+            regionLine = "Paint head, hair, and accessories on the head only."
+        }
+        let hemLine = hemDescription.map { "Hem guidance: \($0)." } ?? ""
+        let fitLine = sourceFit.map {
+            "Worn-photo bounds x \(format($0.garmentBounds.x)), y \(format($0.garmentBounds.y))."
+        } ?? ""
+        return """
+        TASK
+        Create one stylized 2D try-on layer for the \(slot.displayName) body region only.
+
+        INPUTS
+        Image 1: canonical front-facing avatar (pose, proportions, and illustration style reference only).
+        Image 2: photo of a person wearing this exact \(category.rawValue) garment.
+
+        REGION
+        \(regionLine) \(hemLine) \(fitLine)
+        Category: \(category.rawValue). Template: \(template.displayName). \(template.promptRules)
+
+        OUTPUT
+        One 1024 wide by 1536 tall PNG. Show skin and garment together in the avatar illustration style inside this region only.
+        Every pixel outside the region must be fully transparent (alpha 0). Do not draw other body slots, background, or text.
+        """
+    }
+
     static func pose(_ pose: TryOnPose, referenceCount: Int) -> String {
         """
         Create one stylized full-body image of the same person wearing the same garments.

@@ -16,7 +16,6 @@ private struct SharedLinkEnvelope: Encodable {
 }
 
 final class ShareViewController: UIViewController {
-    private let groupId = "group.com.jdayal.dresseddev"
     private let maxInputBytes = 40 * 1024 * 1024
     private let maxImageDimension: CGFloat = 2560
     private let status = UILabel()
@@ -98,7 +97,7 @@ final class ShareViewController: UIViewController {
     }
 
     private func queue(_ url: URL, ownerId: String) throws {
-        guard let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId) else {
+        guard let root = AppGroupContainer.containerURL else {
             throw CocoaError(.fileNoSuchFile)
         }
         let links = root.appendingPathComponent("Links", isDirectory: true)
@@ -187,9 +186,7 @@ final class ShareViewController: UIViewController {
     }
 
     private var activeOwnerId: String? {
-        guard let id = UserDefaults(suiteName: groupId)?.string(forKey: "activeOwnerId"),
-              !id.isEmpty else { return nil }
-        return id
+        AppGroupContainer.activeOwnerId()
     }
 
     private func finishLoading(_ jpeg: Data, ownerId: String) {
@@ -207,7 +204,7 @@ final class ShareViewController: UIViewController {
     }
 
     private func queue(_ jpeg: Data, ownerId: String) throws {
-        guard let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId) else {
+        guard let root = AppGroupContainer.containerURL else {
             throw CocoaError(.fileNoSuchFile)
         }
         let inbox = root.appendingPathComponent("Inbox", isDirectory: true)

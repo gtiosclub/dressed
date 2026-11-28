@@ -66,7 +66,7 @@ On October 16, a real public shoe photo selected from Photos on the iOS 27 simul
 
 1. Connect the iPhone to the Mac, unlock it, tap **Trust** if prompted, and enable **Developer Mode** in iPhone Settings if Xcode asks. Confirm it appears as a *physical* device with `xcrun devicectl list devices`.
 2. In Xcode, open **Xcode → Settings… → Apple Accounts**. Sign in again if the account shows **Authentication Expired**. Complete the password and two-factor prompts yourself. Open `dressed.xcodeproj` and select the connected iPhone as the run destination.
-3. Under **Signing & Capabilities**, keep **Automatically manage signing**. Use an Apple team that owns the selected app and Share Extension identifiers and the checked-in `group.com.jdayal.dresseddev` App Group. The checked-in team IDs came from the project's Xcode configuration; they are not necessarily the current app owner's Apple team. Ask the owner of an identifier for signing access only if you want to install that exact configuration.
+3. Under **Signing & Capabilities**, keep **Automatically manage signing**. Use an Apple team that owns the selected app and Share Extension identifiers and the checked-in `group.gtiosclub.dressed` App Group. The checked-in team IDs came from the project's Xcode configuration; they are not necessarily the current app owner's Apple team. Ask the owner of an identifier for signing access only if you want to install that exact configuration.
 4. Build and run from Xcode once. For a command-line build after signing works, substitute the phone's device ID:
 
    ```sh
@@ -121,6 +121,37 @@ The runner verifies the simulator name, erases that device, seeds two synthetic 
 5. Do a full rebuild for new or removed files, imports, type/property/signature changes, package or build setting changes, assets, Info.plist, extension or entitlement changes, and any edit that fails injection. Keep Xcode's compilation cache disabled for injection; this project does not explicitly enable it.
 
 `@ObserveInjection` and `.enableInjection()` come from [Inject](https://github.com/krzysztofzablocki/Inject). The app target links [InjectionNext](https://github.com/johnno1962/InjectionNext) and Inject through Swift Package Manager. `EMIT_FRONTEND_COMMAND_LINES=YES` and `-Xlinker -interposable` are set only in the app's Debug configuration. The scheme environment variable applies to Run. Release builds do not get those Debug build settings, and the packages guard injection behavior outside Debug.
+
+## Firebase, App Check, and App Group
+
+### Console noise on first launch
+
+**App Group (`group.gtiosclub.dressed`).** The prototype import inbox and Share Extension use a shared App Group. Calling `UserDefaults(suiteName:)` without a provisioned container logs `CFPrefsPlistSource` errors. The app now opens group defaults only when `FileManager.containerURL(forSecurityApplicationGroupIdentifier:)` succeeds, and falls back to an app-local Application Support inbox when the entitlement is missing (unsigned simulator, Personal Team without the group). In-app camera and photo-picker imports still queue locally; **Share to Dressed** requires both targets signed with a team that owns the App Group.
+
+**Firebase App Check.** The app links `FirebaseAppCheck`, so a provider factory must be set before `FirebaseApp.configure()` or the SDK can fall back to DeviceCheck token exchange. `FirebaseBootstrap` (`dressed/Common/Firebase/FirebaseBootstrap.swift`) configures in `DressedAppDelegate.application(_:willFinishLaunchingWithOptions:)` and `DressedApp.init()`:
+
+| Build | Behavior |
+| --- | --- |
+| **Debug** (default) | `LocalOnlyAppCheckProviderFactory` — in-memory token, no DeviceCheck or App Check API calls |
+| **Debug** + Run argument `-enableAppCheck` | `AppCheckDebugProviderFactory` before `FirebaseApp.configure()` — use when testing enforcement |
+| **Debug / Release** + `-skipAppCheck` | Same local-only provider as default Debug |
+| **Release** | `AppAttestProviderFactory` before `FirebaseApp.configure()` |
+
+**Production / maintainers (once per Firebase project `out-fitted`):**
+
+1. In [Google Cloud Console](https://console.cloud.google.com/apis/library/firebaseappcheck.googleapis.com?project=out-fitted), enable **Firebase App Check API**.
+2. In Firebase Console → App Check, register the iOS app and configure enforcement per product when ready.
+3. For simulator or `-enableAppCheck` runs, copy the **App Check debug token** from Xcode logs into Firebase Console → App Check → Manage debug tokens.
+
+Students do not need step 1–3 for routine local Auth and closet work unless they opt into `-enableAppCheck`.
+
+**GoogleUtilities App Delegate swizzler.** `DressedAppDelegate` runs `FirebaseBootstrap.configureIfNeeded()` in `willFinishLaunching`. `FirebaseAppDelegateProxyEnabled` is `NO` in `config/DevelopmentInfo.plist` and Debug/Release build settings to avoid the swizzler warning.
+
+**Safe to ignore in local dev:** InjectionNext / PointerUI / gesture-gate messages during hot reload; `nw_endpoint` TCP errors that follow a one-time Firebase failure after dismissing App Check setup.
+
+### App Group for Share Extension on a device
+
+Register `group.gtiosclub.dressed` under the Apple Developer account for **both** `gtiosclub.dressed` and the Share Extension bundle ID, with matching entitlements in signed builds. Open Dressed and sign in once so `activeOwnerId` is written to group storage before sharing from another app.
 
 ## Troubleshooting
 

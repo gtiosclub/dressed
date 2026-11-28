@@ -40,8 +40,35 @@ enum TryOnRenderGraph {
         addLayer("back-hair", avatar.layers.backHairPath)
         let worn = outfit.selectedGarmentIDs.compactMap { ready[$0] }.filter { outfit.placement(for: $0.id).visible }
         let baked = Set(outfit.compositeBakedGarmentIDs ?? [])
-        let overlayGarments = outfit.compositeDisplayActive ? worn.filter { !baked.contains($0.id) } : worn
-        items.append(contentsOf: components(overlayGarments, outfit: outfit, meshes: meshes, root: root, depth: .behindAvatar))
+        let wornBodyPartIDs = worn.filter {
+            $0.bodyPartImagePath != nil && $0.bodyPartGenerationVersion == TryOnVersions.bodyPartGeneration
+        }.map(\.id)
+
+        if outfit.bodyPartFittingActive, let composite = outfit.compositeImagePath {
+            addLayer("body", composite)
+            addLayer("front-hair", avatar.layers.frontHairPath)
+            addLayer("face", avatar.layers.faceForegroundPath)
+            return TryOnScene(textureEpoch: textureEpoch, items: items)
+        }
+
+        let preferBodyPartLayers = !outfit.compositeDisplayActive && wornBodyPartIDs.isEmpty
+        let overlayGarments: [TryOnGarmentAsset]
+        if outfit.compositeDisplayActive {
+            overlayGarments = worn.filter { !baked.contains($0.id) }
+        } else if !wornBodyPartIDs.isEmpty {
+            overlayGarments = []
+        } else {
+            overlayGarments = worn
+        }
+        items.append(contentsOf: components(
+            overlayGarments,
+            outfit: outfit,
+            meshes: meshes,
+            root: root,
+            depth: .behindAvatar,
+            landmarks: avatar.fittingMap.landmarks,
+            preferBodyPartLayers: preferBodyPartLayers
+        ))
         addLayer("back-arms", avatar.layers.backArmsPath)
         let bodyPath: String?
         if outfit.compositeDisplayActive, let composite = outfit.compositeImagePath {
@@ -50,11 +77,27 @@ enum TryOnRenderGraph {
             bodyPath = avatar.layers.bodyBasePath ?? avatar.canonicalImagePath
         }
         addLayer("body", bodyPath)
-        items.append(contentsOf: components(overlayGarments, outfit: outfit, meshes: meshes, root: root, depth: .clothing))
+        items.append(contentsOf: components(
+            overlayGarments,
+            outfit: outfit,
+            meshes: meshes,
+            root: root,
+            depth: .clothing,
+            landmarks: avatar.fittingMap.landmarks,
+            preferBodyPartLayers: preferBodyPartLayers
+        ))
         addLayer("front-arms", avatar.layers.frontArmsPath)
         addLayer("front-hair", avatar.layers.frontHairPath)
         addLayer("face", avatar.layers.faceForegroundPath)
-        items.append(contentsOf: components(overlayGarments, outfit: outfit, meshes: meshes, root: root, depth: .inFrontOfAvatar))
+        items.append(contentsOf: components(
+            overlayGarments,
+            outfit: outfit,
+            meshes: meshes,
+            root: root,
+            depth: .inFrontOfAvatar,
+            landmarks: avatar.fittingMap.landmarks,
+            preferBodyPartLayers: preferBodyPartLayers
+        ))
         return TryOnScene(textureEpoch: textureEpoch, items: items)
     }
 
@@ -72,13 +115,31 @@ enum TryOnRenderGraph {
         outfit: TryOnOutfit,
         meshes: [String: TryOnMesh],
         root: URL,
-        depth: TryOnDepthGroup
+        depth: TryOnDepthGroup,
+        landmarks: TryOnLandmarks,
+        preferBodyPartLayers: Bool
     ) -> [TryOnDrawItem] {
         var items: [TryOnDrawItem] = []
         for (index, garment) in garments.enumerated() {
             let placement = outfit.placement(for: garment.id)
             let outer = garments.dropFirst(index + 1).first
             let mesh = garment.meshPath.flatMap { meshes[$0] }
+            if preferBodyPartLayers, depth == .clothing,
+               let path = garment.bodyPartImagePath,
+               garment.bodyPartGenerationVersion == TryOnVersions.bodyPartGeneration,
+               let category = ClothingCategory(rawValue: garment.sourceCategory),
+               let slot = TryOnBodySlot.slot(for: category) {
+                let slotFrame = slot.figureFrame(landmarks: landmarks)
+                items.append(TryOnDrawItem(
+                    id: "\(garment.id)-body-part",
+                    imagePath: file(path, root),
+                    bounds: slotFrame,
+                    placement: placement,
+                    mesh: nil,
+                    garmentID: garment.id
+                ))
+                continue
+            }
             let ordered = garment.components
                 .filter { $0.depthGroup == depth }
                 .filter { component in

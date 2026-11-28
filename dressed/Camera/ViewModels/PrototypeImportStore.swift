@@ -58,6 +58,9 @@ final class PrototypeClosetStore: ObservableObject {
                 .filter { $0.ownerId == ownerId }
                 .sorted { $0.createdAt > $1.createdAt }
             error = nil
+            #if !RECOGNITION_LAB
+            scheduleBodyPartBackfill()
+            #endif
         } catch {
             self.error = "Could not load your saved pieces: \(error.localizedDescription)"
         }
@@ -111,6 +114,11 @@ final class PrototypeClosetStore: ObservableObject {
             try persist(updated)
             items = updated
             error = nil
+            #if !RECOGNITION_LAB
+            if let savedImage = UIImage(data: encoded) {
+                GarmentBodyPartCoordinator.shared(for: ownerId).itemSaved(record, image: savedImage)
+            }
+            #endif
         } catch {
             if let previousImage {
                 try previousImage.write(to: imageURL, options: .atomic)
@@ -173,6 +181,14 @@ final class PrototypeClosetStore: ObservableObject {
         try encoded.write(to: directory.appendingPathComponent("items.json"), options: .atomic)
     }
 
+    #if !RECOGNITION_LAB
+    private func scheduleBodyPartBackfill() {
+        GarmentBodyPartCoordinator.shared(for: ownerId).backfillFromCloset(items: items) { item in
+            self.image(for: item)
+        }
+    }
+    #endif
+
     private func cleanupPendingPhotoDeletes() throws {
         let imageDirectory = directory.appendingPathComponent("images", isDirectory: true)
         guard FileManager.default.fileExists(atPath: imageDirectory.path) else { return }
@@ -190,9 +206,10 @@ struct SharedImageEnvelope: Codable {
 }
 
 enum SharedImageInbox {
-    nonisolated static let groupId = "group.com.jdayal.dresseddev"
-    private static let ownerKey = "activeOwnerId"
+    nonisolated static let groupId = AppGroupContainer.groupId
     private static let draftLifetime: TimeInterval = 24 * 60 * 60
+
+    private static var storageRoot: URL? { AppGroupContainer.storageRoot }
 
     enum Next {
         case image(ReviewImage)
@@ -201,11 +218,11 @@ enum SharedImageInbox {
     }
 
     static func setActiveOwner(_ ownerId: String?) {
-        UserDefaults(suiteName: groupId)?.set(ownerId, forKey: ownerKey)
+        AppGroupContainer.setActiveOwner(ownerId)
     }
 
     static func next(for ownerId: String) -> Next {
-        guard let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId) else {
+        guard let root = storageRoot else {
             return .none
         }
         let inbox = root.appendingPathComponent("Inbox", isDirectory: true)
@@ -248,8 +265,8 @@ enum SharedImageInbox {
     /// piece review, Later and Discard handling as an image shared from another app.
     static func enqueue(imageData: Data, ownerId: String, source: String) throws -> ReviewImage {
         guard !ownerId.isEmpty, let image = UIImage(data: imageData),
-              let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId) else {
-            throw PrototypeImportError.invalidImage
+              let root = storageRoot else {
+            throw PrototypeImportError.unavailableStorage
         }
         // Normalize orientation and format: the review stores JPEG and crops in display coordinates.
         let format = UIGraphicsImageRendererFormat()
@@ -275,7 +292,7 @@ enum SharedImageInbox {
 
     static func remove(id: String) {
         guard UUID(uuidString: id) != nil else { return }
-        guard let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId) else {
+        guard let root = storageRoot else {
             return
         }
         let inbox = root.appendingPathComponent("Inbox", isDirectory: true)
@@ -296,8 +313,7 @@ enum SharedImageInbox {
     #if DEBUG
     static func seedFixture(id: String, ownerId: String, withCandidates: Bool,
                             interruptedManual: Bool = false) throws {
-        guard UUID(uuidString: id) != nil,
-              let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId) else {
+        guard UUID(uuidString: id) != nil, let root = storageRoot else {
             throw SharedImportDraftError.unavailable
         }
         let inbox = root.appendingPathComponent("Inbox", isDirectory: true)
@@ -368,7 +384,7 @@ enum SharedImageInbox {
     static func seedDemoPhoto(ownerId: String) throws {
         let id = "00000000-0000-4000-8000-00000000DE70"
         remove(id: id)
-        guard let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupId) else {
+        guard let root = storageRoot else {
             throw SharedImportDraftError.unavailable
         }
         let inbox = root.appendingPathComponent("Inbox", isDirectory: true)

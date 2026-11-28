@@ -54,6 +54,7 @@ final class SessionViewModel: ObservableObject {
     private var stopObserving: (() -> Void)?
 
     init(service: SessionService) {
+        FirebaseBootstrap.configureIfNeeded()
         self.service = service
         stopObserving = service.observe { [weak self] userId in
             self?.state = userId.map(State.signedIn) ?? .signedOut

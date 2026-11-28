@@ -14,7 +14,7 @@ import SwiftUI
 /// - Overlap: the picker appears at the opposite end of the screen from the piece being changed
 ///   (shirt -> bottom, pants and shoes -> top), so it never covers what you are editing.
 struct FullScreenTryOnView: View {
-    @Bindable var model: OutfitStudioModel
+    @ObservedObject var model: OutfitStudioModel
     @Bindable var tryOn: TryOnEditorModel
     let items: [ClothingItem]
     let image: (ClothingItem) -> Image
@@ -109,6 +109,33 @@ struct FullScreenTryOnView: View {
             }
             .overlay(alignment: .topLeading) { closeButton }
             .animation(.snappy, value: selectedZone)
+            .onAppear(perform: refreshTryOnForFullScreen)
+            .onChange(of: wornSignature) { _, _ in
+                refreshTryOnForFullScreen()
+            }
+    }
+
+    private var wornSignature: String {
+        model.worn
+            .map { "\($0.key.rawValue):\($0.value.id)" }
+            .sorted()
+            .joined(separator: "|")
+    }
+
+    /// Matches studio try-on: sync worn slots, rebake the v13 composite, and backfill body-part fits.
+    private func refreshTryOnForFullScreen() {
+        let photos = Dictionary(
+            uniqueKeysWithValues: items.compactMap { item -> (String, UIImage)? in
+                guard let photo = photo(for: item) else { return nil }
+                return (item.id, photo)
+            }
+        )
+        GarmentBodyPartCoordinator.shared(for: tryOn.closetOwnerId).backfill(items: items, photos: photos)
+        tryOn.syncWornItems(
+            worn: model.worn,
+            uiImage: { photo(for: $0) ?? uiImage?($0) },
+            avatarSource: TryOnBitmap.neutralFigure()
+        )
     }
 
     private var closeButton: some View {

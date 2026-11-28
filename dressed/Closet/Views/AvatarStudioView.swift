@@ -123,7 +123,15 @@ struct AvatarStudioView: View {
             )
         }
         .task {
+            GarmentBodyPartCoordinator.shared(for: ownerId).attach(tryOn: tryOn)
             await tryOn.begin(from: TryOnBitmap.neutralFigure())
+            let photos = Dictionary(
+                uniqueKeysWithValues: items.compactMap { item -> (String, UIImage)? in
+                    guard let photo = uiImage?(item) else { return nil }
+                    return (item.id, photo)
+                }
+            )
+            GarmentBodyPartCoordinator.shared(for: ownerId).backfill(items: items, photos: photos)
             syncFits()
         }
         .onChange(of: wornSignature) { _, _ in
@@ -168,28 +176,11 @@ struct AvatarStudioView: View {
 
     /// Keeps the generated outfit matched to the pieces selected in the studio.
     private func syncFits() {
-        let wornIDs = Set(model.worn.values.map(\.id))
-        for garment in tryOn.garments where tryOn.isWorn(garment.id) && !wornIDs.contains(garment.id) {
-            if let category = ClothingCategory(rawValue: garment.sourceCategory) {
-                tryOn.takeOff(itemID: garment.id, category: category)
-            }
-        }
-        for item in model.worn.values {
-            guard let template = TryOnTemplateID.suggested(for: item.category),
-                  let photo = uiImage?(item) else { continue }
-            if let asset = tryOn.asset(for: item.id), tryOn.garmentFitIsCurrent(asset) {
-                if !tryOn.isWorn(asset.id) {
-                    tryOn.setWorn(asset, category: item.category, on: true)
-                }
-                continue
-            }
-            tryOn.wearFromCloset(
-                item: item,
-                template: template,
-                image: photo,
-                avatarSource: TryOnBitmap.neutralFigure()
-            )
-        }
+        tryOn.syncWornItems(
+            worn: model.worn,
+            uiImage: { uiImage?($0) },
+            avatarSource: TryOnBitmap.neutralFigure()
+        )
     }
 
     private var studioTryOnContent: some View {

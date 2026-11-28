@@ -1,3 +1,14 @@
+## Garment body-part try-on layers (November 28, 2026)
+
+Each closet item with a `TryOnBodySlot` can cache one AI **body-region** PNG (local
+`body-parts/` plus optional `users/{uid}/garmentBodyParts/{itemId}` and Storage
+`body-part.png`). Avatar Studio and Full Screen Try On prefer these layers: the editor
+composites them over the canonical avatar (`TryOnVersions.bodyPartProcessing`) instead
+of overlay garment fits when current. Generation runs on piece save, closet reload
+backfill, and studio load; requires a canonical avatar and a configured `TryOnAPIKey`.
+See [garment-body-part.md](../backend/schemas/garment-body-part.md). Firestore/Storage
+rule changes are in-repo and not deployed unless published separately.
+
 ## Post photo and outfit publication (November 19, 2026)
 
 The current New post composer now requires an explicitly selected Photos image and
@@ -416,7 +427,7 @@ The current `main` working tree contains a local-only import prototype under
 `dressed/Camera/Views/PrototypeImportView.swift`, and
 `DressedShareExtension/ShareViewController.swift`. A share extension accepts one
 supported image from file, data, or UIImage share representations, converts it
-to a bounded JPEG, writes a user-bound draft into `group.com.jdayal.dresseddev`, and tells the
+to a bounded JPEG, writes a user-bound draft into `group.gtiosclub.dressed`, and tells the
 user to open Dressed. Camera and photo-library images enter the same review
 screen. Apple's on-device Vision classifier may suggest a category for one
 garment in the whole image; no-match and failure states allow manual details.
@@ -528,7 +539,7 @@ The original baseline below describes the project before #50:
 As of commit `5c10212`:
 
 - `dressed.xcodeproj` is at the repository root. Swift and assets live in `dressed/`.
-- `dressed/DressedApp.swift` configures Firebase once at launch.
+- `dressed/DressedApp.swift` calls `FirebaseBootstrap.configureIfNeeded()` once at launch (App Check providers only when enabled; see `docs/IOS_DEVELOPMENT.md`).
 - `dressed/ContentView.swift` displays `Authentication` from `dressed/firebase/AuthPage.swift`.
 - Email/password sign-in and account creation exist; success prints to the console. There is no authenticated tab shell yet.
 - Firebase packages include Core, Auth, Storage, Firestore, Database, AI and AILogic. Linking a package does not mean its service is provisioned or used.

@@ -61,9 +61,13 @@ enum TryOnJobStatus: String, Codable, Equatable {
 enum TryOnVersions {
     static let style = "closet-tryon-1"
     static let prompt = "prompt-v4"
+    static let bodyPartPrompt = "body-part-prompt-v1"
+    static let bodyPartGeneration = "body-part-v1"
     static let poseSet = "poses-v1"
     static let provider = "gpt-image-2.5-sunburst"
     static let processing = 8
+    /// Outfit composite baked from per-item body-part layers instead of overlay fitting.
+    static let bodyPartProcessing = 13
     static let maxLocalDisplacement = 0.02
 }
 
@@ -90,6 +94,71 @@ enum TryOnBodySlot: String, Codable, CaseIterable {
         case .bottom: return "bottom"
         case .shoes: return "shoes"
         case .headwear: return "headwear"
+        }
+    }
+
+    /// Normalized canvas frame for compositing a body-part PNG onto the canonical figure.
+    func figureFrame(landmarks: TryOnLandmarks) -> TryOnRect {
+        let shoulderLeft = landmarks.leftShoulderJoint?.x ?? landmarks.leftShoulderEdge?.x ?? 0.22
+        let shoulderRight = landmarks.rightShoulderJoint?.x ?? landmarks.rightShoulderEdge?.x ?? 0.78
+        let left = min(shoulderLeft, shoulderRight)
+        let right = max(shoulderLeft, shoulderRight)
+        let shoulderSpan = max(abs(right - left), 0.22)
+        let midX = (left + right) / 2
+        let horizontalPad = shoulderSpan * 0.16
+        switch self {
+        case .top:
+            let topY = min(
+                landmarks.neckCenter?.y ?? 0.14,
+                landmarks.leftShoulderJoint?.y ?? landmarks.rightShoulderJoint?.y ?? 0.16
+            ) - 0.02
+            let bottomY = max(
+                landmarks.waistCenter?.y ?? 0.48,
+                landmarks.leftHip?.y ?? landmarks.rightHip?.y ?? 0.50
+            )
+            let height = max(bottomY - topY, 0.24)
+            let width = min(max(shoulderSpan + horizontalPad * 2, 0.46), 0.92)
+            let x = min(max(midX - width / 2, 0), 1 - width)
+            let y = min(max(topY, 0), 1 - height)
+            return TryOnRect(x: x, y: y, width: width, height: height)
+        case .bottom:
+            let topY = min(
+                landmarks.waistCenter?.y ?? 0.46,
+                landmarks.leftHip?.y ?? landmarks.rightHip?.y ?? 0.48
+            ) - 0.01
+            let ankleY = max(
+                landmarks.leftAnkle?.y ?? landmarks.rightAnkle?.y ?? 0.94,
+                topY + 0.28
+            )
+            let bottomY = min(ankleY + 0.04, 0.99)
+            let hipSpan = abs((landmarks.rightHip?.x ?? right) - (landmarks.leftHip?.x ?? left))
+            let width = min(max(max(hipSpan, shoulderSpan * 0.72) + horizontalPad, 0.36), 0.78)
+            let height = max(bottomY - topY, 0.28)
+            let x = min(max(midX - width / 2, 0), 1 - width)
+            let y = min(max(topY, 0), 1 - height)
+            return TryOnRect(x: x, y: y, width: width, height: height)
+        case .shoes:
+            let kneeY = max(
+                landmarks.leftKnee?.y ?? landmarks.rightKnee?.y ?? 0.82,
+                0.78
+            )
+            let bottomY = 0.99
+            let ankleLeft = landmarks.leftAnkle?.x ?? midX - shoulderSpan * 0.22
+            let ankleRight = landmarks.rightAnkle?.x ?? midX + shoulderSpan * 0.22
+            let footSpan = max(abs(ankleRight - ankleLeft), shoulderSpan * 0.38)
+            let width = min(max(footSpan + horizontalPad * 0.5, 0.28), 0.56)
+            let height = max(bottomY - kneeY, 0.10)
+            let x = min(max(midX - width / 2, 0), 1 - width)
+            let y = min(max(kneeY, 0), 1 - height)
+            return TryOnRect(x: x, y: y, width: width, height: height)
+        case .headwear:
+            let topY = 0.04
+            let neckY = landmarks.neckCenter?.y ?? 0.18
+            let bottomY = min(neckY + 0.02, topY + 0.18)
+            let width = min(max(shoulderSpan * 0.75, 0.22), 0.50)
+            let height = max(bottomY - topY, 0.08)
+            let x = min(max(midX - width / 2, 0), 1 - width)
+            return TryOnRect(x: x, y: topY, width: width, height: height)
         }
     }
 }
@@ -309,6 +378,9 @@ struct TryOnGarmentAsset: Codable, Equatable, Identifiable {
     var avatarVersion: Int
     var originalImagePath: String
     var fittedReferencePath: String?
+    /// Full-canvas body-region layer from `GarmentBodyPartService` (primary fitting path).
+    var bodyPartImagePath: String?
+    var bodyPartGenerationVersion: String?
     var components: [TryOnGarmentComponent]
     var anchors: [String: TryOnPoint]
     var contentBounds: TryOnRect
@@ -376,11 +448,16 @@ struct TryOnOutfit: Codable, Equatable, Identifiable {
     }
 
     var compositeDisplayActive: Bool {
-        guard compositeImagePath != nil,
-              compositeProcessingVersion == TryOnVersions.processing else { return false }
+        guard compositeImagePath != nil else { return false }
+        guard compositeProcessingVersion == TryOnVersions.processing
+            || compositeProcessingVersion == TryOnVersions.bodyPartProcessing else { return false }
         let baked = Set(compositeBakedGarmentIDs ?? [])
         let worn = Set(selectedGarmentIDs)
         return !baked.isEmpty && baked.isSubset(of: worn)
+    }
+
+    var bodyPartFittingActive: Bool {
+        compositeDisplayActive && compositeProcessingVersion == TryOnVersions.bodyPartProcessing
     }
 }
 

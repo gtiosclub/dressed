@@ -204,6 +204,8 @@ actor TryOnPipeline {
             avatarVersion: avatar.version,
             originalImagePath: original,
             fittedReferencePath: nil,
+            bodyPartImagePath: nil,
+            bodyPartGenerationVersion: nil,
             components: [],
             anchors: anchors,
             contentBounds: bounds,
@@ -386,6 +388,50 @@ actor TryOnPipeline {
             saved[pose] = try await library.saveExport(generated, hash: hash, pose: pose)
         }
         return saved
+    }
+
+    func generateBodyPartRegion(
+        item: ClothingItem,
+        slot: TryOnBodySlot,
+        template: TryOnTemplateID,
+        photo: UIImage,
+        avatar: TryOnAvatar,
+        key: String,
+        progress: @escaping (String) -> Void
+    ) async throws -> CGImage {
+        progress("Generating \(slot.displayName) body region")
+        guard let source = TryOnBitmap.aspectFit(photo, canvas: .canonical) else {
+            throw TryOnImageError.emptyImage
+        }
+        guard let avatarImage = await image(at: avatar.canonicalImagePath) else {
+            throw TryOnImageError.emptyImage
+        }
+        let sourceFit = TryOnSourceFitStore.load(ownerId: ownerId, itemID: item.id)
+        let hemText = sourceFit.map {
+            TryOnSourceFit.placementHemDescription(fit: $0, category: item.category, photo: source)
+        }
+        let prompt = TryOnPrompts.bodyPartRegion(
+            slot: slot,
+            category: item.category,
+            template: template,
+            sourceFit: sourceFit,
+            hemDescription: hemText
+        )
+        let generated = try await generatedImage(
+            key: key,
+            prompt: prompt,
+            images: [try png(source), try png(avatarImage)],
+            quality: "high"
+        )
+        let keyed = TryOnBitmap.keyedIfNeeded(generated).image
+        guard TryOnBitmap.stats(of: keyed)?.opaqueFraction ?? 0 > 0.02 else {
+            throw TryOnImageError.provider("The body-region layer came back nearly empty.")
+        }
+        return keyed
+    }
+
+    func compositeFromBodyParts(base: CGImage, parts: [CGImage]) -> CGImage? {
+        TryOnBitmap.compositeLayers(base: base, overlays: parts)
     }
 
     private func aiFittedGarment(

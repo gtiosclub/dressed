@@ -14,7 +14,9 @@
 		8B87D8BD305380EC00F3CF9E /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8BC305380EC00F3CF9E /* FirebaseDatabase */; };
 		8B87D8BF305380F100F3CF9E /* FirebaseAI in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8BE305380F100F3CF9E /* FirebaseAI */; };
 		8B87D8C1305380F400F3CF9E /* FirebaseAILogic in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8C0305380F400F3CF9E /* FirebaseAILogic */; };
+		8B87D8C3305380F600F3CF9E /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = 8B87D8C2305380F600F3CF9E /* FirebaseAppCheck */; };
 		A10100000000000000000001 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10200000000000000000001 /* ShareViewController.swift */; };
+		A10E00000000000000000002 /* AppGroupContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10E00000000000000000001 /* AppGroupContainer.swift */; };
 		A10100000000000000000002 /* DressedShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A10200000000000000000004 /* DressedShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B20100000000000000000001 /* ShareImportUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20200000000000000000001 /* ShareImportUITests.swift */; };
 		B20100000000000000000003 /* NavigationUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20200000000000000000003 /* NavigationUITests.swift */; };
@@ -32,12 +34,12 @@
 		E20A00000000000000000206 /* dressed/Camera/ViewModels/RecognitionImageSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000106 /* dressed/Camera/ViewModels/RecognitionImageSession.swift */; };
 		E20A00000000000000000207 /* dressed/Camera/ViewModels/PrototypeGarmentRecognition.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000107 /* dressed/Camera/ViewModels/PrototypeGarmentRecognition.swift */; };
 		E20A00000000000000000208 /* dressed/Camera/ViewModels/OnDeviceGarmentRegions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000108 /* dressed/Camera/ViewModels/OnDeviceGarmentRegions.swift */; };
-		E20A00000000000000000219 /* dressed/Camera/ViewModels/GarmentPoseRegions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000119 /* dressed/Camera/ViewModels/GarmentPoseRegions.swift */; };
 		E20A00000000000000000209 /* dressed/Camera/ViewModels/AutomaticGarmentCutout.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000109 /* dressed/Camera/ViewModels/AutomaticGarmentCutout.swift */; };
 		E20A0000000000000000020A /* dressed/Camera/ViewModels/OnDeviceRecognitionPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A0000000000000000010A /* dressed/Camera/ViewModels/OnDeviceRecognitionPipeline.swift */; };
 		E20A0000000000000000020B /* dressed/Camera/ViewModels/RecognitionBenchmarkModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A0000000000000000010B /* dressed/Camera/ViewModels/RecognitionBenchmarkModel.swift */; };
 		E20A0000000000000000020C /* dressed/Camera/Views/RecognitionLabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A0000000000000000010C /* dressed/Camera/Views/RecognitionLabView.swift */; };
 		E20A0000000000000000020D /* dressed/Camera/ViewModels/VisionRequestRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A0000000000000000010D /* dressed/Camera/ViewModels/VisionRequestRunner.swift */; };
+		E20A00000000000000000219 /* dressed/Camera/ViewModels/GarmentPoseRegions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20A00000000000000000119 /* dressed/Camera/ViewModels/GarmentPoseRegions.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -88,6 +90,7 @@
 /* Begin PBXFileReference section */
 		8B87D86730537AB400F3CF9E /* dressed.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = dressed.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10200000000000000000001 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		A10E00000000000000000001 /* AppGroupContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppGroupContainer.swift; path = dressed/Common/AppGroupContainer.swift; sourceTree = SOURCE_ROOT; };
 		A10200000000000000000002 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A10200000000000000000003 /* DressedShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DressedShareExtension.entitlements; sourceTree = "<group>"; };
 		A10200000000000000000004 /* DressedShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DressedShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -109,12 +112,12 @@
 		E20A00000000000000000106 /* dressed/Camera/ViewModels/RecognitionImageSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/RecognitionImageSession.swift; sourceTree = SOURCE_ROOT; };
 		E20A00000000000000000107 /* dressed/Camera/ViewModels/PrototypeGarmentRecognition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/PrototypeGarmentRecognition.swift; sourceTree = SOURCE_ROOT; };
 		E20A00000000000000000108 /* dressed/Camera/ViewModels/OnDeviceGarmentRegions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/OnDeviceGarmentRegions.swift; sourceTree = SOURCE_ROOT; };
-		E20A00000000000000000119 /* dressed/Camera/ViewModels/GarmentPoseRegions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/GarmentPoseRegions.swift; sourceTree = SOURCE_ROOT; };
 		E20A00000000000000000109 /* dressed/Camera/ViewModels/AutomaticGarmentCutout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/AutomaticGarmentCutout.swift; sourceTree = SOURCE_ROOT; };
 		E20A0000000000000000010A /* dressed/Camera/ViewModels/OnDeviceRecognitionPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/OnDeviceRecognitionPipeline.swift; sourceTree = SOURCE_ROOT; };
 		E20A0000000000000000010B /* dressed/Camera/ViewModels/RecognitionBenchmarkModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/RecognitionBenchmarkModel.swift; sourceTree = SOURCE_ROOT; };
 		E20A0000000000000000010C /* dressed/Camera/Views/RecognitionLabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/Views/RecognitionLabView.swift; sourceTree = SOURCE_ROOT; };
 		E20A0000000000000000010D /* dressed/Camera/ViewModels/VisionRequestRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/VisionRequestRunner.swift; sourceTree = SOURCE_ROOT; };
+		E20A00000000000000000119 /* dressed/Camera/ViewModels/GarmentPoseRegions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dressed/Camera/ViewModels/GarmentPoseRegions.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -144,6 +147,7 @@
 				8B87D8B7305380DD00F3CF9E /* FirebaseAuth in Frameworks */,
 				8B87D8B9305380E200F3CF9E /* FirebaseStorage in Frameworks */,
 				8B87D8BF305380F100F3CF9E /* FirebaseAI in Frameworks */,
+				8B87D8C3305380F600F3CF9E /* FirebaseAppCheck in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -224,6 +228,7 @@
 		A10500000000000000000001 /* DressedShareExtension */ = {
 			isa = PBXGroup;
 			children = (
+				A10E00000000000000000001 /* AppGroupContainer.swift */,
 				A10200000000000000000001 /* ShareViewController.swift */,
 				A10200000000000000000002 /* Info.plist */,
 				A10200000000000000000003 /* DressedShareExtension.entitlements */,
@@ -303,6 +308,7 @@
 				8B87D8BC305380EC00F3CF9E /* FirebaseDatabase */,
 				8B87D8BE305380F100F3CF9E /* FirebaseAI */,
 				8B87D8C0305380F400F3CF9E /* FirebaseAILogic */,
+				8B87D8C2305380F600F3CF9E /* FirebaseAppCheck */,
 			);
 			productName = dressed;
 			productReference = 8B87D86730537AB400F3CF9E /* dressed.app */;
@@ -507,6 +513,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A10E00000000000000000002 /* AppGroupContainer.swift in Sources */,
 				A10100000000000000000001 /* ShareViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -723,6 +730,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = config/DevelopmentInfo.plist;
 				INFOPLIST_KEY_CatalogAPIBaseURL = "$(CATALOG_API_BASE_URL)";
+				INFOPLIST_KEY_FirebaseAppDelegateProxyEnabled = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos of clothing to add to your closet.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -764,6 +772,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CatalogAPIBaseURL = "$(CATALOG_API_BASE_URL)";
+				INFOPLIST_KEY_FirebaseAppDelegateProxyEnabled = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos of clothing to add to your closet.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -932,14 +941,14 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = WDRKBQFYRJ;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Dressed Speed Lab";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.jneal47.dressed.speedlab;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dressed.aditya;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -957,14 +966,14 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = WDRKBQFYRJ;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Dressed Speed Lab";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.jneal47.dressed.speedlab;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dressed.aditya;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -1107,6 +1116,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 8B87D8AF30537E5200F3CF9E /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseAILogic;
+		};
+		8B87D8C2305380F600F3CF9E /* FirebaseAppCheck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8B87D8AF30537E5200F3CF9E /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAppCheck;
 		};
 		C10300000000000000000001 /* InjectionNext */ = {
 			isa = XCSwiftPackageProductDependency;

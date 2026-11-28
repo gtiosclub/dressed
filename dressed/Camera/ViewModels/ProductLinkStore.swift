@@ -136,9 +136,7 @@ enum SharedProductLinkInbox {
     }
 
     static func next(for ownerId: String) -> Next {
-        guard let root = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: SharedImageInbox.groupId
-        ) else { return .none }
+        guard let root = AppGroupContainer.storageRoot else { return .none }
         let directory = root.appendingPathComponent("Links", isDirectory: true)
         guard let files = try? FileManager.default.contentsOfDirectory(
             at: directory, includingPropertiesForKeys: nil
@@ -170,9 +168,7 @@ enum SharedProductLinkInbox {
 
     static func remove(id: String) {
         guard UUID(uuidString: id) != nil,
-              let root = FileManager.default.containerURL(
-                forSecurityApplicationGroupIdentifier: SharedImageInbox.groupId
-              ) else { return }
+              let root = AppGroupContainer.storageRoot else { return }
         try? FileManager.default.removeItem(at: root.appendingPathComponent("Links/\(id).json"))
     }
 }

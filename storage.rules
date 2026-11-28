@@ -11,6 +11,16 @@ service firebase.storage {
       allow delete: if request.auth != null && request.auth.uid == uid;
     }
 
+    // Per-item try-on body-region PNG (GarmentBodyPartService); owner read/write only.
+    match /users/{uid}/items/{itemId}/body-part.png {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.size > 0
+        && request.resource.size <= 12 * 1024 * 1024
+        && request.resource.contentType == 'image/png';
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
     // Pending uploads are owner-only. A committed post makes its copies readable
     // to signed-in members and immutable, including for the author.
     match /posts/{uid}/{postId} {

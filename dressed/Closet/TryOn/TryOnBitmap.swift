@@ -63,6 +63,167 @@ enum TryOnBitmap {
         return aspectFit(UIImage(cgImage: image), canvas: canvas)
     }
 
+    /// Stacks transparent body-part layers over a base avatar image.
+    static func compositeLayers(base: CGImage, overlays: [CGImage], canvas: TryOnCanvas = .canonical) -> CGImage? {
+        guard overlays.isEmpty == false else { return placed(base, canvas: canvas) }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = false
+        let size = CGSize(width: canvas.width, height: canvas.height)
+        return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            if let baseImage = placed(base, canvas: canvas) {
+                UIImage(cgImage: baseImage).draw(in: CGRect(origin: .zero, size: size))
+            }
+            for overlay in overlays {
+                guard let fitted = placed(overlay, canvas: canvas) else { continue }
+                UIImage(cgImage: fitted).draw(in: CGRect(origin: .zero, size: size))
+            }
+        }.cgImage
+    }
+
+    struct BodyPartLayer: Equatable {
+        var slot: TryOnBodySlot
+        var image: CGImage
+    }
+
+    /// Maps one body-part PNG into the shared figure frame and returns a full-canvas transparent layer.
+    static func bodyPartLayerOnCanvas(
+        _ image: CGImage,
+        slot: TryOnBodySlot,
+        landmarks: TryOnLandmarks,
+        canvas: TryOnCanvas = .canonical
+    ) -> CGImage? {
+        guard let stats = stats(of: image), stats.opaqueCount > 0 else { return nil }
+        let frame = slot.figureFrame(landmarks: landmarks)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = false
+        let canvasSize = CGSize(width: canvas.width, height: canvas.height)
+        let slotRect = CGRect(
+            x: frame.x * canvasSize.width,
+            y: frame.y * canvasSize.height,
+            width: frame.width * canvasSize.width,
+            height: frame.height * canvasSize.height
+        )
+        let opaque = stats.bounds
+        let shoulderLeft = landmarks.leftShoulderJoint?.x ?? landmarks.leftShoulderEdge?.x ?? 0.22
+        let shoulderRight = landmarks.rightShoulderJoint?.x ?? landmarks.rightShoulderEdge?.x ?? 0.78
+        let shoulderSpan = max(abs(shoulderRight - shoulderLeft), 0.22)
+        let shoulderWidthPx = shoulderSpan * canvasSize.width
+        let hipLeft = landmarks.leftHip?.x ?? shoulderLeft + 0.04
+        let hipRight = landmarks.rightHip?.x ?? shoulderRight - 0.04
+        let hipWidthPx = max(abs(hipRight - hipLeft), shoulderSpan * 0.72) * canvasSize.width
+        let ankleLeft = landmarks.leftAnkle?.x ?? frame.center.x - shoulderSpan * 0.12
+        let ankleRight = landmarks.rightAnkle?.x ?? frame.center.x + shoulderSpan * 0.12
+        let footSpanPx = max(abs(ankleRight - ankleLeft), shoulderSpan * 0.38) * canvasSize.width
+
+        // Aspect-fill into the slot, but never smaller than ~90% of the slot or the figure width at that region.
+        let scaleW = slotRect.width / max(opaque.width, 1)
+        let scaleH = slotRect.height / max(opaque.height, 1)
+        let minScaleW = (slotRect.width * 0.90) / max(opaque.width, 1)
+        let minScaleH = (slotRect.height * 0.90) / max(opaque.height, 1)
+        let targetWidth: CGFloat
+        switch slot {
+        case .top:
+            targetWidth = max(slotRect.width * 0.92, shoulderWidthPx * 1.04)
+        case .bottom:
+            targetWidth = max(slotRect.width * 0.92, hipWidthPx * 1.02)
+        case .shoes:
+            targetWidth = max(slotRect.width * 0.90, footSpanPx * 1.05)
+        case .headwear:
+            targetWidth = max(slotRect.width * 0.88, shoulderWidthPx * 0.55)
+        }
+        let scaleShoulder = targetWidth / max(opaque.width, 1)
+        let scale = max(max(scaleW, scaleH), scaleShoulder, minScaleW, minScaleH)
+        let scaledImageSize = CGSize(
+            width: CGFloat(image.width) * scale,
+            height: CGFloat(image.height) * scale
+        )
+        let midlineX = (landmarks.neckCenter?.x ?? frame.center.x) * canvasSize.width
+        let drawX = midlineX - opaque.midX * scale
+        let drawY: CGFloat
+        switch slot {
+        case .shoes:
+            let feetY = max(landmarks.leftAnkle?.y ?? 0.94, landmarks.rightAnkle?.y ?? 0.94) * canvasSize.height
+            drawY = feetY - opaque.maxY * scale
+        case .top:
+            let neckY = (landmarks.neckCenter?.y ?? frame.y) * canvasSize.height
+            drawY = neckY - opaque.minY * scale
+        case .bottom:
+            let waistY = (landmarks.waistCenter?.y
+                ?? landmarks.leftHip?.y
+                ?? landmarks.rightHip?.y
+                ?? frame.y) * canvasSize.height
+            drawY = waistY - opaque.minY * scale
+        case .headwear:
+            let browY = max((landmarks.neckCenter?.y ?? 0.18) - 0.08, 0.05) * canvasSize.height
+            drawY = browY - opaque.minY * scale
+        }
+        let drawRect = CGRect(
+            x: drawX,
+            y: drawY,
+            width: scaledImageSize.width,
+            height: scaledImageSize.height
+        )
+        return UIGraphicsImageRenderer(size: canvasSize, format: format).image { context in
+            context.cgContext.clip(to: slotRect)
+            UIImage(cgImage: image).draw(in: drawRect)
+        }.cgImage
+    }
+
+    /// Composites body-part layers into one figure frame using avatar landmark slots.
+    static func compositeBodyPartLayers(
+        base: CGImage,
+        landmarks: TryOnLandmarks,
+        layers: [BodyPartLayer],
+        canvas: TryOnCanvas = .canonical
+    ) -> CGImage? {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = false
+        let size = CGSize(width: canvas.width, height: canvas.height)
+        let ordered = layers.sorted {
+            TryOnStack.rank(for: category(for: $0.slot)) < TryOnStack.rank(for: category(for: $1.slot))
+        }
+        return UIGraphicsImageRenderer(size: size, format: format).image { context in
+            if let baseImage = placed(base, canvas: canvas) {
+                UIImage(cgImage: baseImage).draw(in: CGRect(origin: .zero, size: size))
+            }
+            let cg = context.cgContext
+            for layer in ordered {
+                let frame = layer.slot.figureFrame(landmarks: landmarks)
+                let slotRect = CGRect(
+                    x: frame.x * size.width,
+                    y: frame.y * size.height,
+                    width: frame.width * size.width,
+                    height: frame.height * size.height
+                )
+                cg.saveGState()
+                cg.setBlendMode(.clear)
+                cg.fill(slotRect)
+                cg.restoreGState()
+            }
+            for layer in ordered {
+                guard let normalized = bodyPartLayerOnCanvas(
+                    layer.image,
+                    slot: layer.slot,
+                    landmarks: landmarks,
+                    canvas: canvas
+                ) else { continue }
+                UIImage(cgImage: normalized).draw(in: CGRect(origin: .zero, size: size))
+            }
+        }.cgImage
+    }
+
+    private static func category(for slot: TryOnBodySlot) -> ClothingCategory {
+        switch slot {
+        case .top: return .tops
+        case .bottom: return .pants
+        case .shoes: return .shoes
+        case .headwear: return .accessories
+        }
+    }
+
     /// Uniform horizontal scale about a canvas pixel anchor, canvas size unchanged.
     static func scaledX(
         _ image: CGImage,
