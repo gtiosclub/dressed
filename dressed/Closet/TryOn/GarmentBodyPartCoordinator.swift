@@ -104,7 +104,11 @@ final class GarmentBodyPartCoordinator {
                 avatar: avatar,
                 apiKey: apiKey,
                 progress: { progress in
-                    Task { @MainActor in tryOn.message = progress }
+                    #if DEBUG
+                    Task { @MainActor in
+                        NSLog("[TryOn] body-part %@", progress)
+                    }
+                    #endif
                 }
             )
             if let record {
@@ -130,7 +134,11 @@ final class GarmentBodyPartCoordinator {
             avatar: avatar,
             apiKey: apiKey,
             progress: { progress in
-                Task { @MainActor in self.tryOn?.message = progress }
+                #if DEBUG
+                Task { @MainActor in
+                    NSLog("[TryOn] body-part %@", progress)
+                }
+                #endif
             }
         )
         if let record {

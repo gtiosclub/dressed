@@ -74,10 +74,7 @@ final class TryOnEditorModel {
     }
 
     var isBusy: Bool {
-        #if DEBUG
-        if activity != nil { return true }
-        #endif
-        return draining
+        draining
     }
 
     /// False when a worn outfit still needs the aligned AI composite (OpenAI key required).
@@ -274,17 +271,12 @@ final class TryOnEditorModel {
             model.replace(prepared.asset)
             if prepared.asset.status != .failed {
                 model.setWorn(prepared.asset, category: item.category, on: true)
-                let review = prepared.asset.validation.checks.filter { !$0.passed }.map(\.message)
-                let hem = prepared.asset.validation.checks.first { $0.id == "source-hem" }?.message
-                model.message = review.isEmpty ? hem : review.joined(separator: " ")
                 GarmentBodyPartCoordinator.shared(for: model.ownerId).itemSaved(item, image: image)
                 if TryOnAPIKey.isConfigured,
                    let record = model.bodyPartStore.record(for: item.id), model.bodyPartStore.isCurrent(record) {
                     try await model.applyBodyPartFit(item: item, record: record, template: template, generation: generation)
                 }
                 model.reconcileOutfitCompositeIfNeeded()
-            } else {
-                model.message = prepared.asset.validation.checks.filter { !$0.passed }.map(\.message).joined(separator: " ")
             }
             model.textureEpoch += 1
         }
@@ -306,15 +298,11 @@ final class TryOnEditorModel {
             model.draft = nil
             model.ensureDraft()
             model.textureEpoch += 1
-            model.message = avatar.status == .ready
-                ? nil
-                : avatar.validation.checks.filter { !$0.passed }.map(\.message).joined(separator: " ")
         }
     }
 
     func prepare(item: ClothingItem, template: TryOnTemplateID, image: UIImage) {
         guard let avatar else {
-            message = "Create an avatar before fitting a garment."
             return
         }
         run("Fitting \(item.name)") { model in
@@ -330,13 +318,9 @@ final class TryOnEditorModel {
                 model.showActivity(text, generation: generation)
             }
             model.replace(prepared.asset)
-            let notes = prepared.asset.validation.checks.filter { !$0.passed }.map(\.message)
             if prepared.asset.status != .failed {
                 model.setWorn(prepared.asset, category: item.category, on: true)
-                model.message = notes.isEmpty ? nil : notes.joined(separator: " ")
                 model.reconcileOutfitCompositeIfNeeded()
-            } else {
-                model.message = notes.joined(separator: " ")
             }
             model.textureEpoch += 1
         }
@@ -368,7 +352,6 @@ final class TryOnEditorModel {
         draft = outfit
         selectedGarmentID = outfit.selectedGarmentIDs.last
         persistDraft()
-        message = outfit.avatarID == avatar?.id ? nil : "This outfit was saved for a different avatar. Refit its garments before wearing them."
     }
 
     func saveOutfit(name: String) {
@@ -485,7 +468,7 @@ final class TryOnEditorModel {
         #if DEBUG
         Task { @MainActor in
             guard activityGeneration == generation else { return }
-            activity = text
+            NSLog("[TryOn] %@", text)
         }
         #endif
     }
@@ -1045,7 +1028,6 @@ final class TryOnEditorModel {
                 throw CancellationError()
             } catch {
                 logCompositeError(error, context: "remote aligned outfit cache")
-                message = "Cached outfit unavailable; rendering on device."
             }
         }
 
@@ -1109,7 +1091,11 @@ final class TryOnEditorModel {
         }
         outfitCompositeOverlayFallbackKey = cacheKey
         showActivity("Using garment overlays", generation: generation)
-        message = userMessage
+        #if DEBUG
+        if !userMessage.isEmpty {
+            NSLog("[TryOn] aligned outfit fallback: %@", userMessage)
+        }
+        #endif
         draft.compositeImagePath = nil
         draft.compositeBakedGarmentIDs = nil
         draft.compositeProcessingVersion = nil
@@ -1145,7 +1131,9 @@ final class TryOnEditorModel {
                 garmentIds: wornReady,
                 avatarVersion: avatar?.version ?? 0
             )
-            message = "Saved outfit image was corrupt; using garment overlays."
+            #if DEBUG
+            NSLog("[TryOn] saved outfit image was corrupt; using garment overlays")
+            #endif
             draft.compositeImagePath = nil
             draft.compositeBakedGarmentIDs = nil
             draft.compositeProcessingVersion = nil
@@ -1190,7 +1178,7 @@ final class TryOnEditorModel {
             while !jobs.isEmpty {
                 let (label, work) = jobs.removeFirst()
                 #if DEBUG
-                activity = label
+                NSLog("[TryOn] job: %@", label)
                 #endif
                 message = nil
                 do {
@@ -1199,7 +1187,6 @@ final class TryOnEditorModel {
                     jobs.removeAll()
                     break
                 } catch {
-                    message = error.localizedDescription
                     #if DEBUG
                     let ns = error as NSError
                     NSLog(
@@ -1225,44 +1212,13 @@ final class TryOnEditorModel {
 struct TryOnFittedFigure: View {
     @Bindable var model: TryOnEditorModel
     var allowsPlacementGestures = false
-    @State private var rendererNote: String?
 
     var body: some View {
         GeometryReader { geo in
-            TryOnMetalCanvas(scene: model.scene, note: $rendererNote)
+            TryOnMetalCanvas(scene: model.scene)
                 .accessibilityIdentifier("tryon.canvas")
                 .allowsHitTesting(allowsPlacementGestures)
                 .modifier(PlacementGestures(enabled: allowsPlacementGestures, model: model, size: geo.size))
-        }
-        .overlay {
-            if model.avatar == nil && !model.isBusy {
-                Text(model.message ?? "Preparing the fitting avatar")
-                    .font(.footnote)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.secondary)
-                    .padding()
-            }
-        }
-        #if DEBUG
-        .overlay(alignment: .top) {
-            if model.isBusy, let activity = model.activity {
-                Text(activity)
-                    .font(.caption.weight(.medium))
-                    .padding(8)
-                    .background(.thinMaterial, in: Capsule())
-                    .padding(8)
-            }
-        }
-        #endif
-        .overlay(alignment: .bottom) {
-            if let message = model.message, !message.isEmpty, model.avatar == nil {
-                Text(message)
-                    .font(.caption)
-                    .multilineTextAlignment(.center)
-                    .padding(8)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10))
-                    .padding(8)
-            }
         }
     }
 }
@@ -1314,7 +1270,6 @@ struct TryOnEditorView: View {
     @State private var outfitName = ""
     @State private var photoItem: PhotosPickerItem?
     @State private var templates: [String: TryOnTemplateID] = [:]
-    @State private var rendererNote: String?
 
     init(ownerId: String, items: [ClothingItem], uiImage: ((ClothingItem) -> UIImage?)? = nil) {
         self.items = items
@@ -1325,9 +1280,6 @@ struct TryOnEditorView: View {
     var body: some View {
         VStack(spacing: 8) {
             canvas
-            if let message = model.message, !message.isEmpty {
-                Text(message).font(.footnote).foregroundStyle(.secondary).padding(.horizontal)
-            }
             controls
             wardrobe
         }
@@ -1344,30 +1296,12 @@ struct TryOnEditorView: View {
 
     private var canvas: some View {
         GeometryReader { geo in
-            TryOnMetalCanvas(scene: model.scene, note: $rendererNote)
+            TryOnMetalCanvas(scene: model.scene)
                 .accessibilityIdentifier("tryon.canvas")
                 .gesture(drag(in: geo.size))
                 .simultaneousGesture(pinch)
         }
         .frame(height: 360)
-        .overlay {
-            if model.avatar == nil {
-                Text("Create a front-facing avatar to start fitting.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        #if DEBUG
-        .overlay(alignment: .top) {
-            if model.isBusy, let activity = model.activity {
-                Text(activity)
-                    .font(.caption.weight(.medium))
-                    .padding(8)
-                    .background(.thinMaterial, in: Capsule())
-                    .padding(8)
-            }
-        }
-        #endif
     }
 
     private var controls: some View {
@@ -1430,9 +1364,6 @@ struct TryOnEditorView: View {
             Text("Dragging, scaling, and switching outfits stays on this device. Image generation runs only for a new avatar, a garment fit, or an export.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
-            if let rendererNote {
-                Text(rendererNote).font(.caption2).foregroundStyle(.secondary)
-            }
         }
         .padding(.horizontal)
     }

@@ -31,7 +31,6 @@ struct TryOnGPUUniforms {
 
 struct TryOnMetalCanvas: UIViewRepresentable {
     var scene: TryOnScene
-    @Binding var note: String?
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -56,16 +55,11 @@ struct TryOnMetalCanvas: UIViewRepresentable {
             context.coordinator.textures.removeAll()
         }
         view.setNeedsDisplay()
-        let nextNote = context.coordinator.note
-        if note != nextNote {
-            DispatchQueue.main.async { note = nextNote }
-        }
     }
 
     final class Coordinator: NSObject, MTKViewDelegate {
         var scene = TryOnScene(textureEpoch: 0, items: [])
         var loadedEpoch = -1
-        var note: String?
         var textures: [String: MTLTexture] = [:]
         private var device: MTLDevice?
         private var pipeline: MTLRenderPipelineState?
@@ -88,7 +82,9 @@ struct TryOnMetalCanvas: UIViewRepresentable {
                 let library = try device.makeLibrary(source: Self.shader, options: nil)
                 guard let vertex = library.makeFunction(name: "garment_vertex"),
                       let fragment = library.makeFunction(name: "garment_fragment") else {
-                    note = "The outfit renderer is missing a shader."
+                    #if DEBUG
+                    NSLog("[TryOn] Metal outfit renderer is missing a shader")
+                    #endif
                     return
                 }
                 let pipelineDescriptor = MTLRenderPipelineDescriptor()
@@ -103,9 +99,10 @@ struct TryOnMetalCanvas: UIViewRepresentable {
                 pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = .one
                 pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceAlpha
                 pipeline = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
-                note = nil
             } catch {
-                note = "The outfit renderer could not start."
+                #if DEBUG
+                NSLog("[TryOn] Metal outfit renderer could not start: %@", error.localizedDescription)
+                #endif
             }
         }
 
@@ -207,7 +204,6 @@ struct TryOnMetalCanvas: UIViewRepresentable {
                 #if DEBUG
                 NSLog("[TryOn] Metal skipped unreadable texture path=%@", path)
                 #endif
-                note = "Outfit image could not be displayed."
                 return nil
             }
             guard let image = UIImage(contentsOfFile: path)?.cgImage,
@@ -216,7 +212,6 @@ struct TryOnMetalCanvas: UIViewRepresentable {
                 #if DEBUG
                 NSLog("[TryOn] Metal texture upload failed path=%@", path)
                 #endif
-                note = "Outfit image could not be displayed."
                 return nil
             }
             textures[path] = texture

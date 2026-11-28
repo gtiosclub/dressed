@@ -457,11 +457,9 @@ struct FullScreenTryOnView: View {
         placed.category = category
         model.worn[category] = placed
         guard let template = TryOnTemplateID.suggested(for: category) else {
-            tryOn.message = "\(zone.singular) does not have a fitting template yet."
             return
         }
         guard let photo = photo(for: item) else {
-            tryOn.message = "This piece has no photo to fit."
             return
         }
         tryOn.wearFromCloset(
