@@ -147,8 +147,7 @@ enum TryOnRenderGraph {
             if preferBodyPartLayers, depth == .clothing,
                let path = garment.bodyPartImagePath,
                garment.bodyPartGenerationVersion == TryOnVersions.bodyPartGeneration,
-               let category = ClothingCategory(rawValue: garment.sourceCategory),
-               let slot = TryOnBodySlot.slot(for: category) {
+               let slot = garment.tryOnBodySlot {
                 let slotFrame = slot.figureFrame(landmarks: landmarks)
                 items.append(TryOnDrawItem(
                     id: "\(garment.id)-body-part",

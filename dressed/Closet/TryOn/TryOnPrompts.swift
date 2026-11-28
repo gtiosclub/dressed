@@ -89,7 +89,7 @@ enum TryOnPrompts {
         template: TryOnTemplateID,
         sourceFit: TryOnSourceFit
     ) -> String {
-        let preserveSlots = preserveCategories.compactMap(TryOnBodySlot.slot(for:))
+        let preserveSlots = preserveCategories.compactMap { TryOnBodySlot.slot(for: $0) }
         return wearOnAvatar(
             slot: slot,
             category: category,

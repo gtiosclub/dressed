@@ -14,3 +14,8 @@ struct ClothingItem: Codable, Identifiable {
     var imagePath: String
     var createdAt: Date
 }
+
+extension ClothingItem {
+    /// Scarves wear on the top body slot but stay categorized as accessories in the closet.
+    var isScarfLike: Bool { TryOnBodySlot.scarfLikeName(name) }
+}

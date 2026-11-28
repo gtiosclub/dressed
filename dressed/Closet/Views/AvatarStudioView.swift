@@ -187,13 +187,13 @@ struct AvatarStudioView: View {
         VStack(spacing: 6) {
             TryOnFittedFigure(model: tryOn, allowsPlacementGestures: true)
             .overlay(alignment: .bottomLeading) {
-                StudioUndoRedoButtons(
+                OutfitUndoRedoButtons(
                     canUndo: model.canUndo,
                     canRedo: model.canRedo,
                     undo: { model.undo(available: Set(items.map(\.id))) },
                     redo: { model.redo(available: Set(items.map(\.id))) }
                 )
-                .padding(8)
+                .padding(DSSpacing.sm)
             }
 
             // Currently worn quick chips
@@ -573,44 +573,6 @@ private struct SavedFitThumbnail: View {
             allowsInteraction: false
         )
         .allowsHitTesting(false)
-    }
-}
-
-// MARK: - Undo / Redo
-
-private struct StudioUndoRedoButtons: View {
-    let canUndo: Bool
-    let canRedo: Bool
-    let undo: () -> Void
-    let redo: () -> Void
-
-    var body: some View {
-        HStack(spacing: 10) {
-            button(
-                "TablerArrowBackUp", label: "Undo outfit change", id: "studio.undo",
-                enabled: canUndo, action: undo
-            )
-            button(
-                "TablerArrowForwardUp", label: "Redo outfit change", id: "studio.redo",
-                enabled: canRedo, action: redo
-            )
-        }
-    }
-
-    private func button(
-        _ symbol: String, label: String, id: String, enabled: Bool, action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            DSIcon(symbol, size: 20)
-                .font(.body.weight(.semibold))
-                .frame(width: 40, height: 40)
-                .background(.thinMaterial, in: Circle())
-        }
-        .buttonStyle(.plain)
-        .disabled(!enabled)
-        .opacity(enabled ? 1 : 0.4)
-        .accessibilityLabel(label)
-        .accessibilityIdentifier(id)
     }
 }
 

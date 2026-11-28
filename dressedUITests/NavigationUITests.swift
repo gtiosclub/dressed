@@ -91,7 +91,7 @@ final class NavigationUITests: XCTestCase {
 
         app.buttons["tab.avatar"].tap()
         XCTAssertTrue(app.buttons["tab.avatar"].isSelected)
-        XCTAssertTrue(app.navigationBars["Avatar Studio"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.otherElements["tryon.canvas"].waitForExistence(timeout: 10))
         allowCameraAccess()
         app.buttons["tab.camera"].tap()
         // The camera is full screen: no tab bar, and Close returns to the tab it was opened from.

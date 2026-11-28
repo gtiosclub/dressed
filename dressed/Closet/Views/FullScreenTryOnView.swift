@@ -21,26 +21,36 @@ struct FullScreenTryOnView: View {
     var uiImage: ((ClothingItem) -> UIImage?)?
     /// Kept so existing call sites can still request the flat figure. This screen draws the fitted avatar.
     var use3D: Bool = true
+    /// When true, the screen is the Avatar tab root and the close control is hidden.
+    var isTabRoot: Bool = false
 
     @Environment(\.dismiss) private var dismiss
     @State private var selectedZone: Zone?
-    @State private var bodyPartRefreshComplete = false
+    @State private var shareSnapshot: UIImage?
+
+  @State private var viewportScale: CGFloat = 1
+  @State private var viewportScaleBase: CGFloat = 1
+  @State private var viewportOffset: CGSize = .zero
+  @State private var viewportOffsetBase: CGSize = .zero
+  @State private var canvasHeight: CGFloat = 1
 
     /// Widest the figure gets is about 0.38 units (hands out to the sides, wide skirt hems); the view
     /// is 1/0.95 units tall. 0.40 leaves a little margin on top of that.
     private static let minAspect: CGFloat = 0.40
+    private static let maxViewportScale: CGFloat = 3.5
 
     // MARK: - Tap zones
 
     /// A region of the avatar you can tap, and the closet category it changes.
     private enum Zone: CaseIterable, Identifiable {
-        case shirt, pants, shoes
+        case hat, shirt, pants, shoes
 
         var id: Self { self }
 
         /// Closet categories this part of the body can wear.
         var categories: [ClothingCategory] {
             switch self {
+            case .hat: return [.accessories]
             case .shirt: return [.tops, .outerwear]
             case .pants: return [.pants, .skirts, .dresses]
             case .shoes: return [.shoes]
@@ -50,11 +60,18 @@ struct FullScreenTryOnView: View {
         var category: ClothingCategory { categories[0] }
 
         func accepts(_ item: ClothingItem) -> Bool {
-            categories.contains(item.category) || item.category == .other
+            switch self {
+            case .hat: return item.category == .accessories && !item.isScarfLike
+            case .shirt:
+                return categories.contains(item.category) || item.isScarfLike || item.category == .other
+            case .pants: return [.pants, .skirts, .dresses].contains(item.category)
+            case .shoes: return item.category == .shoes
+            }
         }
 
         var singular: String {
             switch self {
+            case .hat: return "Hat"
             case .shirt: return "Top"
             case .pants: return "Bottom"
             case .shoes: return "Shoes"
@@ -63,6 +80,7 @@ struct FullScreenTryOnView: View {
 
         var plural: String {
             switch self {
+            case .hat: return "Hats"
             case .shirt: return "Tops"
             case .pants: return "Bottoms"
             case .shoes: return "Shoes"
@@ -72,6 +90,7 @@ struct FullScreenTryOnView: View {
         /// Vertical extent of the generated figure, as a fraction of the canvas height from the top.
         var span: ClosedRange<CGFloat> {
             switch self {
+            case .hat: return 0.03...0.22
             case .shirt: return 0.14...0.52
             case .pants: return 0.48...0.90
             case .shoes: return 0.86...1
@@ -81,6 +100,7 @@ struct FullScreenTryOnView: View {
         /// Width of the tap area as a fraction of the view width.
         var width: CGFloat {
             switch self {
+            case .hat: return 0.52
             case .shirt: return 0.78
             case .pants: return 0.62
             case .shoes: return 0.46
@@ -91,30 +111,50 @@ struct FullScreenTryOnView: View {
         var panelAtTop: Bool { self != .shirt }
     }
 
+    private enum ZoomBodyRegion: String {
+        case full = "Full outfit"
+        case top = "Top"
+        case torso = "Torso"
+        case legs = "Legs"
+        case feet = "Feet"
+    }
+
     // MARK: - Body
 
     var body: some View {
         avatarArea
             .background(
-                LinearGradient(colors: [Color(white: 0.97), Color(white: 0.88)], startPoint: .top, endPoint: .bottom)
-                    .ignoresSafeArea()
+                LinearGradient(
+                    colors: [DSColor.raised, DSColor.secondaryFill],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
             )
             .overlay {
                 if let zone = selectedZone {
                     panel(for: zone)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: zone.panelAtTop ? .top : .bottom)
-                        .padding(.top, zone.panelAtTop ? 60 : 0)   // clear of the close button
-                        .padding(.bottom, zone.panelAtTop ? 0 : 8)
+                        .padding(.top, zone.panelAtTop ? 72 : 0)
+                        .padding(.bottom, zone.panelAtTop ? 0 : DSSpacing.sm)
                         .transition(.move(edge: zone.panelAtTop ? .top : .bottom).combined(with: .opacity))
                 }
             }
-            .overlay(alignment: .topLeading) { closeButton }
-            .overlay(alignment: .bottom) { bodyPartStatusBanner }
-            .animation(.snappy, value: selectedZone)
-            .task(id: wornSignature) {
-                bodyPartRefreshComplete = false
-                await refreshTryOnForFullScreen()
+            .overlay(alignment: .topLeading) {
+                if !isTabRoot {
+                    closeButton
+                }
             }
+            .overlay(alignment: .topTrailing) { topTrailingControls }
+            .overlay(alignment: .bottomLeading) { undoRedoBar }
+            .animation(.snappy, value: selectedZone)
+            .animation(.snappy, value: viewportScale)
+            .task(id: wornSignature) {
+                await refreshTryOnForFullScreen()
+                refreshShareSnapshot()
+            }
+            .onChange(of: model.canUndo) { _, _ in refreshShareSnapshot() }
+            .onChange(of: model.canRedo) { _, _ in refreshShareSnapshot() }
     }
 
     private var wornSignature: String {
@@ -123,6 +163,8 @@ struct FullScreenTryOnView: View {
             .sorted()
             .joined(separator: "|")
     }
+
+    private var itemIDs: Set<String> { Set(items.map(\.id)) }
 
     /// Matches studio try-on: sync worn slots, hydrate body-part refs, render one aligned outfit composite, then draw.
     private func refreshTryOnForFullScreen() async {
@@ -142,56 +184,94 @@ struct FullScreenTryOnView: View {
             avatarSource: TryOnBitmap.neutralFigure()
         )
         await tryOn.awaitBodyPartCompositeIdle()
-        bodyPartRefreshComplete = true
-    }
-
-    @ViewBuilder
-    private var bodyPartStatusBanner: some View {
-        if bodyPartRefreshComplete,
-           !tryOn.isBusy,
-           !tryOn.awaitingBodyPartComposite,
-           !tryOn.wornBodyPartCompositeReady {
-            Text(outfitStatusMessage)
-                .font(.caption.weight(.semibold))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(.thinMaterial, in: Capsule())
-                .padding(.bottom, 12)
-                .accessibilityIdentifier("tryon.body-part-not-ready")
-        }
-    }
-
-    private var outfitStatusMessage: String {
-        if !TryOnAPIKey.isConfigured {
-            return "Add an OpenAI key in TryOnAPIKey for aligned outfit rendering."
-        }
-        if let message = tryOn.message, !message.isEmpty {
-            return message
-        }
-        return "Outfit render not ready"
     }
 
     private var closeButton: some View {
-        Button {
-            dismiss()
-        } label: {
-            Image(systemName: "xmark")
-                .font(.headline)
-                .padding(12)
-                .background(.thinMaterial, in: Circle())
+        DSCloseButton { dismiss() }
+            .padding(.leading, DSSpacing.lg)
+            .padding(.top, DSSpacing.sm)
+    }
+
+    @ViewBuilder
+    private var topTrailingControls: some View {
+        VStack(alignment: .trailing, spacing: DSSpacing.sm) {
+            shareButton
+            if let region = zoomRegionLabel {
+                zoomRegionBadge(region)
+            }
         }
-        .buttonStyle(.plain)
-        .padding(.leading, 16)
-        .padding(.top, 8)
-        .accessibilityLabel("Close")
+        .padding(.trailing, DSSpacing.lg)
+        .padding(.top, DSSpacing.sm)
+    }
+
+    @ViewBuilder
+    private var shareButton: some View {
+        if let snapshot = shareSnapshot {
+            ShareLink(
+                item: Image(uiImage: snapshot),
+                preview: SharePreview("My outfit", image: Image(uiImage: snapshot))
+            ) {
+                DSIcon("TablerUpload", size: 22)
+                    .foregroundStyle(DSColor.iconMuted)
+                    .frame(width: 43, height: 43)
+                    .background(.thinMaterial, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Share outfit")
+            .accessibilityIdentifier("tryon.share")
+        } else {
+            Button(action: refreshShareSnapshot) {
+                DSIcon("TablerUpload", size: 22)
+                    .foregroundStyle(DSColor.iconMuted)
+                    .frame(width: 43, height: 43)
+                    .background(.thinMaterial, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .disabled(true)
+            .opacity(0.45)
+            .accessibilityLabel("Share outfit")
+            .accessibilityIdentifier("tryon.share")
+        }
+    }
+
+    private func zoomRegionBadge(_ region: ZoomBodyRegion) -> some View {
+        HStack(spacing: DSSpacing.xs) {
+            DSIcon("TablerArrowsDiagonalMinimize2", size: 14)
+            Text(region.rawValue)
+                .font(DSFont.badge.weight(.semibold))
+        }
+        .foregroundStyle(DSColor.textStrong)
+        .padding(.horizontal, DSSpacing.sm)
+        .padding(.vertical, DSSpacing.xs)
+        .background(.thinMaterial, in: Capsule())
+        .accessibilityIdentifier("tryon.zoom-region")
+        .accessibilityLabel("Zoomed in, showing \(region.rawValue)")
+    }
+
+    private var undoRedoBar: some View {
+        OutfitUndoRedoButtons(
+            canUndo: model.canUndo,
+            canRedo: model.canRedo,
+            undo: { model.undo(available: itemIDs) },
+            redo: { model.redo(available: itemIDs) }
+        )
+        .padding(DSSpacing.sm)
+    }
+
+    private var zoomRegionLabel: ZoomBodyRegion? {
+        guard viewportScale > 1.02, canvasHeight > 1 else { return nil }
+        let normalizedCenterY = 0.5 - Double(viewportOffset.height / (canvasHeight * viewportScale))
+        let y = min(max(normalizedCenterY, 0), 1)
+        if y < 0.16 { return .top }
+        if y < 0.48 { return .torso }
+        if y < 0.84 { return .legs }
+        return .feet
     }
 
     // MARK: - Avatar and tap zones
 
     private var avatarArea: some View {
         GeometryReader { geo in
-            // Never let the avatar get narrower than the figure needs; shrink its height instead.
             let height = min(geo.size.height, geo.size.width / Self.minAspect)
             let size = CGSize(width: geo.size.width, height: height)
 
@@ -201,12 +281,50 @@ struct FullScreenTryOnView: View {
 
                 ForEach(Zone.allCases) { zone in
                     zoneButton(zone, in: size)
-                    zoneChip(zone, in: size)
                 }
             }
+            .scaleEffect(viewportScale)
+            .offset(viewportOffset)
+            .gesture(viewportMagnification)
+            .simultaneousGesture(viewportPan)
             .frame(width: size.width, height: size.height)
             .frame(width: geo.size.width, height: geo.size.height)
+            .onAppear { canvasHeight = height }
+            .onChange(of: height) { _, newHeight in canvasHeight = newHeight }
         }
+    }
+
+    private var viewportMagnification: some Gesture {
+        MagnificationGesture()
+            .onChanged { value in
+                let next = viewportScaleBase * value
+                viewportScale = min(max(next, 1), Self.maxViewportScale)
+            }
+            .onEnded { _ in
+                viewportScaleBase = viewportScale
+                if viewportScale < 1.02 {
+                    withAnimation(.snappy) {
+                        viewportScale = 1
+                        viewportScaleBase = 1
+                        viewportOffset = .zero
+                        viewportOffsetBase = .zero
+                    }
+                }
+            }
+    }
+
+    private var viewportPan: some Gesture {
+        DragGesture(minimumDistance: 2)
+            .onChanged { value in
+                guard viewportScale > 1.02 else { return }
+                viewportOffset = CGSize(
+                    width: viewportOffsetBase.width + value.translation.width,
+                    height: viewportOffsetBase.height + value.translation.height
+                )
+            }
+            .onEnded { _ in
+                viewportOffsetBase = viewportOffset
+            }
     }
 
     private func toggle(_ zone: Zone) {
@@ -222,12 +340,12 @@ struct FullScreenTryOnView: View {
         return Button {
             toggle(zone)
         } label: {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(isSelected ? Color.accentColor.opacity(0.14) : Color.clear)
+            RoundedRectangle(cornerRadius: DSRadius.md)
+                .fill(isSelected ? DSColor.brand.opacity(0.14) : Color.clear)
                 .overlay {
-                    RoundedRectangle(cornerRadius: 16)
+                    RoundedRectangle(cornerRadius: DSRadius.md)
                         .strokeBorder(
-                            isSelected ? Color.accentColor : Color.clear,
+                            isSelected ? DSColor.brand : Color.clear,
                             style: StrokeStyle(lineWidth: 2, dash: [6, 4])
                         )
                 }
@@ -239,71 +357,59 @@ struct FullScreenTryOnView: View {
         .accessibilityLabel("Change \(zone.singular)")
     }
 
-    /// A small label at the right edge, level with its zone, so people can see the zones exist.
-    private func zoneChip(_ zone: Zone, in size: CGSize) -> some View {
-        let centerY = (zone.span.lowerBound + zone.span.upperBound) / 2 * size.height
-        let isSelected = selectedZone == zone
-
-        return Button {
-            toggle(zone)
-        } label: {
-            Text(zone.singular)
-                .font(.caption.weight(.semibold))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 7)
-                .foregroundStyle(isSelected ? Color.white : Color.primary)
-                .background(isSelected ? Color.accentColor : Color.clear, in: Capsule())
-                .background(.thinMaterial, in: Capsule())
-        }
-        .buttonStyle(.plain)
-        .position(x: size.width - 44, y: centerY)
-        .accessibilityHidden(true)   // the zone button already carries the label
-    }
-
     // MARK: - Picker
 
     private func panel(for zone: Zone) -> some View {
         let options = items.filter { zone.accepts($0) }
         let wornItem = wornItem(in: zone)
 
-        return VStack(alignment: .leading, spacing: 10) {
+        return VStack(alignment: .leading, spacing: DSSpacing.sm) {
             HStack {
                 Text(zone.plural)
-                    .font(.headline)
+                    .font(DSFont.bodyEmphasis)
                 Spacer()
                 if wornItem != nil {
                     Button("Take off") { clear(zone) }
-                        .font(.subheadline)
+                        .font(DSFont.body)
                 }
                 Button("Done") { selectedZone = nil }
-                    .font(.subheadline.weight(.semibold))
+                    .font(DSFont.button)
             }
 
             if options.isEmpty {
                 Text("No \(zone.plural.lowercased()) in your closet yet")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(DSFont.body)
+                    .foregroundStyle(DSColor.textMuted)
                     .frame(maxWidth: .infinity, minHeight: 96)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
+                    HStack(spacing: DSSpacing.sm) {
                         ForEach(options) { item in
                             optionButton(item)
                         }
                     }
                     .padding(.horizontal, 2)
-                    .padding(.vertical, 3)   // room for the selection outline
+                    .padding(.vertical, 3)
                 }
             }
         }
-        .padding(14)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20))
+        .padding(DSSpacing.md)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: DSRadius.md))
         .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
-        .padding(.horizontal, 12)
+        .padding(.horizontal, DSSpacing.sm)
     }
 
     private func wornItem(in zone: Zone) -> ClothingItem? {
-        zone.categories.compactMap { model.worn[$0] }.first
+        switch zone {
+        case .hat:
+            if let item = model.worn[.accessories], !item.isScarfLike { return item }
+            return nil
+        case .shirt:
+            if let scarf = model.worn[.accessories], scarf.isScarfLike { return scarf }
+            return zone.categories.compactMap { model.worn[$0] }.first
+        default:
+            return zone.categories.compactMap { model.worn[$0] }.first
+        }
     }
 
     private func photo(for item: ClothingItem) -> UIImage? {
@@ -313,11 +419,30 @@ struct FullScreenTryOnView: View {
     }
 
     private func clear(_ zone: Zone) {
-        for category in zone.categories {
-            if let worn = model.worn[category] {
-                tryOn.takeOff(itemID: worn.id, category: category)
+        switch zone {
+        case .hat:
+            if let worn = model.worn[.accessories], !worn.isScarfLike {
+                tryOn.takeOff(itemID: worn.id, category: .accessories)
+                model.worn[.accessories] = nil
             }
-            model.worn[category] = nil
+        case .shirt:
+            for category in zone.categories {
+                if let worn = model.worn[category] {
+                    tryOn.takeOff(itemID: worn.id, category: category)
+                }
+                model.worn[category] = nil
+            }
+            if let scarf = model.worn[.accessories], scarf.isScarfLike {
+                tryOn.takeOff(itemID: scarf.id, category: .accessories)
+                model.worn[.accessories] = nil
+            }
+        default:
+            for category in zone.categories {
+                if let worn = model.worn[category] {
+                    tryOn.takeOff(itemID: worn.id, category: category)
+                }
+                model.worn[category] = nil
+            }
         }
     }
 
@@ -327,7 +452,6 @@ struct FullScreenTryOnView: View {
             clear(zone)
             return
         }
-        // Clear only this body zone in the studio model; other slots (pants, shoes, etc.) stay worn.
         clear(zone)
         var placed = item
         placed.category = category
@@ -361,21 +485,48 @@ struct FullScreenTryOnView: View {
                     .scaledToFit()
                     .padding(6)
                     .frame(width: 76, height: 76)
-                    .background(Color.gray.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+                    .background(DSColor.thumbnail, in: RoundedRectangle(cornerRadius: DSRadius.md))
                     .overlay {
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(isWorn ? Color.accentColor : .clear, lineWidth: 3)
+                        RoundedRectangle(cornerRadius: DSRadius.md)
+                            .stroke(isWorn ? DSColor.brand : .clear, lineWidth: 3)
                     }
                 Text(item.name)
-                    .font(.caption2)
+                    .font(DSFont.badge)
                     .lineLimit(1)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DSColor.textMuted)
                     .frame(width: 76)
             }
         }
         .buttonStyle(.plain)
         .accessibilityLabel(item.name)
         .accessibilityAddTraits(isWorn ? .isSelected : [])
+    }
+
+    private func refreshShareSnapshot() {
+        shareSnapshot = renderOutfitShareImage()
+    }
+
+  private func renderOutfitShareImage() -> UIImage? {
+        if let draft = tryOn.draft,
+           draft.compositeDisplayActive,
+           let relative = draft.compositeImagePath {
+            let url = tryOn.root.appendingPathComponent(relative)
+            if let composite = UIImage(contentsOfFile: url.path) {
+                return composite
+            }
+        }
+        let renderer = ImageRenderer(
+            content: AvatarView(
+                look: model.look,
+                worn: model.worn,
+                image: image,
+                uiImage: uiImage,
+                use3D: false
+            )
+            .frame(width: 320, height: 480)
+        )
+        renderer.scale = 3
+        return renderer.uiImage
     }
 }
 
@@ -384,6 +535,6 @@ struct FullScreenTryOnView: View {
         model: OutfitStudioModel(),
         tryOn: TryOnEditorModel(ownerId: "preview"),
         items: ClothingItem.previewSamples,
-        image: { _ in Image(systemName: "photo") }
+        image: { _ in Image("TablerPhoto") }
     )
 }

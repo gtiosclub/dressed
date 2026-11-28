@@ -102,7 +102,7 @@ struct GarmentBodyPartStore {
     func itemsNeedingGeneration(from items: [ClothingItem], avatar: TryOnAvatar?) -> [ClothingItem] {
         let existing = Dictionary(uniqueKeysWithValues: loadAll().map { ($0.itemId, $0) })
         return items.filter { item in
-            guard item.ownerId == ownerId, TryOnBodySlot.slot(for: item.category) != nil else { return false }
+            guard item.ownerId == ownerId, TryOnBodySlot.slot(for: item) != nil else { return false }
             guard let record = existing[item.id], isCurrent(record) else { return true }
             if let avatar, record.avatarId != avatar.id || record.avatarVersion != avatar.version {
                 return true

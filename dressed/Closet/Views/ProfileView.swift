@@ -110,9 +110,21 @@ nonisolated final class OutfitStudioModel: ObservableObject {
             worn = outfit.worn
         }
     }
+
+    /// Applies a closet-based starter outfit once, with that outfit as the undo baseline.
+    func seedDefaultOutfitIfEmpty(from items: [ClothingItem]) {
+        guard worn.isEmpty else { return }
+        let seeded = OutfitDefaults.defaultWorn(from: items)
+        guard !seeded.isEmpty else { return }
+        isRestoring = true
+        worn = seeded
+        isRestoring = false
+        history = UndoHistory(initial: OutfitSnapshot(seeded))
+        refreshHistoryFlags()
+    }
 }
 
-// MARK: - Avatar Studio
+// MARK: - Avatar tab (full-screen try-on)
 
 struct ProfileView: View {
     let username: String
@@ -126,6 +138,8 @@ struct ProfileView: View {
     let onSignOut: () -> Void
 
     let uiImage: ((ClothingItem) -> UIImage?)?
+
+    @State private var tryOn: TryOnEditorModel
 
     init(
         username: String,
@@ -148,20 +162,25 @@ struct ProfileView: View {
         self.onSignOut = onSignOut
         self.image = image
         self.uiImage = uiImage
+        _tryOn = State(initialValue: TryOnEditorModel(ownerId: username))
+    }
+
+    private var wornSignature: String {
+        model.worn
+            .map { "\($0.key.rawValue):\($0.value.id)" }
+            .sorted()
+            .joined(separator: "|")
     }
 
     var body: some View {
-        NavigationStack {
-            AvatarStudioView(
-                model: model,
-                closet: closet,
-                items: items,
-                outfits: outfits,
-                image: image,
-                uiImage: uiImage,
-                ownerId: username
-            )
-        }
+        FullScreenTryOnView(
+            model: model,
+            tryOn: tryOn,
+            items: items,
+            image: image,
+            uiImage: uiImage,
+            isTabRoot: true
+        )
         .alert(
             "Avatar not saved",
             isPresented: Binding(
@@ -173,6 +192,30 @@ struct ProfileView: View {
         } message: {
             Text(model.lookSaveError ?? "Please try again.")
         }
+        .task {
+            model.seedDefaultOutfitIfEmpty(from: items)
+            GarmentBodyPartCoordinator.shared(for: username).attach(tryOn: tryOn)
+            await tryOn.begin(from: TryOnBitmap.neutralFigure())
+            let photos = Dictionary(
+                uniqueKeysWithValues: items.compactMap { item -> (String, UIImage)? in
+                    guard let photo = uiImage?(item) else { return nil }
+                    return (item.id, photo)
+                }
+            )
+            GarmentBodyPartCoordinator.shared(for: username).backfill(items: items, photos: photos)
+            syncFits()
+        }
+        .onChange(of: wornSignature) { _, _ in
+            syncFits()
+        }
+    }
+
+    private func syncFits() {
+        tryOn.syncWornItems(
+            worn: model.worn,
+            uiImage: { uiImage?($0) },
+            avatarSource: TryOnBitmap.neutralFigure()
+        )
     }
 }
 

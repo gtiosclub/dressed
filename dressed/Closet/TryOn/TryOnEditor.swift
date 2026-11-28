@@ -73,7 +73,12 @@ final class TryOnEditorModel {
         )
     }
 
-    var isBusy: Bool { activity != nil }
+    var isBusy: Bool {
+        #if DEBUG
+        if activity != nil { return true }
+        #endif
+        return draining
+    }
 
     /// False when a worn outfit still needs the aligned AI composite (OpenAI key required).
     var wornBodyPartCompositeReady: Bool {
@@ -81,8 +86,7 @@ final class TryOnEditorModel {
         let slotGarmentIDs = draft.selectedGarmentIDs.filter { id in
             guard let garment = garments.first(where: { $0.id == id }),
                   draft.placement(for: id).visible,
-                  let category = ClothingCategory(rawValue: garment.sourceCategory),
-                  TryOnBodySlot.slot(for: category) != nil else { return false }
+                  garment.tryOnBodySlot != nil else { return false }
             return true
         }
         guard !slotGarmentIDs.isEmpty else { return true }
@@ -478,10 +482,12 @@ final class TryOnEditorModel {
     }
 
     nonisolated fileprivate func showActivity(_ text: String, generation: Int) {
+        #if DEBUG
         Task { @MainActor in
             guard activityGeneration == generation else { return }
             activity = text
         }
+        #endif
     }
 
     private func toggleWorn(_ asset: TryOnGarmentAsset, category: ClothingCategory) {
@@ -492,11 +498,10 @@ final class TryOnEditorModel {
             if selectedGarmentID == asset.id { selectedGarmentID = nil }
             invalidateComposite(&draft, removedGarmentID: asset.id)
         } else {
-            if let slot = TryOnBodySlot.slot(for: category) {
+            if let slot = TryOnBodySlot.slot(for: category, name: asset.sourceName) {
                 let evicted = draft.selectedGarmentIDs.filter { id in
-                    guard id != asset.id, let other = garments.first(where: { $0.id == id }),
-                          let otherCategory = ClothingCategory(rawValue: other.sourceCategory) else { return false }
-                    return TryOnBodySlot.slot(for: otherCategory) == slot
+                    guard id != asset.id, let other = garments.first(where: { $0.id == id }) else { return false }
+                    return other.tryOnBodySlot == slot
                 }
                 for id in evicted {
                     draft.selectedGarmentIDs.removeAll { $0 == id }
@@ -649,6 +654,7 @@ final class TryOnEditorModel {
             meshPath: existing?.meshPath,
             occlusionPath: existing?.occlusionPath,
             sourceCategory: item.category.rawValue,
+            sourceName: item.name,
             processingVersion: TryOnVersions.bodyPartProcessing,
             styleVersion: TryOnVersions.style,
             promptVersion: TryOnVersions.bodyPartPrompt,
@@ -681,8 +687,7 @@ final class TryOnEditorModel {
             guard draft.placement(for: id).visible,
                   let garment = garments.first(where: { $0.id == id }),
                   garment.bodyPartGenerationVersion == TryOnVersions.bodyPartGeneration,
-                  let category = ClothingCategory(rawValue: garment.sourceCategory),
-                  let slot = TryOnBodySlot.slot(for: category),
+                  let slot = garment.tryOnBodySlot,
                   let path = garment.bodyPartImagePath,
                   path.contains("/body-part.png"),
                   let image = UIImage(contentsOfFile: root.appendingPathComponent(path).path)?.cgImage else {
@@ -789,8 +794,7 @@ final class TryOnEditorModel {
             guard draft.placement(for: id).visible,
                   let garment = garments.first(where: { $0.id == id }),
                   garment.status == .ready || garment.status == .needsReview,
-                  let category = ClothingCategory(rawValue: garment.sourceCategory),
-                  TryOnBodySlot.slot(for: category) != nil else { return false }
+                  garment.tryOnBodySlot != nil else { return false }
             return true
         }
     }
@@ -1185,7 +1189,9 @@ final class TryOnEditorModel {
             let generation = activityGeneration
             while !jobs.isEmpty {
                 let (label, work) = jobs.removeFirst()
+                #if DEBUG
                 activity = label
+                #endif
                 message = nil
                 do {
                     try await work(self)
@@ -1237,17 +1243,19 @@ struct TryOnFittedFigure: View {
                     .padding()
             }
         }
+        #if DEBUG
         .overlay(alignment: .top) {
-            if model.isBusy {
-                Text(model.activity ?? "Working")
+            if model.isBusy, let activity = model.activity {
+                Text(activity)
                     .font(.caption.weight(.medium))
                     .padding(8)
                     .background(.thinMaterial, in: Capsule())
                     .padding(8)
             }
         }
+        #endif
         .overlay(alignment: .bottom) {
-            if let message = model.message, !message.isEmpty, model.avatar != nil || model.isBusy {
+            if let message = model.message, !message.isEmpty, model.avatar == nil {
                 Text(message)
                     .font(.caption)
                     .multilineTextAlignment(.center)
@@ -1349,15 +1357,17 @@ struct TryOnEditorView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        #if DEBUG
         .overlay(alignment: .top) {
-            if model.isBusy {
-                Text(model.activity ?? "Working")
+            if model.isBusy, let activity = model.activity {
+                Text(activity)
                     .font(.caption.weight(.medium))
                     .padding(8)
                     .background(.thinMaterial, in: Capsule())
                     .padding(8)
             }
         }
+        #endif
     }
 
     private var controls: some View {

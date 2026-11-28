@@ -27,7 +27,7 @@ actor GarmentBodyPartService {
         apiKey: String,
         progress: @escaping @Sendable (String) -> Void
     ) async -> GarmentBodyPartRecord? {
-        guard let slot = TryOnBodySlot.slot(for: item.category) else { return nil }
+        guard let slot = TryOnBodySlot.slot(for: item) else { return nil }
         if let existing = store.record(for: item.id), store.isCurrent(existing),
            existing.avatarId == avatar.id, existing.avatarVersion == avatar.version {
             return existing

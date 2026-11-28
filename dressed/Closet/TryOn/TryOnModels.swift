@@ -82,14 +82,25 @@ enum TryOnBodySlot: String, Codable, CaseIterable {
     case shoes
     case headwear
 
-    static func slot(for category: ClothingCategory) -> TryOnBodySlot? {
+    static func slot(for category: ClothingCategory, name: String? = nil) -> TryOnBodySlot? {
         switch category {
         case .tops, .outerwear: return .top
         case .pants, .skirts, .dresses: return .bottom
         case .shoes: return .shoes
-        case .accessories: return .headwear
+        case .accessories:
+            if let name, scarfLikeName(name) { return .top }
+            return .headwear
         case .other: return nil
         }
+    }
+
+    static func slot(for item: ClothingItem) -> TryOnBodySlot? {
+        slot(for: item.category, name: item.name)
+    }
+
+    static func scarfLikeName(_ name: String) -> Bool {
+        let words = name.lowercased().split { !$0.isLetter }
+        return words.contains("scarf") || words.contains("shawl")
     }
 
     var displayName: String {
@@ -392,6 +403,8 @@ struct TryOnGarmentAsset: Codable, Equatable, Identifiable {
     var meshPath: String?
     var occlusionPath: String?
     var sourceCategory: String
+    /// Closet display name when the asset was fitted; used for scarf vs hat slot resolution.
+    var sourceName: String?
     var processingVersion: Int
     var styleVersion: String
     var promptVersion: String
@@ -401,6 +414,11 @@ struct TryOnGarmentAsset: Codable, Equatable, Identifiable {
     var validation: TryOnValidationReport
     var createdAt: Date
     var updatedAt: Date
+
+    var tryOnBodySlot: TryOnBodySlot? {
+        guard let category = ClothingCategory(rawValue: sourceCategory) else { return nil }
+        return TryOnBodySlot.slot(for: category, name: sourceName)
+    }
 }
 
 struct TryOnGarmentPlacement: Codable, Equatable {

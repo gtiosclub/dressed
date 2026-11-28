@@ -22,9 +22,9 @@ enum TryOnTemplateID: String, Codable, CaseIterable, Identifiable {
     /// A starting template from the category already stored on the closet item.
     static func suggested(for category: ClothingCategory) -> TryOnTemplateID? {
         switch category {
-        case .tops: return .tShirt
+        case .tops, .accessories: return .tShirt
         case .outerwear: return .openJacket
-        case .pants: return .trousers
+        case .pants, .skirts, .dresses, .shoes: return .trousers
         default: return nil
         }
     }

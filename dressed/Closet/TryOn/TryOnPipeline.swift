@@ -223,6 +223,7 @@ actor TryOnPipeline {
             meshPath: meshPath,
             occlusionPath: nil,
             sourceCategory: item.category.rawValue,
+            sourceName: item.name,
             processingVersion: TryOnVersions.processing,
             styleVersion: TryOnVersions.style,
             promptVersion: TryOnVersions.prompt,
@@ -279,7 +280,7 @@ actor TryOnPipeline {
         key: String,
         progress: @escaping (String) -> Void
     ) async throws -> CGImage {
-        guard let slot = TryOnBodySlot.slot(for: item.category) else {
+        guard let slot = TryOnBodySlot.slot(for: item) else {
             throw TryOnImageError.provider("This category does not map to a try-on body slot.")
         }
         guard let sourceFit = TryOnSourceFitStore.load(ownerId: ownerId, itemID: item.id) else {
@@ -309,7 +310,7 @@ actor TryOnPipeline {
                   outfit.placement(for: id).visible,
                   garment.status == .ready || garment.status == .needsReview,
                   let category = ClothingCategory(rawValue: garment.sourceCategory),
-                  let otherSlot = TryOnBodySlot.slot(for: category),
+                  let otherSlot = garment.tryOnBodySlot,
                   otherSlot != slot else { continue }
             if !preserveCategories.contains(category) { preserveCategories.append(category) }
             preserveNames.append(category.rawValue.capitalized)
@@ -457,7 +458,7 @@ actor TryOnPipeline {
                   let garment = garments.first(where: { $0.id == id }),
                   garment.status == .ready || garment.status == .needsReview,
                   let category = ClothingCategory(rawValue: garment.sourceCategory),
-                  let slot = TryOnBodySlot.slot(for: category) else { continue }
+                  let slot = garment.tryOnBodySlot else { continue }
             worn.append(WornPiece(
                 slot: slot,
                 category: category,
